@@ -24,6 +24,7 @@ model User {
   updatedAt       DateTime  @updatedAt @map("updated_at") @db.Timestamptz
 
   sessions Session[]
+  projects Project[]
 
   @@index([deletedAt], map: "idx_users_deleted_at")
   @@index([email], map: "idx_users_email")
@@ -63,4 +64,54 @@ model RefreshToken {
   @@index([tokenHash], map: "idx_refresh_tokens_token_hash")
   @@index([sessionId], map: "idx_refresh_tokens_session_id")
   @@map("refresh_tokens")
+}
+
+enum KeyType {
+  SECRET
+  PUBLISHABLE
+
+  @@map("key_type")
+}
+
+enum Environment {
+  TEST
+  LIVE
+
+  @@map("environment")
+}
+
+model Project {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String   @map("name")
+  userId    String   @map("user_id") @db.Uuid
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  apiKeys ApiKey[]
+
+  @@index([userId], map: "idx_projects_user_id")
+  @@map("projects")
+}
+
+model ApiKey {
+  id          String      @id @default(uuid()) @db.Uuid
+  projectId   String      @map("project_id") @db.Uuid
+  keyType     KeyType     @map("key_type")
+  environment Environment @map("environment")
+  keyPrefix   String      @map("key_prefix")
+  keyHash     String      @unique @map("key_hash")
+  isActive    Boolean     @default(true) @map("is_active")
+  lastUsedAt  DateTime?   @map("last_used_at") @db.Timestamptz
+  revokedAt   DateTime?   @map("revoked_at") @db.Timestamptz
+  createdAt   DateTime    @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime    @updatedAt @map("updated_at") @db.Timestamptz
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId], map: "idx_api_keys_project_id")
+  @@index([keyHash], map: "idx_api_keys_key_hash")
+  @@index([keyPrefix], map: "idx_api_keys_key_prefix")
+  @@map("api_keys")
 }

@@ -16,7 +16,12 @@ const TYPES = {
   SessionRepository: Symbol.for("SessionRepository"),
   RefreshTokenRepository: Symbol.for("RefreshTokenRepository"),
 
+  // Project types
+  ProjectController: Symbol.for("ProjectController"),
+  ProjectRouter: Symbol.for("ProjectRouter"),
+  ProjectService: Symbol.for("ProjectService"),
+  ProjectRepository: Symbol.for("ProjectRepository"),
 };
 
-
 export default TYPES;
+

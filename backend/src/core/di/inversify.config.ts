@@ -19,6 +19,12 @@ import AuthService from "@/modules/auth/auth.service";
 import SessionRepository from "@/modules/auth/repository/session.repository";
 import RefreshTokenRepository from "@/modules/auth/repository/refresh-token.repository";
 
+// Projects
+import ProjectController from "@/modules/projects/project.controller";
+import ProjectRouter from "@/modules/projects/project.router";
+import ProjectService from "@/modules/projects/project.service";
+import ProjectRepository from "@/modules/projects/repository/project.repository";
+
 const container = new Container();
 
 // Util bindings
@@ -44,5 +50,15 @@ container
 container
   .bind<RefreshTokenRepository>(TYPES.RefreshTokenRepository)
   .to(RefreshTokenRepository);
+
+// Project bindings
+container
+  .bind<ProjectController>(TYPES.ProjectController)
+  .to(ProjectController);
+container.bind<ProjectRouter>(TYPES.ProjectRouter).to(ProjectRouter);
+container.bind<ProjectService>(TYPES.ProjectService).to(ProjectService);
+container
+  .bind<ProjectRepository>(TYPES.ProjectRepository)
+  .to(ProjectRepository);
 
 export default container;
