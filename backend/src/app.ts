@@ -4,7 +4,8 @@ import container from "@/core/di/inversify.config";
 import TYPES from "@/core/di/inversify.types";
 import AuthRouter from "@/modules/auth/auth.router";
 import UserRouter from "@/modules/user/user.router";
-import ProjectRouter from "@/modules/projects/project.router";
+import MerchantRouter from "@/modules/merchant/merchant.router";
+import ApiKeyRouter from "@/modules/api-keys/router/api-key.router";
 import handleError from "@/shared/middleware/error-handler.middleware";
 
 const app = express();
@@ -23,8 +24,11 @@ app.use("/api/auth", authRouter.router);
 const userRouter = container.get<UserRouter>(TYPES.UserRouter);
 app.use("/api/user", userRouter.router);
 
-const projectRouter = container.get<ProjectRouter>(TYPES.ProjectRouter);
-app.use("/api/projects", projectRouter.router);
+const merchantRouter = container.get<MerchantRouter>(TYPES.MerchantRouter);
+app.use("/api/merchants", merchantRouter.router);
+
+const apiKeyRouter = container.get<ApiKeyRouter>(TYPES.ApiKeyRouter);
+app.use("/api/api-keys", apiKeyRouter.router);
 
 // Error handler (must be last)
 app.use(handleError);

@@ -10,7 +10,7 @@ export default class ApiKeyUtil {
   generateApiKey(type: ApiKeyType, environment: ApiKeyEnvironment) {
     const random = crypto.randomBytes(32).toString("base64url");
 
-    return `${type}_${environment}_${random}`;
+    return `${type.toLocaleLowerCase()}_${environment.toLowerCase()}_${random}`;
   }
   hashApiKey(key: string): string {
     return crypto.createHash("sha256").update(key).digest("hex");

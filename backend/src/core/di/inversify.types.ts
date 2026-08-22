@@ -16,11 +16,19 @@ const TYPES = {
   SessionRepository: Symbol.for("SessionRepository"),
   RefreshTokenRepository: Symbol.for("RefreshTokenRepository"),
 
-  // Project types
-  ProjectController: Symbol.for("ProjectController"),
-  ProjectRouter: Symbol.for("ProjectRouter"),
-  ProjectService: Symbol.for("ProjectService"),
-  ProjectRepository: Symbol.for("ProjectRepository"),
+  // Merchant types
+  MerchantController: Symbol.for("MerchantController"),
+  MerchantRouter: Symbol.for("MerchantRouter"),
+  MerchantService: Symbol.for("MerchantService"),
+  MerchantRepository: Symbol.for("MerchantRepository"),
+
+  // Api Key types
+  ApiKeyController: Symbol.for("ApiKeyController"),
+  ApiKeyRouter: Symbol.for("ApiKeyRouter"),
+  BaseApiKeyRouter: Symbol.for("BaseApiKeyRouter"),
+  ApiKeyService: Symbol.for("ApiKeyService"),
+  ApiKeyRepository: Symbol.for("ApiKeyRepository"),
+  ApiKeyUtil: Symbol.for("ApiKeyUtil"),
 };
 
 export default TYPES;
