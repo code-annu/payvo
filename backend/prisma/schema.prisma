@@ -23,8 +23,8 @@ model User {
   createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz
   updatedAt       DateTime  @updatedAt @map("updated_at") @db.Timestamptz
 
-  sessions Session[]
-  projects Project[]
+  sessions  Session[]
+  merchants Merchant[]
 
   @@index([deletedAt], map: "idx_users_deleted_at")
   @@index([email], map: "idx_users_email")
@@ -66,6 +66,22 @@ model RefreshToken {
   @@map("refresh_tokens")
 }
 
+model Merchant {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  apiKeys      ApiKey[]
+  payments     Payment[]
+  transactions Transaction[]
+
+  @@index([userId], map: "idx_merchants_user_id")
+  @@map("merchants")
+}
+
 enum KeyType {
   SECRET
   PUBLISHABLE
@@ -80,24 +96,9 @@ enum Environment {
   @@map("environment")
 }
 
-model Project {
-  id        String   @id @default(uuid()) @db.Uuid
-  name      String   @map("name")
-  userId    String   @map("user_id") @db.Uuid
-  isActive  Boolean  @default(true) @map("is_active")
-  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz
-
-  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  apiKeys ApiKey[]
-
-  @@index([userId], map: "idx_projects_user_id")
-  @@map("projects")
-}
-
 model ApiKey {
   id          String      @id @default(uuid()) @db.Uuid
-  projectId   String      @map("project_id") @db.Uuid
+  merchantId  String      @map("merchant_id") @db.Uuid
   keyType     KeyType     @map("key_type")
   environment Environment @map("environment")
   keyPrefix   String      @map("key_prefix")
@@ -108,10 +109,96 @@ model ApiKey {
   createdAt   DateTime    @default(now()) @map("created_at") @db.Timestamptz
   updatedAt   DateTime    @updatedAt @map("updated_at") @db.Timestamptz
 
-  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  merchant Merchant @relation(fields: [merchantId], references: [id], onDelete: Cascade)
 
-  @@index([projectId], map: "idx_api_keys_project_id")
+  @@index([merchantId], map: "idx_api_keys_merchant_id")
   @@index([keyHash], map: "idx_api_keys_key_hash")
   @@index([keyPrefix], map: "idx_api_keys_key_prefix")
   @@map("api_keys")
+}
+
+enum PaymentStatus {
+  CREATED
+  REQUIRES_ACTION
+  PROCESSING
+  SUCCESS
+  FAILED
+  EXPIRED
+  CANCELLED
+
+  @@map("payment_status")
+}
+
+enum PaymentAttemptStatus {
+  CREATED
+  PROCESSING
+  SUCCEED
+  FAILED
+  EXPIRED
+  CANCELLED
+
+  @@map("payment_attempt_status")
+}
+
+model Payment {
+  id                    String        @id @default(uuid()) @db.Uuid
+  merchantId            String        @map("merchant_id") @db.Uuid
+  customerId            String        @map("customer_id") @db.Uuid
+  orderId               String        @map("order_id") @db.Uuid
+  idempotencyKey        String        @map("idempotency_key")
+  status                PaymentStatus @default(CREATED) @map("status")
+  amount                Decimal       @map("amount") @db.Decimal(19, 4)
+  currency              String        @map("currency") @db.Char(3)
+  description           String?       @map("description")
+  providerTransactionId String?       @map("provider_transaction_id") @db.VarChar(255)
+  failureCode           String?       @map("failure_code") @db.VarChar(100)
+  failureMessage        String?       @map("failure_message")
+  paidAt                DateTime?     @map("paid_at") @db.Timestamptz
+  expiresAt             DateTime?     @map("expires_at") @db.Timestamptz
+  createdAt             DateTime      @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt             DateTime      @updatedAt @map("updated_at") @db.Timestamptz
+
+  merchant    Merchant         @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  attempts    PaymentAttempt[]
+  transaction Transaction?
+
+  @@unique([merchantId, idempotencyKey], map: "uq_payments_merchant_idempotency")
+  @@index([merchantId], map: "idx_payments_merchant_id")
+  @@index([customerId], map: "idx_payments_customer_id")
+  @@index([orderId], map: "idx_payments_order_id")
+  @@index([status], map: "idx_payments_status")
+  @@map("payments")
+}
+
+model PaymentAttempt {
+  id            String               @id @default(uuid()) @db.Uuid
+  paymentId     String               @map("payment_id") @db.Uuid
+  attemptNumber Int                  @map("attempt_number")
+  status        PaymentAttemptStatus @default(CREATED) @map("status")
+  startedAt     DateTime?            @map("started_at") @db.Timestamptz
+  completedAt   DateTime?            @map("completed_at") @db.Timestamptz
+  expiresAt     DateTime?            @map("expires_at") @db.Timestamptz
+  createdAt     DateTime             @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt     DateTime             @updatedAt @map("updated_at") @db.Timestamptz
+
+  payment Payment @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+
+  @@index([paymentId], map: "idx_payment_attempts_payment_id")
+  @@index([status], map: "idx_payment_attempts_status")
+  @@map("payment_attempts")
+}
+
+model Transaction {
+  id         String   @id @default(uuid()) @db.Uuid
+  merchantId String   @map("merchant_id") @db.Uuid
+  paymentId  String   @unique @map("payment_id") @db.Uuid
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt  DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  merchant Merchant @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  payment  Payment  @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+
+  @@index([merchantId], map: "idx_transactions_merchant_id")
+  @@index([paymentId], map: "idx_transactions_payment_id")
+  @@map("transactions")
 }

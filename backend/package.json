@@ -4,9 +4,12 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "tsx watch src/server.ts",
-    "prisma:gen": "npx prisma generate"
+    "prisma:gen": "npx prisma generate",
+    "test": "npx vitest run",
+    "test:auth": "npx vitest run src/modules/auth/auth.service.test.ts & npx vitest run test/integration/auth",
+    "test:merchant": "npx vitest run src/modules/merchant/merchant.service.test.ts & npx vitest run test/integration/merchant",
+    "test:api-key": "npx vitest run src/modules/api-keys/api-key.service.test.ts & npx vitest run test/integration/api-key"
   },
   "keywords": [],
   "author": "",
