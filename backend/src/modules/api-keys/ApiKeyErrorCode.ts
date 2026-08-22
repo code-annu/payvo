@@ -1,0 +1,7 @@
+enum ApiKeyErrorCode {
+  API_KEY_NOT_FOUND = "API_KEY_NOT_FOUND",
+  API_KEY_ALREADY_REVOKED = "API_KEY_ALREADY_REVOKED",
+  API_KEY_INACTIVE = "API_KEY_INACTIVE",
+}
+
+export default ApiKeyErrorCode;
