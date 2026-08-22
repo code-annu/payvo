@@ -12,7 +12,7 @@ export default abstract class AuthHelper {
     authUser: AuthUser;
     cookies: any;
   }> {
-    const email = `test_${Date.now()}_${Math.random().toString(36).substring(2, 7)}@example.com`;
+    const email = `test_${crypto.randomUUID()}@example.com`;
     const password = "Peter@1234";
     await UserFactory.createUser(email, password);
     const response = await request(app)

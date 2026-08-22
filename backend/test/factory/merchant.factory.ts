@@ -1,24 +1,22 @@
 import { prisma } from "@/core/prisma/prisma.client";
 import crypto from "crypto";
 
-export default abstract class ProjectFactory {
-  static async createProject(
+export default abstract class MerchantFactory {
+  static async createMerchant(
     userId: string,
-    name: string = "Test Project",
     isActive: boolean = true,
   ) {
-    const project = await prisma.project.create({
+    const merchant = await prisma.merchant.create({
       data: {
         userId,
-        name,
         isActive,
       },
     });
-    return project;
+    return merchant;
   }
 
   static async createApiKey(
-    projectId: string,
+    merchantId: string,
     overrides: {
       keyType?: "SECRET" | "PUBLISHABLE";
       environment?: "TEST" | "LIVE";
@@ -31,7 +29,7 @@ export default abstract class ProjectFactory {
   ) {
     const apiKey = await prisma.apiKey.create({
       data: {
-        projectId,
+        merchantId,
         keyType: overrides.keyType ?? "SECRET",
         environment: overrides.environment ?? "TEST",
         keyPrefix: overrides.keyPrefix ?? "sk_test_",
@@ -44,4 +42,3 @@ export default abstract class ProjectFactory {
     return apiKey;
   }
 }
-
