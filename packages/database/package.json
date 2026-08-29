@@ -1,0 +1,34 @@
+{
+  "name": "@payvo/database",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "cp:contract": "node -e \"require('fs').cpSync('src/prisma/contract.d.ts','dist/prisma/contract.d.ts')\"",
+    "watch:contract": "chokidar \"src/prisma/contract.d.ts\" -c \"npm run cp:contract\"",
+    "dev": "concurrently \"tsc -w\" \"npm run cp:contract && npm run watch:contract\"",
+    "build": "tsc",
+    "contract:emit": "prisma contract emit"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "devDependencies": {
+    "@prisma/cli-engine": "0.2.3",
+    "@types/node": "^26.4.0",
+    "chokidar-cli": "^3.0.0",
+    "concurrently": "^10.0.5",
+    "prisma": "8.0.0-rc.10"
+  },
+  "dependencies": {
+    "@prisma/orm-postgres": "8.0.0-rc.8",
+    "dotenv": "^17.4.2"
+  }
+}
