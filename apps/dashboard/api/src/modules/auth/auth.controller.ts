@@ -4,7 +4,7 @@ import AuthService from "./auth.service.js";
 import catchAsync from "@/core/handlers/async.catch.js";
 import { Request, Response } from "express";
 import ClientInfoUtil from "@/core/util/client.util.js";
-import { StatusCode } from "@payvo/shared/api";
+import { buildSuccessResponse, StatusCode } from "@payvo/shared/api";
 import { REFRESH_TOKEN_COOKIE } from "@/core/config/cookie.js";
 import { AuthRequest } from "@/core/middleware/authenticate.middleware.js";
 
@@ -21,6 +21,17 @@ export default class AuthController {
       ...body,
       ...this.clientUtil.getClientInfo(req),
     });
+
+    const response = buildSuccessResponse({
+      user: {
+        id: user.id,
+        fullname: user.fullname,
+        companyName: user.companyName,
+        isEmailVerified: user.isEmailVerified,
+        createdAt: user.createdAt,
+      },
+      accessToken,
+    });
     res
       .status(StatusCode.Success.CREATED)
       .cookie(
@@ -28,20 +39,7 @@ export default class AuthController {
         refreshToken,
         REFRESH_TOKEN_COOKIE.OPTIONS,
       )
-      .json({
-        success: true,
-        data: {
-          user: {
-            id: user.id,
-            fullname: user.fullname,
-            companyName: user.companyName,
-            isEmailVerified: user.isEmailVerified,
-            createdAt: user.createdAt,
-          },
-          accessToken,
-          refreshToken,
-        },
-      });
+      .json(response);
   });
 
   postLogin = catchAsync(async (req: Request, res: Response) => {
@@ -50,6 +48,16 @@ export default class AuthController {
       ...body,
       ...this.clientUtil.getClientInfo(req),
     });
+    const response = buildSuccessResponse({
+      user: {
+        id: user.id,
+        fullname: user.fullname,
+        companyName: user.companyName,
+        isEmailVerified: user.isEmailVerified,
+        createdAt: user.createdAt,
+      },
+      accessToken,
+    });
     res
       .status(StatusCode.Success.OK)
       .cookie(
@@ -57,20 +65,7 @@ export default class AuthController {
         refreshToken,
         REFRESH_TOKEN_COOKIE.OPTIONS,
       )
-      .json({
-        success: true,
-        data: {
-          user: {
-            id: user.id,
-            fullname: user.fullname,
-            companyName: user.companyName,
-            isEmailVerified: user.isEmailVerified,
-            createdAt: user.createdAt,
-          },
-          accessToken,
-          refreshToken,
-        },
-      });
+      .json(response);
   });
 
   postRotateToken = catchAsync(async (req: Request, res: Response) => {
@@ -84,12 +79,7 @@ export default class AuthController {
         newRefreshToken,
         REFRESH_TOKEN_COOKIE.OPTIONS,
       )
-      .json({
-        success: true,
-        data: {
-          accessToken: newAccessToken,
-        },
-      });
+      .json(buildSuccessResponse({ accessToken: newAccessToken }));
   });
 
   postLogout = catchAsync(async (req: AuthRequest, res: Response) => {
