@@ -24,12 +24,14 @@ export default class UserRepository {
   }
 
   async updateUser(id: string, updates: UserUpdateInput): Promise<User | null> {
-    const user = await db.orm.public.User.where({ id }).update(updates);
+    const user = await db.orm.public.User.where({ id, deletedAt: null }).update(
+      updates,
+    );
     return user ? this.mapper.toUserEntity(user) : null;
   }
 
   async softDeleteUser(id: string) {
-    await db.orm.public.User.where({ id }).update({
+    await db.orm.public.User.where({ id, deletedAt: null }).update({
       deletedAt: new Date().toISOString(),
     });
   }
