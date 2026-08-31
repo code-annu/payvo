@@ -1,0 +1,11 @@
+import ENV from "./env.js";
+
+export const jwtConfig = {
+  ACCESS_TOKEN: {
+    EXPIRY_MINUTE: ENV.ACCESS_TOKEN_EXPIRY_MIN,
+    SECRET: ENV.ACCESS_TOKEN_SECRET,
+  },
+  REFRESH_TOKEN: {
+    EXPIRY_DAYS: ENV.REFRESH_TOKEN_EXPIRY_DAYS,
+  },
+};
