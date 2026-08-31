@@ -1,0 +1,14 @@
+.vscode
+.env
+node_modules
+dist
+**/prisma/contract.d.ts
+**/prisma/contract.json
+**/migrations
+
+# src/prisma/contract.json linguist-generated
+# src/prisma/contract.d.ts linguist-generated
+# src/prisma/ops.json linguist-generated
+# src/prisma/migration.json linguist-generated
+# migrations/snapshots/**/contract.json linguist-generated
+# migrations/snapshots/**/contract.d.ts linguist-generated
