@@ -2,11 +2,7 @@
   "name": "payvo",
   "version": "1.0.0",
   "private": true,
-  "scripts": {
-    "test": "vitest",
-    "test:dashboard-api": "vitest --project dashboard-api",
-    "test:clean": "vitest clean"
-  },
+  "scripts": {},
   "keywords": [],
   "author": "",
   "license": "ISC",
@@ -21,7 +17,6 @@
   "type": "module",
   "devDependencies": {
     "tsx": "^4.23.12",
-    "typescript": "^7.0.2",
-    "vitest": "^4.1.11"
+    "typescript": "^7.0.2"
   }
 }

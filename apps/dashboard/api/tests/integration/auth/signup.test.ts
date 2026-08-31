@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import request from "supertest";
-import app from "../../src/app.js";
-import cleanup from "../helper/cleanup.js";
+import app from "../../../src/app.js";
+import cleanup from "../../helper/cleanup.js";
 
 describe("POST /api/auth/signup", () => {
   beforeEach(async () => {
@@ -48,7 +48,7 @@ describe("POST /api/auth/signup", () => {
       .send(validBody)
       .expect(201);
 
-    const cookies: string[] = res.headers["set-cookie"] as any ?? [];
+    const cookies: string[] = (res.headers["set-cookie"] as any) ?? [];
     const refreshCookie = cookies.find((c: string) =>
       c.startsWith("refreshToken="),
     );

@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import request from "supertest";
-import app from "../../src/app.js";
-import cleanup from "../helper/cleanup.js";
+import app from "../../../src/app.js";
+import cleanup from "../../helper/cleanup.js";
 
 describe("POST /api/auth/login", () => {
   beforeEach(async () => {
