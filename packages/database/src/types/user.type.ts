@@ -10,6 +10,3 @@ export type UserCreateInput = Pick<
 export type UserUpdateInput = Partial<
   Pick<UserCreateInput, "fullname" | "companyName">
 >;
-
-
-

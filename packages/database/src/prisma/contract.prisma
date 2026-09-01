@@ -50,3 +50,39 @@ model Merchant {
   @@index([userId], map: "idx_merchants_user_id")
   @@map("merchants")
 }
+
+
+enum Environment {
+  TEST
+  LIVE
+
+  @@map("environment")
+}
+
+enum ApiKeyStatus {
+  ACTIVE
+  REVOKED
+
+  @@map("api_key_status")
+}
+
+model ApiKey {
+  id          String      @id @default(uuid()) 
+  merchantId  String      @map("merchant_id") 
+  keyId       String      @unique @map("key_id")
+  secretHash  String      @map("secret_hash")
+  environment Environment @map("environment")
+  status      ApiKeyStatus     @default(ACTIVE) @map("status")
+  deactivatedAt TimestamptzString? @map("deactivated_at")
+  revokedAt   TimestamptzString?   @map("revoked_at") 
+  lastUsedAt  TimestamptzString?   @map("last_used_at") 
+  createdAt   TimestamptzString    @default(now()) @map("created_at") 
+  updatedAt   temporal.updatedAtString()    @map("updated_at") 
+
+  merchant Merchant @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+
+  @@index([merchantId], map: "idx_api_keys_merchant_id")
+  @@index([merchantId, environment],map: "idx_api_keys_merchant_id_environment")
+  @@index([merchantId, environment, status],map: "idx_api_keys_merchant_id_environment_status")
+  @@map("api_keys")
+}
