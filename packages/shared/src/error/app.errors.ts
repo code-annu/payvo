@@ -1,4 +1,4 @@
-import { StatusCode } from "../api/StatusCode.js";
+import { StatusCode } from "../http/StatusCode.js";
 import { AppError } from "./AppError.js";
 import AppErrorCode from "./AppErrorCode.js";
 

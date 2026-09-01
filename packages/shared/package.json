@@ -12,30 +12,40 @@
   "license": "ISC",
   "type": "module",
   "exports": {
-    "./api": {
-      "types": "./dist/api/index.d.ts",
-      "import": "./dist/api/index.js"
+    "./auth/jwt": {
+      "types": "./dist/auth/jwt/index.d.ts",
+      "import": "./dist/auth/jwt/index.js"
+    },
+    "./auth/refresh-token": {
+      "types": "./dist/auth/refresh-token/index.d.ts",
+      "import": "./dist/auth/refresh-token/index.js"
+    },
+    "./crypto": {
+      "types": "./dist/crypto/index.d.ts",
+      "import": "./dist/crypto/index.js"
+    },
+    "./http": {
+      "types": "./dist/http/index.d.ts",
+      "import": "./dist/http/index.js"
     },
     "./error": {
       "types": "./dist/error/index.d.ts",
       "import": "./dist/error/index.js"
     },
-    "./jwt": {
-      "types": "./dist/jwt/index.d.ts",
-      "import": "./dist/jwt/index.js"
-    },
-    "./password-hash": {
-      "types": "./dist/password-hash/index.d.ts",
-      "import": "./dist/password-hash/index.js"
+    "./api-key": {
+      "types": "./dist/api-key/index.d.ts",
+      "import": "./dist/api-key/index.js"
     }
   },
   "dependencies": {
-    "bcrypt": "^6.0.0",
+    "argon2": "^0.45.1",
     "date-fns": "^4.4.0",
+    "jose": "^6.2.10",
     "jsonwebtoken": "^9.0.3"
   },
   "devDependencies": {
     "@types/bcrypt": "^6.0.0",
-    "@types/jsonwebtoken": "^9.0.10"
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/node": "^26.4.0"
   }
 }
