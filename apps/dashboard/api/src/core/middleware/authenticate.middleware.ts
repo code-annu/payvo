@@ -1,18 +1,16 @@
 import { NextFunction, Request, Response } from "express";
-import { JWTPayloadType, JWTService } from "@payvo/shared/jwt";
 import {
   InvalidAccessTokenError,
   MissingAccessTokenError,
 } from "@/modules/auth/error/auth.errors.js";
 import { jwtConfig } from "@payvo/config";
+import { AccessTokenPayload, verifyAccessToken } from "@payvo/shared/auth/jwt";
 
 export interface AuthRequest extends Request {
-  auth?: JWTPayloadType;
+  auth?: AccessTokenPayload;
 }
 
-const jwtService = new JWTService();
-
-export default function authenticateUser(
+export default async function authenticateUser(
   req: AuthRequest,
   _res: Response,
   next: NextFunction,
@@ -23,7 +21,7 @@ export default function authenticateUser(
   }
   const token = authHeader.substring("Bearer ".length).trim();
   try {
-    const payload = jwtService.verifyAccessToken<JWTPayloadType>(
+    const payload = await verifyAccessToken(
       token,
       jwtConfig.ACCESS_TOKEN.SECRET,
     );

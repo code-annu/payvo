@@ -4,6 +4,7 @@ import container from "./core/di/inversify.config.js";
 import TYPES from "./core/di/inversify.types.js";
 import AuthRouter from "./modules/auth/auth.router.js";
 import UserRouter from "./modules/user/user.router.js";
+import MerchantRouter from "./modules/merchant/merchant.router.js";
 import handleError from "./core/middleware/error-handler.middleware.js";
 
 const app: Express = express();
@@ -16,9 +17,11 @@ app.use("/health", (_, res) => {
 
 const authRouter = container.get<AuthRouter>(TYPES.AuthRouter);
 const userRouter = container.get<UserRouter>(TYPES.UserRouter);
+const merchantRouter = container.get<MerchantRouter>(TYPES.MerchantRouter);
 
 app.use("/api/auth", authRouter.router);
 app.use("/api/users", userRouter.router);
+app.use("/api/merchants", merchantRouter.router);
 
 app.use(handleError);
 

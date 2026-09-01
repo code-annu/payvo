@@ -3,8 +3,6 @@ import { inject, injectable } from "inversify";
 import SessionRepository from "./repository/session.repository.js";
 import UserRepository from "../user/repository/user.repository.js";
 import { SignupDto } from "./dto/SignupDto.js";
-import { JWTService } from "@payvo/shared/jwt";
-import { PasswordHashService } from "@payvo/shared/password-hash";
 import {
   EmailAlreadyExistsError,
   ExpiredSessionError,
@@ -14,6 +12,13 @@ import {
 } from "./error/auth.errors.js";
 import { jwtConfig } from "@payvo/config";
 import { LoginDto } from "./dto/LoginDto.js";
+import { hashPassword, verifyPassword } from "@payvo/shared/crypto";
+import {
+  generateRefreshToken,
+  hashRefreshToken,
+} from "@payvo/shared/auth/refresh-token";
+import { addDays } from "date-fns";
+import { signAccessToken } from "@payvo/shared/auth/jwt";
 
 @injectable()
 export default class AuthService {
@@ -21,9 +26,6 @@ export default class AuthService {
     @inject(TYPES.SessionRepository)
     private readonly sessionRepo: SessionRepository,
     @inject(TYPES.UserRepository) private readonly userRepo: UserRepository,
-    @inject(TYPES.JWTService) private readonly jwtService: JWTService,
-    @inject(TYPES.PasswordHashService)
-    private readonly passwordHashService: PasswordHashService,
   ) {}
 
   async signup(input: SignupDto) {
@@ -34,60 +36,58 @@ export default class AuthService {
       );
     }
 
-    const passwordHash = await this.passwordHashService.hashPassword(
-      input.password,
-    );
+    const passwordHash = await hashPassword(input.password);
     const user = await this.userRepo.createUser({
       email: input.email,
       passwordHash,
       fullname: input.fullname,
       companyName: input.companyName || null,
     });
-    const refreshToken = this.jwtService.generateRefreshToken({
-      expiresInDays: jwtConfig.REFRESH_TOKEN.EXPIRY_DAYS,
-    });
+    const token = generateRefreshToken();
 
     const session = await this.sessionRepo.createSession({
       userId: user.id,
-      tokenHash: this.jwtService.hashToken(refreshToken.token),
+      tokenHash: hashRefreshToken(token),
       userAgent: input.userAgent ?? null,
       ipAddress: input.ipAddress ?? null,
-      expiresAt: refreshToken.expiresAt.toISOString(),
+      expiresAt: addDays(
+        new Date(),
+        jwtConfig.REFRESH_TOKEN.EXPIRY_DAYS,
+      ).toISOString(),
     });
 
-    const accessToken = this.jwtService.generateAccessToken(
+    const accessToken = await signAccessToken(
       { sid: session.id, sub: user.id },
       {
         secret: jwtConfig.ACCESS_TOKEN.SECRET,
         expiresInMinute: jwtConfig.ACCESS_TOKEN.EXPIRY_MINUTE,
       },
     );
-    return { user, session, refreshToken, accessToken };
+    return { user, session, refreshToken: token, accessToken };
   }
 
   async login(input: LoginDto) {
     const user = await this.userRepo.findUserByEmail(input.email);
     if (
       !user ||
-      !(await this.passwordHashService.comparePassword(
-        input.password,
-        user.passwordHash,
-      )) ||
+      !(await verifyPassword(input.password, user.passwordHash)) ||
       user.deletedAt
     ) {
       throw new InvalidCredentialsError("Invalid email or password");
     }
-    const refreshToken = this.jwtService.generateRefreshToken({
-      expiresInDays: jwtConfig.REFRESH_TOKEN.EXPIRY_DAYS,
-    });
+    const refreshToken = generateRefreshToken();
+
     const session = await this.sessionRepo.createSession({
       userId: user.id,
-      tokenHash: this.jwtService.hashToken(refreshToken.token),
+      tokenHash: hashRefreshToken(refreshToken),
       userAgent: input.userAgent ?? null,
       ipAddress: input.ipAddress ?? null,
-      expiresAt: refreshToken.expiresAt.toISOString(),
+      expiresAt: addDays(
+        new Date(),
+        jwtConfig.REFRESH_TOKEN.EXPIRY_DAYS,
+      ).toISOString(),
     });
-    const accessToken = this.jwtService.generateAccessToken(
+    const accessToken = await signAccessToken(
       { sid: session.id, sub: user.id },
       {
         secret: jwtConfig.ACCESS_TOKEN.SECRET,
@@ -99,7 +99,7 @@ export default class AuthService {
 
   async rotateToken(refreshToken: string) {
     const session = await this.sessionRepo.findSessionByTokenHash(
-      this.jwtService.hashToken(refreshToken),
+      hashRefreshToken(refreshToken),
     );
     if (!session) throw new InvalidRefreshTokenError();
     if (session.expiresAt <= new Date()) throw new ExpiredSessionError();
@@ -108,15 +108,16 @@ export default class AuthService {
     if (session.user.deletedAt) {
       throw new InvalidCredentialsError("Invalid refresh token");
     }
-    const newRefreshToken = this.jwtService.generateRefreshToken({
-      expiresInDays: jwtConfig.REFRESH_TOKEN.EXPIRY_DAYS,
-    });
+    const newRefreshToken = generateRefreshToken();
 
     await this.sessionRepo.updateSession(session.id, {
-      tokenHash: this.jwtService.hashToken(newRefreshToken.token),
-      expiresAt: newRefreshToken.expiresAt.toISOString(),
+      tokenHash: hashRefreshToken(newRefreshToken),
+      expiresAt: addDays(
+        new Date(),
+        jwtConfig.REFRESH_TOKEN.EXPIRY_DAYS,
+      ).toISOString(),
     });
-    const newAccessToken = this.jwtService.generateAccessToken(
+    const newAccessToken = await signAccessToken(
       { sid: session.id, sub: session.user.id },
       {
         secret: jwtConfig.ACCESS_TOKEN.SECRET,

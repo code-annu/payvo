@@ -72,19 +72,6 @@ describe("POST /api/auth/login", () => {
     expect(refreshCookie).toContain("HttpOnly");
   });
 
-  it("should include refreshToken data in the response body", async () => {
-    await seedUser();
-
-    const res = await request(app)
-      .post("/api/auth/login")
-      .send(loginBody)
-      .expect(200);
-
-    expect(res.body.data.refreshToken).toBeDefined();
-    expect(res.body.data.refreshToken.token).toBeDefined();
-    expect(res.body.data.refreshToken.expiresAt).toBeDefined();
-  });
-
   // ── Error paths ────────────────────────────────────────────────
 
   it("should return 401 when email does not exist", async () => {

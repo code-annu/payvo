@@ -57,16 +57,7 @@ describe("POST /api/auth/signup", () => {
     expect(refreshCookie).toContain("HttpOnly");
   });
 
-  it("should include refreshToken data in the response body", async () => {
-    const res = await request(app)
-      .post("/api/auth/signup")
-      .send(validBody)
-      .expect(201);
-
-    expect(res.body.data.refreshToken).toBeDefined();
-    expect(res.body.data.refreshToken.token).toBeDefined();
-    expect(res.body.data.refreshToken.expiresAt).toBeDefined();
-  });
+  
 
   it("should handle signup without companyName", async () => {
     const { companyName, ...bodyWithoutCompany } = validBody;

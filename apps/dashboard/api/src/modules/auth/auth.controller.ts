@@ -4,9 +4,9 @@ import AuthService from "./auth.service.js";
 import catchAsync from "@/core/handlers/async.catch.js";
 import { Request, Response } from "express";
 import ClientInfoUtil from "@/core/util/client.util.js";
-import { buildSuccessResponse, StatusCode } from "@payvo/shared/api";
 import { REFRESH_TOKEN_COOKIE } from "@/core/config/cookie.js";
 import { AuthRequest } from "@/core/middleware/authenticate.middleware.js";
+import { buildSuccessResponse, StatusCode } from "@payvo/shared/http";
 
 @injectable()
 export default class AuthController {

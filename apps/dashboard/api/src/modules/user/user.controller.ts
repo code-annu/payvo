@@ -3,8 +3,8 @@ import { inject, injectable } from "inversify";
 import UserService from "./user.service.js";
 import catchAsync from "@/core/handlers/async.catch.js";
 import { Response } from "express";
-import { buildSuccessResponse, StatusCode } from "@payvo/shared/api";
 import { AuthRequest } from "@/core/middleware/authenticate.middleware.js";
+import { buildSuccessResponse, StatusCode } from "@payvo/shared/http";
 
 @injectable()
 export default class UserController {

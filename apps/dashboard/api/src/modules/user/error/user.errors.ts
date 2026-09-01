@@ -1,6 +1,6 @@
-import { StatusCode } from "@payvo/shared/api";
 import { AppError } from "@payvo/shared/error";
 import UserErrorCode from "./UserErrorCode.js";
+import { StatusCode } from "@payvo/shared/http";
 
 export class UserNotFoundError extends AppError {
   constructor(message: string = "User not found") {
