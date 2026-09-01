@@ -10,7 +10,6 @@ import {
   InvalidRefreshTokenError,
   RevokedSessionError,
 } from "./error/auth.errors.js";
-import { jwtConfig } from "@payvo/config";
 import { LoginDto } from "./dto/LoginDto.js";
 import { hashPassword, verifyPassword } from "@payvo/shared/crypto";
 import {
@@ -19,6 +18,7 @@ import {
 } from "@payvo/shared/auth/refresh-token";
 import { addDays } from "date-fns";
 import { signAccessToken } from "@payvo/shared/auth/jwt";
+import { jwtConfig, sessionConfig } from "@payvo/config/auth";
 
 @injectable()
 export default class AuthService {
@@ -52,15 +52,15 @@ export default class AuthService {
       ipAddress: input.ipAddress ?? null,
       expiresAt: addDays(
         new Date(),
-        jwtConfig.REFRESH_TOKEN.EXPIRY_DAYS,
+        sessionConfig.refreshToken.expiryDays,
       ).toISOString(),
     });
 
     const accessToken = await signAccessToken(
       { sid: session.id, sub: user.id },
       {
-        secret: jwtConfig.ACCESS_TOKEN.SECRET,
-        expiresInMinute: jwtConfig.ACCESS_TOKEN.EXPIRY_MINUTE,
+        secret: jwtConfig.accessToken.secret,
+        expiresInMinute: jwtConfig.accessToken.expiryMinutes,
       },
     );
     return { user, session, refreshToken: token, accessToken };
@@ -84,14 +84,14 @@ export default class AuthService {
       ipAddress: input.ipAddress ?? null,
       expiresAt: addDays(
         new Date(),
-        jwtConfig.REFRESH_TOKEN.EXPIRY_DAYS,
+        sessionConfig.refreshToken.expiryDays,
       ).toISOString(),
     });
     const accessToken = await signAccessToken(
       { sid: session.id, sub: user.id },
       {
-        secret: jwtConfig.ACCESS_TOKEN.SECRET,
-        expiresInMinute: jwtConfig.ACCESS_TOKEN.EXPIRY_MINUTE,
+        secret: jwtConfig.accessToken.secret,
+        expiresInMinute: jwtConfig.accessToken.expiryMinutes,
       },
     );
     return { user, refreshToken, accessToken };
@@ -114,14 +114,14 @@ export default class AuthService {
       tokenHash: hashRefreshToken(newRefreshToken),
       expiresAt: addDays(
         new Date(),
-        jwtConfig.REFRESH_TOKEN.EXPIRY_DAYS,
+        sessionConfig.refreshToken.expiryDays,
       ).toISOString(),
     });
     const newAccessToken = await signAccessToken(
       { sid: session.id, sub: session.user.id },
       {
-        secret: jwtConfig.ACCESS_TOKEN.SECRET,
-        expiresInMinute: jwtConfig.ACCESS_TOKEN.EXPIRY_MINUTE,
+        secret: jwtConfig.accessToken.secret,
+        expiresInMinute: jwtConfig.accessToken.expiryMinutes,
       },
     );
     return { newRefreshToken, newAccessToken };

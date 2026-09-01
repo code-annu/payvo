@@ -2,30 +2,46 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import AuthService from "../auth.service.js";
 import type SessionRepository from "../repository/session.repository.js";
 import type UserRepository from "../../user/repository/user.repository.js";
-import type { JWTService } from "@payvo/shared/jwt";
-import type { PasswordHashService } from "@payvo/shared/password-hash";
 import type { LoginDto } from "../dto/LoginDto.js";
 import type { User } from "../../user/entity/user.entity.js";
 import type { Session } from "../entity/session.entity.js";
 import { InvalidCredentialsError } from "../error/auth.errors.js";
+import { verifyPassword } from "@payvo/shared/crypto";
+import {
+  generateRefreshToken,
+  hashRefreshToken,
+} from "@payvo/shared/auth/refresh-token";
+import { signAccessToken } from "@payvo/shared/auth/jwt";
 
-// ── Mock @payvo/config so tests don't depend on real env vars ──────
-vi.mock("@payvo/config", () => ({
+// ── Mock @payvo/config/auth so tests don't depend on real env vars ──
+vi.mock("@payvo/config/auth", () => ({
   jwtConfig: {
-    ACCESS_TOKEN: { SECRET: "test-secret", EXPIRY_MINUTE: 15 },
-    REFRESH_TOKEN: { EXPIRY_DAYS: 7 },
+    accessToken: { secret: "test-secret", expiryMinutes: 15 },
   },
-  databaseConfig: {
-    DATABASE_URL: "postgresql://mock:mock@localhost:5432/test",
-  },
-  serverConfig: {
-    DASHBOARD_API: { PORT: 3000 },
+  sessionConfig: {
+    refreshToken: { expiryDays: 7 },
   },
 }));
 
 // ── Mock @payvo/database to prevent Prisma from connecting ─────────
 vi.mock("@payvo/database", () => ({
   db: {},
+}));
+
+// ── Mock @payvo/shared functional helpers ──────────────────────────
+vi.mock("@payvo/shared/crypto", () => ({
+  hashPassword: vi.fn().mockResolvedValue("hashed-password"),
+  verifyPassword: vi.fn().mockResolvedValue(true),
+}));
+
+vi.mock("@payvo/shared/auth/refresh-token", () => ({
+  generateRefreshToken: vi.fn().mockReturnValue("mock-refresh-token"),
+  hashRefreshToken: vi.fn().mockReturnValue("mock-token-hash"),
+}));
+
+vi.mock("@payvo/shared/auth/jwt", () => ({
+  signAccessToken: vi.fn().mockResolvedValue("mock-access-token"),
+  verifyAccessToken: vi.fn(),
 }));
 
 // ── Factories ──────────────────────────────────────────────────────
@@ -56,29 +72,6 @@ function createMockSessionRepo(
     revokeSessionByUserId: vi.fn(),
     ...overrides,
   } as unknown as SessionRepository;
-}
-
-function createMockJwtService(overrides: Partial<JWTService> = {}): JWTService {
-  return {
-    generateAccessToken: vi.fn().mockReturnValue("mock-access-token"),
-    generateRefreshToken: vi.fn().mockReturnValue({
-      token: "mock-refresh-token",
-      expiresAt: new Date("2026-09-06T00:00:00Z"),
-    }),
-    verifyAccessToken: vi.fn(),
-    hashToken: vi.fn().mockReturnValue("double-hashed-refresh-token"),
-    ...overrides,
-  } as unknown as JWTService;
-}
-
-function createMockPasswordHashService(
-  overrides: Partial<PasswordHashService> = {},
-): PasswordHashService {
-  return {
-    hashPassword: vi.fn().mockResolvedValue("hashed-password"),
-    comparePassword: vi.fn().mockResolvedValue(true),
-    ...overrides,
-  } as unknown as PasswordHashService;
 }
 
 // ── Fixtures ───────────────────────────────────────────────────────
@@ -126,24 +119,25 @@ describe("AuthService.login", () => {
   let authService: AuthService;
   let userRepo: ReturnType<typeof createMockUserRepo>;
   let sessionRepo: ReturnType<typeof createMockSessionRepo>;
-  let jwtService: ReturnType<typeof createMockJwtService>;
-  let passwordHashService: ReturnType<typeof createMockPasswordHashService>;
 
   beforeEach(() => {
+    vi.clearAllMocks();
+
+    vi.mocked(verifyPassword).mockResolvedValue(true);
+    vi.mocked(generateRefreshToken).mockReturnValue("mock-refresh-token");
+    vi.mocked(hashRefreshToken).mockReturnValue("mock-token-hash");
+    vi.mocked(signAccessToken).mockResolvedValue("mock-access-token");
+
     userRepo = createMockUserRepo({
       findUserByEmail: vi.fn().mockResolvedValue(fakeUser),
     });
     sessionRepo = createMockSessionRepo({
       createSession: vi.fn().mockResolvedValue(fakeSession),
     });
-    jwtService = createMockJwtService();
-    passwordHashService = createMockPasswordHashService();
 
     authService = new AuthService(
       sessionRepo as SessionRepository,
       userRepo as UserRepository,
-      jwtService as JWTService,
-      passwordHashService as PasswordHashService,
     );
   });
 
@@ -161,7 +155,7 @@ describe("AuthService.login", () => {
   });
 
   it("should throw InvalidCredentialsError when password does not match", async () => {
-    vi.mocked(passwordHashService.comparePassword).mockResolvedValue(false);
+    vi.mocked(verifyPassword).mockResolvedValue(false);
 
     await expect(authService.login(loginInput)).rejects.toThrow(
       InvalidCredentialsError,
@@ -185,8 +179,8 @@ describe("AuthService.login", () => {
     await authService.login(loginInput).catch(() => {});
 
     expect(sessionRepo.createSession).not.toHaveBeenCalled();
-    expect(jwtService.generateRefreshToken).not.toHaveBeenCalled();
-    expect(jwtService.generateAccessToken).not.toHaveBeenCalled();
+    expect(generateRefreshToken).not.toHaveBeenCalled();
+    expect(signAccessToken).not.toHaveBeenCalled();
   });
 
   // ── Happy path ─────────────────────────────────────────────────
@@ -194,18 +188,17 @@ describe("AuthService.login", () => {
   it("should compare password with stored hash", async () => {
     await authService.login(loginInput);
 
-    expect(passwordHashService.comparePassword).toHaveBeenCalledWith(
+    expect(verifyPassword).toHaveBeenCalledWith(
       loginInput.password,
       fakeUser.passwordHash,
     );
   });
 
-  it("should generate a refresh token with configured expiry", async () => {
+  it("should generate a refresh token and hash it for the session", async () => {
     await authService.login(loginInput);
 
-    expect(jwtService.generateRefreshToken).toHaveBeenCalledWith({
-      expiresInDays: 7,
-    });
+    expect(generateRefreshToken).toHaveBeenCalled();
+    expect(hashRefreshToken).toHaveBeenCalledWith("mock-refresh-token");
   });
 
   it("should create a session with the correct data", async () => {
@@ -213,10 +206,10 @@ describe("AuthService.login", () => {
 
     expect(sessionRepo.createSession).toHaveBeenCalledWith({
       userId: fakeUser.id,
-      tokenHash: "double-hashed-refresh-token",
+      tokenHash: "mock-token-hash",
       userAgent: loginInput.userAgent,
       ipAddress: loginInput.ipAddress,
-      expiresAt: "2026-09-06T00:00:00.000Z",
+      expiresAt: expect.any(String),
     });
   });
 
@@ -240,7 +233,7 @@ describe("AuthService.login", () => {
   it("should generate an access token with session and user IDs", async () => {
     await authService.login(loginInput);
 
-    expect(jwtService.generateAccessToken).toHaveBeenCalledWith(
+    expect(signAccessToken).toHaveBeenCalledWith(
       { sid: fakeSession.id, sub: fakeUser.id },
       { secret: "test-secret", expiresInMinute: 15 },
     );
@@ -251,10 +244,7 @@ describe("AuthService.login", () => {
 
     expect(result).toEqual({
       user: fakeUser,
-      refreshToken: {
-        token: "mock-refresh-token",
-        expiresAt: new Date("2026-09-06T00:00:00Z"),
-      },
+      refreshToken: "mock-refresh-token",
       accessToken: "mock-access-token",
     });
   });
@@ -266,25 +256,24 @@ describe("AuthService.login", () => {
       callOrder.push("findUserByEmail");
       return fakeUser;
     });
-    vi.mocked(passwordHashService.comparePassword).mockImplementation(
-      async () => {
-        callOrder.push("comparePassword");
-        return true;
-      },
-    );
-    vi.mocked(jwtService.generateRefreshToken).mockImplementation(() => {
+    vi.mocked(verifyPassword).mockImplementation(async () => {
+      callOrder.push("verifyPassword");
+      return true;
+    });
+    vi.mocked(generateRefreshToken).mockImplementation(() => {
       callOrder.push("generateRefreshToken");
-      return {
-        token: "mock-refresh-token",
-        expiresAt: new Date("2026-09-06T00:00:00Z"),
-      };
+      return "mock-refresh-token";
+    });
+    vi.mocked(hashRefreshToken).mockImplementation(() => {
+      callOrder.push("hashRefreshToken");
+      return "mock-token-hash";
     });
     vi.mocked(sessionRepo.createSession).mockImplementation(async () => {
       callOrder.push("createSession");
       return fakeSession;
     });
-    vi.mocked(jwtService.generateAccessToken).mockImplementation(() => {
-      callOrder.push("generateAccessToken");
+    vi.mocked(signAccessToken).mockImplementation(async () => {
+      callOrder.push("signAccessToken");
       return "mock-access-token";
     });
 
@@ -292,10 +281,11 @@ describe("AuthService.login", () => {
 
     expect(callOrder).toEqual([
       "findUserByEmail",
-      "comparePassword",
+      "verifyPassword",
       "generateRefreshToken",
+      "hashRefreshToken",
       "createSession",
-      "generateAccessToken",
+      "signAccessToken",
     ]);
   });
 });

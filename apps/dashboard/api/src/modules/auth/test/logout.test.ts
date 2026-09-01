@@ -2,20 +2,14 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import AuthService from "../auth.service.js";
 import type SessionRepository from "../repository/session.repository.js";
 import type UserRepository from "../../user/repository/user.repository.js";
-import type { JWTService } from "@payvo/shared/jwt";
-import type { PasswordHashService } from "@payvo/shared/password-hash";
 
-// ── Mock @payvo/config so tests don't depend on real env vars ──────
-vi.mock("@payvo/config", () => ({
+// ── Mock @payvo/config/auth so tests don't depend on real env vars ──
+vi.mock("@payvo/config/auth", () => ({
   jwtConfig: {
-    ACCESS_TOKEN: { SECRET: "test-secret", EXPIRY_MINUTE: 15 },
-    REFRESH_TOKEN: { EXPIRY_DAYS: 7 },
+    accessToken: { secret: "test-secret", expiryMinutes: 15 },
   },
-  databaseConfig: {
-    DATABASE_URL: "postgresql://mock:mock@localhost:5432/test",
-  },
-  serverConfig: {
-    DASHBOARD_API: { PORT: 3000 },
+  sessionConfig: {
+    refreshToken: { expiryDays: 7 },
   },
 }));
 
@@ -54,28 +48,6 @@ function createMockSessionRepo(
   } as unknown as SessionRepository;
 }
 
-function createMockJwtService(
-  overrides: Partial<JWTService> = {},
-): JWTService {
-  return {
-    generateAccessToken: vi.fn(),
-    generateRefreshToken: vi.fn(),
-    verifyAccessToken: vi.fn(),
-    hashToken: vi.fn(),
-    ...overrides,
-  } as unknown as JWTService;
-}
-
-function createMockPasswordHashService(
-  overrides: Partial<PasswordHashService> = {},
-): PasswordHashService {
-  return {
-    hashPassword: vi.fn(),
-    comparePassword: vi.fn(),
-    ...overrides,
-  } as unknown as PasswordHashService;
-}
-
 // ── Tests ──────────────────────────────────────────────────────────
 describe("AuthService.logout", () => {
   let authService: AuthService;
@@ -86,14 +58,10 @@ describe("AuthService.logout", () => {
     sessionRepo = createMockSessionRepo({
       revokeSession: vi.fn().mockResolvedValue(undefined),
     });
-    const jwtService = createMockJwtService();
-    const passwordHashService = createMockPasswordHashService();
 
     authService = new AuthService(
       sessionRepo as SessionRepository,
       userRepo as UserRepository,
-      jwtService as JWTService,
-      passwordHashService as PasswordHashService,
     );
   });
 

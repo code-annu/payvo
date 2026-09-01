@@ -4,19 +4,6 @@ import type UserRepository from "../repository/user.repository.js";
 import type { User } from "../entity/user.entity.js";
 import { UserNotFoundError } from "../error/user.errors.js";
 
-// ── Mock @payvo/config so tests don't depend on real env vars ──────
-vi.mock("@payvo/config", () => ({
-  jwtConfig: {
-    ACCESS_TOKEN: { SECRET: "test-secret", EXPIRY_MINUTE: 15 },
-    REFRESH_TOKEN: { EXPIRY_DAYS: 7 },
-  },
-  databaseConfig: {
-    DATABASE_URL: "postgresql://mock:mock@localhost:5432/test",
-  },
-  serverConfig: {
-    DASHBOARD_API: { PORT: 3000 },
-  },
-}));
 
 // ── Mock @payvo/database to prevent Prisma from connecting ─────────
 vi.mock("@payvo/database", () => ({

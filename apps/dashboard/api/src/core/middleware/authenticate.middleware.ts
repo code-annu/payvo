@@ -3,8 +3,8 @@ import {
   InvalidAccessTokenError,
   MissingAccessTokenError,
 } from "@/modules/auth/error/auth.errors.js";
-import { jwtConfig } from "@payvo/config";
 import { AccessTokenPayload, verifyAccessToken } from "@payvo/shared/auth/jwt";
+import { jwtConfig } from "@payvo/config/auth";
 
 export interface AuthRequest extends Request {
   auth?: AccessTokenPayload;
@@ -23,7 +23,7 @@ export default async function authenticateUser(
   try {
     const payload = await verifyAccessToken(
       token,
-      jwtConfig.ACCESS_TOKEN.SECRET,
+      jwtConfig.accessToken.secret,
     );
     req.auth = payload;
     next();

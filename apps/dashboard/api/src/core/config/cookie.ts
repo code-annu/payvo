@@ -1,4 +1,4 @@
-import { jwtConfig } from "@payvo/config";
+import { sessionConfig } from "@payvo/config/auth";
 import { CookieOptions } from "express";
 
 export const REFRESH_TOKEN_COOKIE = {
@@ -8,6 +8,6 @@ export const REFRESH_TOKEN_COOKIE = {
     secure: true,
     sameSite: "strict",
     path: "/api/auth/refresh",
-    maxAge: jwtConfig.REFRESH_TOKEN.EXPIRY_DAYS * 24 * 60 * 60 * 1000, // days
+    maxAge: sessionConfig.refreshToken.expiryDays * 24 * 60 * 60 * 1000, // days
   } as CookieOptions,
 };

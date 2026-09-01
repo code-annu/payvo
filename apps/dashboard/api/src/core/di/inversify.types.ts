@@ -2,10 +2,6 @@ const TYPES = {
   // Util types
   ClientInfoUtil: Symbol.for("ClientInfoUtil"),
 
-  // Shared types
-  JWTService: Symbol.for("JWTService"),
-  PasswordHashService: Symbol.for("PasswordHashService"),
-
   // User types
   UserRepository: Symbol.for("UserRepository"),
   UserMapper: Symbol.for("UserMapper"),

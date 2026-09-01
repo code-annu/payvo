@@ -2,8 +2,6 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import AuthService from "../auth.service.js";
 import type SessionRepository from "../repository/session.repository.js";
 import type UserRepository from "../../user/repository/user.repository.js";
-import type { JWTService } from "@payvo/shared/jwt";
-import type { PasswordHashService } from "@payvo/shared/password-hash";
 import type { Session } from "../entity/session.entity.js";
 import {
   ExpiredSessionError,
@@ -11,24 +9,38 @@ import {
   InvalidRefreshTokenError,
   RevokedSessionError,
 } from "../error/auth.errors.js";
+import {
+  generateRefreshToken,
+  hashRefreshToken,
+} from "@payvo/shared/auth/refresh-token";
+import { signAccessToken } from "@payvo/shared/auth/jwt";
 
-// ── Mock @payvo/config so tests don't depend on real env vars ──────
-vi.mock("@payvo/config", () => ({
+// ── Mock @payvo/config/auth so tests don't depend on real env vars ──
+vi.mock("@payvo/config/auth", () => ({
   jwtConfig: {
-    ACCESS_TOKEN: { SECRET: "test-secret", EXPIRY_MINUTE: 15 },
-    REFRESH_TOKEN: { EXPIRY_DAYS: 7 },
+    accessToken: { secret: "test-secret", expiryMinutes: 15 },
   },
-  databaseConfig: {
-    DATABASE_URL: "postgresql://mock:mock@localhost:5432/test",
-  },
-  serverConfig: {
-    DASHBOARD_API: { PORT: 3000 },
+  sessionConfig: {
+    refreshToken: { expiryDays: 7 },
   },
 }));
 
 // ── Mock @payvo/database to prevent Prisma from connecting ─────────
 vi.mock("@payvo/database", () => ({
   db: {},
+}));
+
+// ── Mock @payvo/shared functional helpers ──────────────────────────
+vi.mock("@payvo/shared/auth/refresh-token", () => ({
+  generateRefreshToken: vi.fn().mockReturnValue("new-refresh-token"),
+  hashRefreshToken: vi
+    .fn()
+    .mockImplementation((token: string) => `hashed-${token}`),
+}));
+
+vi.mock("@payvo/shared/auth/jwt", () => ({
+  signAccessToken: vi.fn().mockResolvedValue("new-access-token"),
+  verifyAccessToken: vi.fn(),
 }));
 
 // ── Factories ──────────────────────────────────────────────────────
@@ -61,31 +73,6 @@ function createMockSessionRepo(
   } as unknown as SessionRepository;
 }
 
-function createMockJwtService(
-  overrides: Partial<JWTService> = {},
-): JWTService {
-  return {
-    generateAccessToken: vi.fn().mockReturnValue("new-access-token"),
-    generateRefreshToken: vi.fn().mockReturnValue({
-      token: "new-refresh-token",
-      expiresAt: new Date("2026-09-06T00:00:00Z"),
-    }),
-    verifyAccessToken: vi.fn(),
-    hashToken: vi.fn().mockReturnValue("hashed-token"),
-    ...overrides,
-  } as unknown as JWTService;
-}
-
-function createMockPasswordHashService(
-  overrides: Partial<PasswordHashService> = {},
-): PasswordHashService {
-  return {
-    hashPassword: vi.fn(),
-    comparePassword: vi.fn(),
-    ...overrides,
-  } as unknown as PasswordHashService;
-}
-
 // ── Fixtures ───────────────────────────────────────────────────────
 const now = new Date("2026-08-30T12:00:00Z");
 const futureDate = new Date("2026-09-06T00:00:00Z");
@@ -116,23 +103,25 @@ describe("AuthService.rotateToken", () => {
   let authService: AuthService;
   let userRepo: ReturnType<typeof createMockUserRepo>;
   let sessionRepo: ReturnType<typeof createMockSessionRepo>;
-  let jwtService: ReturnType<typeof createMockJwtService>;
-  let passwordHashService: ReturnType<typeof createMockPasswordHashService>;
 
   beforeEach(() => {
+    vi.clearAllMocks();
+
+    vi.mocked(generateRefreshToken).mockReturnValue("new-refresh-token");
+    vi.mocked(hashRefreshToken).mockImplementation(
+      (token: string) => `hashed-${token}`,
+    );
+    vi.mocked(signAccessToken).mockResolvedValue("new-access-token");
+
     userRepo = createMockUserRepo();
     sessionRepo = createMockSessionRepo({
       findSessionByTokenHash: vi.fn().mockResolvedValue(fakeSession),
       updateSession: vi.fn().mockResolvedValue(null),
     });
-    jwtService = createMockJwtService();
-    passwordHashService = createMockPasswordHashService();
 
     authService = new AuthService(
       sessionRepo as SessionRepository,
       userRepo as UserRepository,
-      jwtService as JWTService,
-      passwordHashService as PasswordHashService,
     );
   });
 
@@ -151,9 +140,9 @@ describe("AuthService.rotateToken", () => {
 
     await authService.rotateToken(oldRefreshToken).catch(() => {});
 
-    expect(jwtService.hashToken).toHaveBeenCalledWith(oldRefreshToken);
+    expect(hashRefreshToken).toHaveBeenCalledWith(oldRefreshToken);
     expect(sessionRepo.findSessionByTokenHash).toHaveBeenCalledWith(
-      "hashed-token",
+      `hashed-${oldRefreshToken}`,
     );
   });
 
@@ -184,7 +173,7 @@ describe("AuthService.rotateToken", () => {
       ...fakeSession,
       user: {
         ...fakeSession.user,
-        deletedAt: "2026-08-29T00:00:00Z",
+        deletedAt: new Date("2026-08-29T00:00:00Z").toISOString(),
       },
     });
 
@@ -202,34 +191,32 @@ describe("AuthService.rotateToken", () => {
     await authService.rotateToken(oldRefreshToken).catch(() => {});
 
     expect(sessionRepo.updateSession).not.toHaveBeenCalled();
-    expect(jwtService.generateRefreshToken).not.toHaveBeenCalled();
-    expect(jwtService.generateAccessToken).not.toHaveBeenCalled();
+    expect(generateRefreshToken).not.toHaveBeenCalled();
+    expect(signAccessToken).not.toHaveBeenCalled();
   });
 
   // ── Happy path ─────────────────────────────────────────────────
 
-  it("should generate a new refresh token with configured expiry", async () => {
+  it("should generate a new refresh token", async () => {
     await authService.rotateToken(oldRefreshToken);
 
-    expect(jwtService.generateRefreshToken).toHaveBeenCalledWith({
-      expiresInDays: 7,
-    });
+    expect(generateRefreshToken).toHaveBeenCalled();
   });
 
   it("should update the session with the new token hash and expiry", async () => {
     await authService.rotateToken(oldRefreshToken);
 
-    // hashToken is called twice: once for lookup, once for the new token
+    // hashRefreshToken is called twice: once for lookup, once for the new token
     expect(sessionRepo.updateSession).toHaveBeenCalledWith(fakeSession.id, {
-      tokenHash: "hashed-token",
-      expiresAt: "2026-09-06T00:00:00.000Z",
+      tokenHash: "hashed-new-refresh-token",
+      expiresAt: expect.any(String),
     });
   });
 
   it("should generate a new access token with session and user IDs", async () => {
     await authService.rotateToken(oldRefreshToken);
 
-    expect(jwtService.generateAccessToken).toHaveBeenCalledWith(
+    expect(signAccessToken).toHaveBeenCalledWith(
       { sid: fakeSession.id, sub: fakeSession.user.id },
       { secret: "test-secret", expiresInMinute: 15 },
     );
@@ -239,10 +226,7 @@ describe("AuthService.rotateToken", () => {
     const result = await authService.rotateToken(oldRefreshToken);
 
     expect(result).toEqual({
-      newRefreshToken: {
-        token: "new-refresh-token",
-        expiresAt: new Date("2026-09-06T00:00:00Z"),
-      },
+      newRefreshToken: "new-refresh-token",
       newAccessToken: "new-access-token",
     });
   });
@@ -250,9 +234,9 @@ describe("AuthService.rotateToken", () => {
   it("should call dependencies in the correct order", async () => {
     const callOrder: string[] = [];
 
-    vi.mocked(jwtService.hashToken).mockImplementation((token: string) => {
-      callOrder.push("hashToken");
-      return "hashed-token";
+    vi.mocked(hashRefreshToken).mockImplementation((token: string) => {
+      callOrder.push("hashRefreshToken");
+      return `hashed-${token}`;
     });
     vi.mocked(sessionRepo.findSessionByTokenHash).mockImplementation(
       async () => {
@@ -260,31 +244,28 @@ describe("AuthService.rotateToken", () => {
         return fakeSession;
       },
     );
-    vi.mocked(jwtService.generateRefreshToken).mockImplementation(() => {
+    vi.mocked(generateRefreshToken).mockImplementation(() => {
       callOrder.push("generateRefreshToken");
-      return {
-        token: "new-refresh-token",
-        expiresAt: new Date("2026-09-06T00:00:00Z"),
-      };
+      return "new-refresh-token";
     });
     vi.mocked(sessionRepo.updateSession).mockImplementation(async () => {
       callOrder.push("updateSession");
       return null;
     });
-    vi.mocked(jwtService.generateAccessToken).mockImplementation(() => {
-      callOrder.push("generateAccessToken");
+    vi.mocked(signAccessToken).mockImplementation(async () => {
+      callOrder.push("signAccessToken");
       return "new-access-token";
     });
 
     await authService.rotateToken(oldRefreshToken);
 
     expect(callOrder).toEqual([
-      "hashToken",
+      "hashRefreshToken",
       "findSessionByTokenHash",
       "generateRefreshToken",
-      "hashToken",
+      "hashRefreshToken",
       "updateSession",
-      "generateAccessToken",
+      "signAccessToken",
     ]);
   });
 });
