@@ -1,8 +1,9 @@
-import dotenv from "dotenv";
-dotenv.config();
+import { config } from "dotenv";
+
+config();
 
 const ENV = {
-  DASHBOARD_API_PORT: Number(process.env.PORT),
+  PORT: Number(process.env.PORT),
   DATABASE_URL: process.env.DATABASE_URL!,
   ACCESS_TOKEN_SECRET: process.env.ACCESS_TOKEN_SECRET!,
   ACCESS_TOKEN_EXPIRY_MIN: Number(process.env.ACCESS_TOKEN_EXPIRY_MIN),
