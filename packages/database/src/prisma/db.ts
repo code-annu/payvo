@@ -7,3 +7,10 @@ export const db = postgres<Contract>({
   contractJson,
   url: databaseConfig.url,
 });
+
+
+export type TransactionClient = Parameters<
+  Parameters<typeof db.transaction>[0]
+>[0];
+
+

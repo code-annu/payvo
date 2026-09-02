@@ -73,7 +73,7 @@ model ApiKey {
   secretHash  String      @map("secret_hash")
   environment Environment @map("environment")
   status      ApiKeyStatus     @default(ACTIVE) @map("status")
-  deactivatedAt TimestamptzString? @map("deactivated_at")
+  scheduleRevokeAt TimestamptzString? @map("schedule_revoke_at")
   revokedAt   TimestamptzString?   @map("revoked_at") 
   lastUsedAt  TimestamptzString?   @map("last_used_at") 
   createdAt   TimestamptzString    @default(now()) @map("created_at") 
