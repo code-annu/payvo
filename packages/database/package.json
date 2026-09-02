@@ -8,7 +8,8 @@
     "watch:contract": "chokidar \"src/prisma/contract.d.ts\" -c \"npm run cp:contract\"",
     "dev": "concurrently \"tsc -w\" \"npm run cp:contract && npm run watch:contract\"",
     "build": "tsc && node -e \"require('fs').cpSync('src/prisma/contract.d.ts','dist/prisma/contract.d.ts')\" && node -e \"require('fs').cpSync('src/prisma/contract.json','dist/prisma/contract.json')\"",
-    "contract:emit": "prisma contract emit"
+    "contract:emit": "prisma contract emit",
+    "migrate": "prisma db migrate"
   },
   "keywords": [],
   "author": "",

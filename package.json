@@ -4,7 +4,8 @@
   "private": true,
   "scripts": {
     "db:emit": "pnpm --filter @payvo/database contract:emit",
-    "build": "pnpm db:emit && pnpm -r build"
+    "build": "pnpm db:emit && pnpm -r build",
+    "db:migrate": "pnpm --filter @payvo/database migrate"
   },
   "keywords": [],
   "author": "",
