@@ -11,3 +11,25 @@ export class MerchantNotFoundError extends AppError {
     });
   }
 }
+
+export class MerchantInactiveError extends AppError {
+  constructor(message: string = "Merchant is not active") {
+    super({
+      message,
+      statusCode: StatusCode.Error.CONFLICT,
+      code: MerchantErrorCode.MERCHANT_INACTIVE,
+    });
+  }
+}
+
+export class MerchantUserMismatchError extends AppError {
+  constructor(
+    message: string = "User is not authorized for this merchant",
+  ) {
+    super({
+      message,
+      statusCode: StatusCode.Error.FORBIDDEN,
+      code: MerchantErrorCode.MERCHANT_USER_MISMATCH,
+    });
+  }
+}

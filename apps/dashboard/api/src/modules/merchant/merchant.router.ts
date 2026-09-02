@@ -3,7 +3,7 @@ import { Router } from "express";
 import { inject, injectable } from "inversify";
 import MerchantController from "./merchant.controller.js";
 import { validateRequest } from "@/core/middleware/validate-request.middleware.js";
-import { merchantIdParamsSchema } from "./schema/MerchantIdParamSchema.js";
+import { MerchantIdSchema } from "./schema/MerchantIdParamSchema.js";
 import authenticateUser from "@/core/middleware/authenticate.middleware.js";
 
 @injectable()
@@ -25,28 +25,28 @@ export default class MerchantRouter {
     this.router.get(
       "/:id",
       authenticateUser,
-      validateRequest({ params: merchantIdParamsSchema }),
+      validateRequest({ params: MerchantIdSchema }),
       this.controller.getMerchantDetails,
     );
 
     this.router.patch(
       "/:id/activate",
       authenticateUser,
-      validateRequest({ params: merchantIdParamsSchema }),
+      validateRequest({ params: MerchantIdSchema }),
       this.controller.activateMerchant,
     );
 
     this.router.patch(
       "/:id/inactivate",
       authenticateUser,
-      validateRequest({ params: merchantIdParamsSchema }),
+      validateRequest({ params: MerchantIdSchema }),
       this.controller.inactivateMerchant,
     );
 
     this.router.delete(
       "/:id",
       authenticateUser,
-      validateRequest({ params: merchantIdParamsSchema }),
+      validateRequest({ params: MerchantIdSchema }),
       this.controller.deleteMerchant,
     );
   }
