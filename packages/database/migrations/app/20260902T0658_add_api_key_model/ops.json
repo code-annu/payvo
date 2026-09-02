@@ -1,0 +1,242 @@
+[
+  {
+    "id": "table.api_keys",
+    "label": "Create table \"api_keys\"",
+    "summary": "Creates table \"api_keys\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "api_keys"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"api_keys\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"api_keys\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"api_keys\"",
+        "sql": "CREATE TABLE \"public\".\"api_keys\" (\n  \"created_at\" timestamptz DEFAULT (now()) NOT NULL,\n  \"environment\" text NOT NULL,\n  \"id\" text NOT NULL,\n  \"key_id\" text NOT NULL,\n  \"last_used_at\" timestamptz,\n  \"merchant_id\" text NOT NULL,\n  \"revoked_at\" timestamptz,\n  \"schedule_revoke_at\" timestamptz,\n  \"secret_hash\" text NOT NULL,\n  \"status\" text DEFAULT 'ACTIVE' NOT NULL,\n  \"updated_at\" timestamptz NOT NULL,\n  PRIMARY KEY (\"id\"),\n  CONSTRAINT \"api_keys_environment_check_6cd03fea\" CHECK (\"environment\" IN ('TEST', 'LIVE')),\n  CONSTRAINT \"api_keys_status_check_35f03e2c\" CHECK (\"status\" IN ('ACTIVE', 'REVOKED'))\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"api_keys\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"api_keys\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "unique.api_keys.api_keys_key_id_key",
+    "label": "Add unique constraint on \"api_keys\" (key_id)",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "unique",
+        "name": "api_keys_key_id_key",
+        "table": "api_keys"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"api_keys_key_id_key\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "api_keys_key_id_key",
+          "public",
+          "\"public\".\"api_keys\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add unique constraint \"api_keys_key_id_key\"",
+        "sql": "ALTER TABLE \"public\".\"api_keys\" ADD CONSTRAINT \"api_keys_key_id_key\" UNIQUE (\"key_id\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify constraint \"api_keys_key_id_key\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "api_keys_key_id_key",
+          "public",
+          "\"public\".\"api_keys\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.api_keys.idx_api_keys_merchant_id",
+    "label": "Create index \"idx_api_keys_merchant_id\" on \"api_keys\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "idx_api_keys_merchant_id",
+        "table": "api_keys"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"idx_api_keys_merchant_id\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"idx_api_keys_merchant_id\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"idx_api_keys_merchant_id\"",
+        "sql": "CREATE INDEX \"idx_api_keys_merchant_id\" ON \"public\".\"api_keys\" (\"merchant_id\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"idx_api_keys_merchant_id\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"idx_api_keys_merchant_id\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.api_keys.idx_api_keys_merchant_id_environment",
+    "label": "Create index \"idx_api_keys_merchant_id_environment\" on \"api_keys\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "idx_api_keys_merchant_id_environment",
+        "table": "api_keys"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"idx_api_keys_merchant_id_environment\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"idx_api_keys_merchant_id_environment\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"idx_api_keys_merchant_id_environment\"",
+        "sql": "CREATE INDEX \"idx_api_keys_merchant_id_environment\" ON \"public\".\"api_keys\" (\"merchant_id\", \"environment\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"idx_api_keys_merchant_id_environment\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"idx_api_keys_merchant_id_environment\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.api_keys.idx_api_keys_merchant_id_environment_status",
+    "label": "Create index \"idx_api_keys_merchant_id_environment_status\" on \"api_keys\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "idx_api_keys_merchant_id_environment_status",
+        "table": "api_keys"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"idx_api_keys_merchant_id_environment_status\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"idx_api_keys_merchant_id_environment_status\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"idx_api_keys_merchant_id_environment_status\"",
+        "sql": "CREATE INDEX \"idx_api_keys_merchant_id_environment_status\" ON \"public\".\"api_keys\" (\"merchant_id\", \"environment\", \"status\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"idx_api_keys_merchant_id_environment_status\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"idx_api_keys_merchant_id_environment_status\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.api_keys.api_keys_merchant_id_fkey",
+    "label": "Add foreign key \"api_keys_merchant_id_fkey\" on \"api_keys\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "api_keys_merchant_id_fkey",
+        "table": "api_keys"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"api_keys_merchant_id_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "api_keys_merchant_id_fkey",
+          "public",
+          "\"public\".\"api_keys\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"api_keys_merchant_id_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"api_keys\"\nADD CONSTRAINT \"api_keys_merchant_id_fkey\"\nFOREIGN KEY (\"merchant_id\")\nREFERENCES \"public\".\"merchants\" (\"id\")\nON DELETE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"api_keys_merchant_id_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "api_keys_merchant_id_fkey",
+          "public",
+          "\"public\".\"api_keys\""
+        ]
+      }
+    ]
+  }
+]
