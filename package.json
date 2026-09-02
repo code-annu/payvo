@@ -3,7 +3,8 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "build": "pnpm -r build"
+    "db:emit": "pnpm --filter @payvo/database contract:emit",
+    "build": "pnpm db:emit && pnpm -r build"
   },
   "keywords": [],
   "author": "",
