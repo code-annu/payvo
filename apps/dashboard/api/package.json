@@ -2,8 +2,10 @@
   "name": "@payvo/dashboard-api",
   "version": "1.0.0",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "tsx --watch src/server.ts"
+    "test": "vitest run",
+    "dev": "tsx --watch src/server.ts",
+    "build": "tsc && tsc-alias",
+    "start": "node dist/server.js"
   },
   "keywords": [],
   "author": "",

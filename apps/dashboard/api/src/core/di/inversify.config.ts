@@ -16,6 +16,11 @@ import MerchantMapper from "@/modules/merchant/merchant.mapper.js";
 import MerchantService from "@/modules/merchant/merchant.service.js";
 import MerchantController from "@/modules/merchant/merchant.controller.js";
 import MerchantRouter from "@/modules/merchant/merchant.router.js";
+import ApiKeyRepository from "@/modules/api-key/repository/api-key.repository.js";
+import ApiKeyMapper from "@/modules/api-key/api-key.mapper.js";
+import ApiKeyService from "@/modules/api-key/api-key.service.js";
+import ApiKeyController from "@/modules/api-key/api-key.controller.js";
+import ApiKeyRouter from "@/modules/api-key/api-key.router.js";
 
 const container = new Container();
 
@@ -61,6 +66,28 @@ container
 container
   .bind<MerchantRouter>(TYPES.MerchantRouter)
   .to(MerchantRouter)
+  .inSingletonScope();
+
+// ApiKey bindings
+container
+  .bind<ApiKeyMapper>(TYPES.ApiKeyMapper)
+  .to(ApiKeyMapper)
+  .inSingletonScope();
+container
+  .bind<ApiKeyRepository>(TYPES.ApiKeyRepository)
+  .to(ApiKeyRepository)
+  .inSingletonScope();
+container
+  .bind<ApiKeyService>(TYPES.ApiKeyService)
+  .to(ApiKeyService)
+  .inSingletonScope();
+container
+  .bind<ApiKeyController>(TYPES.ApiKeyController)
+  .to(ApiKeyController)
+  .inSingletonScope();
+container
+  .bind<ApiKeyRouter>(TYPES.ApiKeyRouter)
+  .to(ApiKeyRouter)
   .inSingletonScope();
 
 // Auth bindings

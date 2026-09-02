@@ -22,6 +22,13 @@ const TYPES = {
   MerchantService: Symbol.for("MerchantService"),
   MerchantController: Symbol.for("MerchantController"),
   MerchantRouter: Symbol.for("MerchantRouter"),
+
+  // ApiKey types
+  ApiKeyRepository: Symbol.for("ApiKeyRepository"),
+  ApiKeyMapper: Symbol.for("ApiKeyMapper"),
+  ApiKeyService: Symbol.for("ApiKeyService"),
+  ApiKeyController: Symbol.for("ApiKeyController"),
+  ApiKeyRouter: Symbol.for("ApiKeyRouter"),
 };
 
 export default TYPES;

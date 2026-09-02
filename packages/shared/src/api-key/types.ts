@@ -1,1 +1,1 @@
-export type Environment = "test" | "live";
+export type Environment = "TEST" | "LIVE";
