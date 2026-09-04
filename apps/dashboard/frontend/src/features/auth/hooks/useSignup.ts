@@ -3,6 +3,7 @@ import { toast } from "sonner";
 import AuthApi from "../api/auth.api";
 import { authToken } from "../auth.store";
 import { ApiError } from "@/core/api/api.error";
+import ErrorCode from "@/core/api/ErrorCode";
 
 export function useSignup() {
   return useMutation({
@@ -16,12 +17,11 @@ export function useSignup() {
     },
     onError: (error) => {
       const err = new ApiError(error);
-      toast.error(err.message || "Failed to create account", {
-        description:
-          err.code && err.code !== "SOMETHING_WENT_WRONG"
-            ? `Error: ${err.code}`
-            : undefined,
-      });
+      let description = "";
+      if (err.code === ErrorCode.EMAIL_ALREADY_EXISTS)
+        description = "Try to login";
+
+      toast.error(err.message, { description });
       console.error("Signup error:", err);
     },
   });

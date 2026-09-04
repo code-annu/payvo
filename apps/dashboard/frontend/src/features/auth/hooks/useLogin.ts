@@ -3,8 +3,12 @@ import { toast } from "sonner";
 import AuthApi from "../api/auth.api";
 import { authToken } from "../auth.store";
 import { ApiError } from "@/core/api/api.error";
+import ErrorCode from "@/core/api/ErrorCode";
+import { useNavigate } from "react-router-dom";
+import AppRoutes from "@/router/app.routes";
 
 export function useLogin() {
+  const navigate = useNavigate();
   return useMutation({
     mutationFn: AuthApi.login,
     onSuccess: (data) => {
@@ -13,16 +17,15 @@ export function useLogin() {
         description: "Welcome back to PayO.",
       });
       console.log("Login success:", data);
+      navigate(AppRoutes.HOME);
     },
     onError: (error) => {
       const err = new ApiError(error);
-      toast.error(err.message || "Failed to sign in", {
-        description:
-          err.code && err.code !== "SOMETHING_WENT_WRONG"
-            ? `Error: ${err.code}`
-            : undefined,
-      });
-      console.error("Login error:", err);
+      let description = "";
+      if (err.code === ErrorCode.INVALID_CREDENTIALS)
+        description = "Try with some other credentials";
+
+      toast.error(err.message, { description });
     },
   });
 }

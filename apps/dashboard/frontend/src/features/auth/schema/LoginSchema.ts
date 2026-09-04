@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { LoginRequest } from "../api/types";
+import type { LoginRequest } from "../api/user.types";
 
 /**
  * Zod validation schema for user login based on LoginRequest.

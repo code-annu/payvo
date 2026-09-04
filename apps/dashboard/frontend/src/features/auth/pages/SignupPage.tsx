@@ -4,7 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Link } from "react-router-dom";
 import AppRoutes from "@/router/app.routes";
 import { signupSchema, type SignupFormData } from "../schema/SignupSchema";
-import type { SignupRequest } from "../api/types";
+import type { SignupRequest } from "../api/user.types";
 import { TextInput } from "@/components/inputs/TextInputField";
 import { PasswordInput } from "@/components/inputs/PasswordInputField";
 import { Button } from "@/components/buttons/CustomButton";

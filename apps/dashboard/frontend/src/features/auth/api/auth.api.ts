@@ -1,5 +1,5 @@
 import axiosClient from "@/core/axios/axios.client";
-import type { AuthResponse, LoginRequest, SignupRequest } from "./types";
+import type { AuthResponse, LoginRequest, SignupRequest } from "./user.types";
 
 export default abstract class AuthApi {
   static async signup(body: SignupRequest) {
