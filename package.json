@@ -3,9 +3,12 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "db:emit": "pnpm --filter @payvo/database contract:emit",
-    "build": "pnpm db:emit && pnpm -r build",
-    "db:migrate": "pnpm --filter @payvo/database migrate"
+    "build:shared": "pnpm --filter @payvo/shared build",
+    "build:config": "pnpm --filter @payvo/config build",
+    "build:database": "pnpm --filter @payvo/database build",
+    "build:packages": "pnpm build:shared && pnpm build:config && pnpm build:database",
+    "db:migrate": "pnpm --filter @payvo/database migrate",
+    "build:dashboard-api": "pnpm build:packages && pnpm --filter @payvo/dashboard-api build"
   },
   "keywords": [],
   "author": "",
