@@ -23,6 +23,10 @@
     "./auth": {
       "import": "./dist/auth/index.js",
       "types": "./dist/auth/index.d.ts"
+    },
+    "./cors": {
+      "import": "./dist/cors/index.js",
+      "types": "./dist/cors/index.d.ts"
     }
   },
   "dependencies": {

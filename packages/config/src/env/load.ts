@@ -8,6 +8,7 @@ const ENV = {
   ACCESS_TOKEN_SECRET: process.env.ACCESS_TOKEN_SECRET!,
   ACCESS_TOKEN_EXPIRY_MIN: Number(process.env.ACCESS_TOKEN_EXPIRY_MIN),
   REFRESH_TOKEN_EXPIRY_DAYS: Number(process.env.REFRESH_TOKEN_EXPIRY_DAYS),
+  FRONTEND_URL: process.env.FRONTEND_URL!,
 };
 
 export default ENV;

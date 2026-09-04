@@ -8,12 +8,14 @@ import type { LoginRequest } from "../api/types";
 import { TextInput } from "@/components/inputs/TextInputField";
 import { PasswordInput } from "@/components/inputs/PasswordInputField";
 import { Button } from "@/components/buttons/CustomButton";
+import { useLogin } from "../hooks/useLogin";
 
 export const LoginPage: React.FC = () => {
+  const login = useLogin();
   const {
     register,
     handleSubmit,
-    formState: { errors, isSubmitting },
+    formState: { errors },
   } = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
@@ -22,8 +24,15 @@ export const LoginPage: React.FC = () => {
     },
   });
 
-  const onSubmit = (data: LoginRequest) => {
-    console.log("Login submitted:", data);
+  const onSubmit = (data: LoginFormData) => {
+    const loginRequest: LoginRequest = {
+      email: data.email,
+      password: data.password,
+    };
+
+    login.mutate(loginRequest);
+
+    console.log("Login submitted (LoginRequest):", loginRequest);
   };
 
   return (
@@ -78,7 +87,7 @@ export const LoginPage: React.FC = () => {
           <Button
             text="Sign In"
             type="submit"
-            isLoading={isSubmitting}
+            isLoading={login.isPending}
             className="w-full mt-2"
           />
         </form>

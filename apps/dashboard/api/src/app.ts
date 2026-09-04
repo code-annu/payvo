@@ -7,11 +7,24 @@ import UserRouter from "./modules/user/user.router.js";
 import MerchantRouter from "./modules/merchant/merchant.router.js";
 import ApiKeyRouter from "./modules/api-key/api-key.router.js";
 import handleError from "./core/middleware/error-handler.middleware.js";
+import cors from "cors";
+import { corsConfig } from "@payvo/config/cors";
 
 const app: Express = express();
 
+console.log(corsConfig);
+const corsOptions = {
+  origin: corsConfig.origin,
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+  credentials: true, // if you're sending cookies or auth headers
+};
+
+// Middleware
+app.use(cors(corsOptions));
 app.use(express.json());
 app.use(cookieParser());
+
 app.use("/health", (_, res) => {
   res.send("OK");
 });
