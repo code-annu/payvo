@@ -75,7 +75,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
           "relative inline-flex items-center justify-center",
           "h-10 px-4 py-2 select-none",
           "font-sans text-sm font-medium leading-none tracking-tight",
-          "rounded-[var(--radius)] transition-all duration-200 ease-in-out",
+          "rounded-(--radius) transition-all duration-200 ease-in-out",
           "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
           colorStyles[color] || colorStyles.primary,
           effectiveDisabled

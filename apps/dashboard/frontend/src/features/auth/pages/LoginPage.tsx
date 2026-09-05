@@ -4,7 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Link } from "react-router-dom";
 import AppRoutes from "@/router/app.routes";
 import { loginSchema, type LoginFormData } from "../schema/LoginSchema";
-import type { LoginRequest } from "../api/user.types";
+import type { LoginRequest } from "../api/auth.types";
 import { TextInput } from "@/components/inputs/TextInputField";
 import { PasswordInput } from "@/components/inputs/PasswordInputField";
 import { Button } from "@/components/buttons/CustomButton";
@@ -42,7 +42,7 @@ export const LoginPage: React.FC = () => {
         {/* Brand & Header */}
         <div className="text-center">
           <div className="inline-flex items-center justify-center gap-2 mb-3">
-            <div className="w-10 h-10 rounded-[var(--radius)] bg-primary flex items-center justify-center text-primary-foreground font-bold text-xl shadow-sm shadow-primary/25">
+            <div className="w-10 h-10 rounded-(--radius) bg-primary flex items-center justify-center text-primary-foreground font-bold text-xl shadow-sm shadow-primary/25">
               P
             </div>
             <span className="text-2xl font-bold tracking-tight text-foreground">

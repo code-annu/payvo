@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { SignupRequest } from "../api/user.types";
+import type { SignupRequest } from "../api/auth.types";
 
 /**
  * Zod validation schema for user registration based on SignupRequest.

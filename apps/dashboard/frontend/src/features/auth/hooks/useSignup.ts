@@ -1,11 +1,15 @@
 import { useMutation } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
 import AuthApi from "../api/auth.api";
 import { authToken } from "../auth.store";
 import { ApiError } from "@/core/api/api.error";
 import ErrorCode from "@/core/api/ErrorCode";
+import AppRoutes from "@/router/app.routes";
 
 export function useSignup() {
+  const navigate = useNavigate();
+
   return useMutation({
     mutationFn: AuthApi.signup,
     onSuccess: (data) => {
@@ -13,7 +17,7 @@ export function useSignup() {
       toast.success("Account created successfully!", {
         description: "Welcome to PayO.",
       });
-      console.log("Signup success:", data);
+      navigate(AppRoutes.HOME);
     },
     onError: (error) => {
       const err = new ApiError(error);
@@ -22,7 +26,6 @@ export function useSignup() {
         description = "Try to login";
 
       toast.error(err.message, { description });
-      console.error("Signup error:", err);
     },
   });
 }

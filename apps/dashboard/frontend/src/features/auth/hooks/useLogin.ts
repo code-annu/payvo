@@ -16,7 +16,6 @@ export function useLogin() {
       toast.success("Signed in successfully!", {
         description: "Welcome back to PayO.",
       });
-      console.log("Login success:", data);
       navigate(AppRoutes.HOME);
     },
     onError: (error) => {

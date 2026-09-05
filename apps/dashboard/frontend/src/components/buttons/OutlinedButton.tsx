@@ -46,7 +46,7 @@ export const OutlinedButton = forwardRef<HTMLButtonElement, OutlinedButtonProps>
           "relative inline-flex items-center justify-center select-none",
           "h-10 px-4 py-2",
           "font-sans text-sm font-medium leading-none tracking-tight",
-          "rounded-[var(--radius)] border border-input bg-transparent text-foreground",
+          "rounded-(--radius) border border-input bg-transparent text-foreground",
           "transition-all duration-200 ease-in-out",
           "hover:bg-accent hover:text-accent-foreground hover:border-accent-foreground/20",
           "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
