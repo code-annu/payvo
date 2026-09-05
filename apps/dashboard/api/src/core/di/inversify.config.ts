@@ -21,6 +21,7 @@ import ApiKeyMapper from "@/modules/api-key/api-key.mapper.js";
 import ApiKeyService from "@/modules/api-key/api-key.service.js";
 import ApiKeyController from "@/modules/api-key/api-key.controller.js";
 import ApiKeyRouter from "@/modules/api-key/api-key.router.js";
+import StringUtil from "../util/string.util.js";
 
 const container = new Container();
 
@@ -29,6 +30,8 @@ container
   .bind<ClientInfoUtil>(TYPES.ClientInfoUtil)
   .to(ClientInfoUtil)
   .inSingletonScope();
+
+container.bind<StringUtil>(TYPES.StringUtil).to(StringUtil).inSingletonScope();
 
 // User bindings
 container

@@ -37,7 +37,7 @@ export class ExpiredSessionError extends AppError {
     super({
       message,
       statusCode: StatusCode.Error.UNAUTHORIZED,
-      code: AuthErrorCode.EXPIRED_REFRESH_TOKEN,
+      code: AuthErrorCode.EXPIRED_SESSION,
     });
   }
 }
@@ -47,7 +47,7 @@ export class RevokedSessionError extends AppError {
     super({
       message,
       statusCode: StatusCode.Error.UNAUTHORIZED,
-      code: AuthErrorCode.REVOKED_REFRESH_TOKEN,
+      code: AuthErrorCode.EXPIRED_SESSION,
     });
   }
 }
@@ -57,7 +57,7 @@ export class SessionExpiredError extends AppError {
     super({
       message,
       statusCode: StatusCode.Error.UNAUTHORIZED,
-      code: AuthErrorCode.SESSION_EXPIRED,
+      code: AuthErrorCode.EXPIRED_SESSION,
     });
   }
 }
@@ -67,7 +67,7 @@ export class SessionRevokedError extends AppError {
     super({
       message,
       statusCode: StatusCode.Error.UNAUTHORIZED,
-      code: AuthErrorCode.SESSION_REVOKED,
+      code: AuthErrorCode.REVOKED_SESSION,
     });
   }
 }

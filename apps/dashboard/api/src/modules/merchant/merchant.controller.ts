@@ -14,8 +14,12 @@ export default class MerchantController {
 
   getUserMerchants = catchAsync(async (req: AuthRequest, res: Response) => {
     const auth = req.auth!;
-    const userMerchants = await this.service.getUserMerchants(auth.sub);
-    res.status(StatusCode.Success.OK).json(buildSuccessResponse(userMerchants));
+    const merchants = await this.service.getUserMerchants(auth.sub);
+    res
+      .status(StatusCode.Success.OK)
+      .json(
+        buildSuccessResponse({ merchants, totalMerchants: merchants.length }),
+      );
   });
 
   createMerchant = catchAsync(async (req: AuthRequest, res: Response) => {

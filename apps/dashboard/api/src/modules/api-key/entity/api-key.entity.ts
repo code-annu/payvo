@@ -2,7 +2,7 @@ export interface ApiKey {
   readonly id: string;
   readonly merchantId: string;
   readonly secretHash: string;
-  readonly environment: Environment;
+  readonly environment: ApiKeyEnvironment;
   readonly status: ApiKeyStatus;
   readonly keyId: string;
   readonly lastUsedAt: Date | null;
@@ -12,5 +12,5 @@ export interface ApiKey {
   readonly updatedAt: Date;
 }
 
-export type Environment = "TEST" | "LIVE";
+export type ApiKeyEnvironment = "TEST" | "LIVE";
 export type ApiKeyStatus = "ACTIVE" | "REVOKED";

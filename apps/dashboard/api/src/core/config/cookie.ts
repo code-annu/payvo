@@ -7,7 +7,7 @@ export const REFRESH_TOKEN_COOKIE = {
     httpOnly: true,
     secure: true,
     sameSite: "strict",
-    path: "/api/auth/refresh",
+    path: "/api/auth/rotate-token",
     maxAge: sessionConfig.refreshToken.expiryDays * 24 * 60 * 60 * 1000, // days
   } as CookieOptions,
 };

@@ -57,6 +57,7 @@ export default class AuthController {
         createdAt: user.createdAt,
       },
       accessToken,
+      refreshToken,
     });
     res
       .status(StatusCode.Success.OK)

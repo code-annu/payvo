@@ -2,7 +2,7 @@ import TYPES from "@/core/di/inversify.types.js";
 import { inject, injectable } from "inversify";
 import ApiKeyMapper from "../api-key.mapper.js";
 import { db, TransactionClient } from "@payvo/database";
-import { ApiKey, Environment } from "../entity/api-key.entity.js";
+import { ApiKey, ApiKeyEnvironment } from "../entity/api-key.entity.js";
 import {
   ApiKeyCreateInput,
   ApiKeyScheduleRevokeInput,
@@ -41,7 +41,7 @@ export default class ApiKeyRepository {
   }
   async findByMerchantIdForEnvironment(
     merchantId: string,
-    environment: Environment,
+    environment: ApiKeyEnvironment,
     tx?: TransactionClient,
   ): Promise<ApiKey | null> {
     const apiKey = await (tx ?? db).orm.public.ApiKey.where({
@@ -53,6 +53,4 @@ export default class ApiKeyRepository {
     }).first();
     return apiKey ? this.mapper.toApiKeyEntity(apiKey) : null;
   }
-
- 
 }

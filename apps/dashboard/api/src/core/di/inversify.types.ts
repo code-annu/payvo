@@ -1,6 +1,7 @@
 const TYPES = {
   // Util types
   ClientInfoUtil: Symbol.for("ClientInfoUtil"),
+  StringUtil: Symbol.for("StringUtil"),
 
   // User types
   UserRepository: Symbol.for("UserRepository"),

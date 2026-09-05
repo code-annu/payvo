@@ -3,21 +3,31 @@ import { inject, injectable } from "inversify";
 import MerchantRepository from "./repository/merchant.repository.js";
 import { MerchantNotFoundError } from "./error/merchant.errors.js";
 import { Merchant } from "./entity/merchant.entity.js";
-import { UserMerchants } from "./entity/user-merchants.entity.js";
+import { generateRandomKey } from "@payvo/shared/random";
+import StringUtil from "@/core/util/string.util.js";
 
 @injectable()
 export default class MerchantService {
   constructor(
     @inject(TYPES.MerchantRepository)
     private readonly merchantRepo: MerchantRepository,
+    @inject(TYPES.StringUtil)
+    private readonly stringUtil: StringUtil,
   ) {}
 
-  async getUserMerchants(userId: string): Promise<UserMerchants> {
+  async getUserMerchants(userId: string): Promise<Merchant[]> {
     return await this.merchantRepo.findMerchantsByUserId(userId);
   }
 
   async createMerchant(userId: string): Promise<Merchant> {
-    return await this.merchantRepo.createMerchants({ userId });
+    let mid = generateRandomKey();
+    do {
+      mid = generateRandomKey();
+    } while (
+      (await this.merchantRepo.findMerchantByMid(mid)) ||
+      !this.stringUtil.isAlphanumeric(mid)
+    );
+    return await this.merchantRepo.createMerchant({ userId, mid });
   }
 
   async getMerchantDetails(id: string): Promise<Merchant> {

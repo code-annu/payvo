@@ -1,11 +1,11 @@
-import { ApiKeyStatus, Environment } from "./api-key.entity.js";
+import { ApiKeyStatus, ApiKeyEnvironment } from "./api-key.entity.js";
 
 export interface MerchantApiKeys {
   readonly merchantId: string;
   readonly apiKeys: {
     readonly id: string;
     readonly secretHash: string;
-    readonly environment: Environment;
+    readonly environment: ApiKeyEnvironment;
     readonly status: ApiKeyStatus;
     readonly keyId: string;
     readonly lastUsedAt: Date | null;

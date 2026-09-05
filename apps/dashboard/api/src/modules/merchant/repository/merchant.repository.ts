@@ -3,7 +3,6 @@ import { inject, injectable } from "inversify";
 import MerchantMapper from "../merchant.mapper.js";
 import { Merchant } from "../entity/merchant.entity.js";
 import { db, MerchantCreateInput } from "@payvo/database";
-import { UserMerchants } from "../entity/user-merchants.entity.js";
 
 @injectable()
 export default class MerchantRepository {
@@ -11,7 +10,7 @@ export default class MerchantRepository {
     @inject(TYPES.MerchantMapper) private readonly mapper: MerchantMapper,
   ) {}
 
-  async createMerchants(data: MerchantCreateInput): Promise<Merchant> {
+  async createMerchant(data: MerchantCreateInput): Promise<Merchant> {
     const merchant = await db.orm.public.Merchant.create(data);
     return this.mapper.toMerchantEntity(merchant);
   }
@@ -21,9 +20,14 @@ export default class MerchantRepository {
     return merchant ? this.mapper.toMerchantEntity(merchant) : null;
   }
 
-  async findMerchantsByUserId(userId: string): Promise<UserMerchants> {
+  async findMerchantByMid(mid: string): Promise<Merchant | null> {
+    const merchant = await db.orm.public.Merchant.first({ mid });
+    return merchant ? this.mapper.toMerchantEntity(merchant) : null;
+  }
+
+  async findMerchantsByUserId(userId: string): Promise<Merchant[]> {
     const merchants = await db.orm.public.Merchant.where({ userId }).all();
-    return this.mapper.toUserMerchantsEntity(userId, merchants);
+    return merchants.map((merchant) => this.mapper.toMerchantEntity(merchant));
   }
 
   async deleteMerchant(id: string): Promise<void> {

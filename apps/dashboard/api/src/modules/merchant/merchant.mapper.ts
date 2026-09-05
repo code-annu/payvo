@@ -10,6 +10,7 @@ export default class MerchantMapper {
       id: merchant.id,
       userId: merchant.userId,
       isActive: merchant.isActive,
+      mid: merchant.mid,
       createdAt: new Date(merchant.createdAt),
       updatedAt: new Date(merchant.updatedAt),
     };

@@ -25,9 +25,12 @@ export default class ApiKeyController {
 
     res.status(StatusCode.Success.CREATED).json(
       buildSuccessResponse({
-        keyId: result.apiKey.keyId,
-        keySecret: result.keySecret,
-        generatedOn: result.apiKey.createdAt,
+        apiKey: {
+          keyId: result.apiKey.keyId,
+          keySecret: result.keySecret,
+          environment: result.apiKey.environment,
+          generatedOn: result.apiKey.createdAt,
+        },
       }),
     );
   });
@@ -46,8 +49,12 @@ export default class ApiKeyController {
 
       res.status(StatusCode.Success.OK).json(
         buildSuccessResponse({
-          keyId: result.apiKey.keyId,
-          generatedOn: result.apiKey.createdAt,
+          apiKey: {
+            keyId: result.apiKey.keyId,
+            keySecret: null,
+            environment: result.apiKey.environment,
+            generatedOn: result.apiKey.createdAt,
+          },
         }),
       );
     },
@@ -70,9 +77,12 @@ export default class ApiKeyController {
 
     res.status(StatusCode.Success.OK).json(
       buildSuccessResponse({
-        keyId: result.apiKey.keyId,
-        keySecret: result.keySecret,
-        generatedOn: result.apiKey.createdAt,
+        apiKey: {
+          keyId: result.apiKey.keyId,
+          keySecret: result.keySecret,
+          environment: result.apiKey.environment,
+          generatedOn: result.apiKey.createdAt,
+        },
       }),
     );
   });
