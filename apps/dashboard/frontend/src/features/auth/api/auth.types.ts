@@ -12,6 +12,6 @@ export interface LoginRequest {
   password: string;
 }
 
-export interface AuthResponse extends SuccessResponse<{
+export type AuthResponse = SuccessResponse<{
   accessToken: string;
-}> {}
+}>;

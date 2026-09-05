@@ -50,9 +50,44 @@
 // export default ProtectedRoute;
 
 // Temp protected route
-import { Outlet } from "react-router-dom";
+import CircularLoadingBar from "@/components/progress/CircularLoadingBar";
+import { ApiError } from "@/core/api/api.error";
+import ErrorCode from "@/core/api/ErrorCode";
+import { useMe } from "@/features/account/hooks/useMe";
+import { Outlet, useNavigate } from "react-router-dom";
+import { toast } from "sonner";
+import AppRoutes from "./app.routes";
+import { useEffect } from "react";
 
 export const ProtectedRoute: React.FC = () => {
+  const { data: user, isLoading, isError, error } = useMe();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (isError) {
+      const apiError = new ApiError(error);
+      const isSessionExpired =
+        apiError.code === ErrorCode.SESSION_EXPIRED ||
+        apiError.code === ErrorCode.SESSION_REVOKED;
+      if (isSessionExpired) {
+        toast.error("Session expired", {
+          description: "Please sign in again to continue.",
+        });
+      }
+      navigate(AppRoutes.LOGIN, { replace: true });
+    }
+  }, [isError, error, navigate]);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen w-full bg-background flex flex-col items-center justify-center">
+        <CircularLoadingBar size={48} strokeWidth={4} />
+      </div>
+    );
+  }
+
+  if (!user) return null;
+
   return <Outlet />;
 };
 

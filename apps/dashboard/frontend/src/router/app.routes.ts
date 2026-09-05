@@ -1,5 +1,5 @@
 enum AppRoutes {
-  HOME = "/",
+  HOME = "/dashboard",
   LOGIN = "/login",
   SIGNUP = "/signup",
   TRANSACTIONS = "/transactions",
