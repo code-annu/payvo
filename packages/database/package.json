@@ -8,7 +8,8 @@
     "dev": "concurrently \"tsc -w\" \"pnpm run cp:contract && pnpm run watch:contract\"",
     "contract:emit": "prisma contract emit",
     "build": "tsc && pnpm run cp:contract",
-    "db:migrate": "prisma db migrate"
+    "db:migrate": "prisma db migrate --advance-ref db",
+    "plan:migration": "prisma migration plan --name"
   },
   "keywords": [],
   "author": "",
