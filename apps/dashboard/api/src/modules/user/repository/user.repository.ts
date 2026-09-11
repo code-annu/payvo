@@ -1,8 +1,8 @@
 import { client } from "@payvo/database/client";
 import { UserCreateInput, UserUpdateInput } from "@payvo/database/types";
 import { injectable } from "inversify";
-import { User } from "../entity/user.entity";
-import { stringToDate, stringToDateNullable } from "@/core/utils/date.utils";
+import { User } from "../entity/user.entity.js";
+import { stringToDate, stringToDateNullable } from "@/core/utils/date.utils.js";
 
 @injectable()
 export default class UserRepository {
@@ -30,8 +30,34 @@ export default class UserRepository {
       : null;
   }
 
+  async findById(id: string): Promise<User | null> {
+    const user = await this.db.orm.public.User.first({ id });
+    return user
+      ? {
+          ...user,
+          deletedAt: stringToDateNullable(user.deletedAt),
+          createdAt: stringToDate(user.createdAt),
+          updatedAt: stringToDate(user.updatedAt),
+        }
+      : null;
+  }
+
   async findByEmail(email: string): Promise<User | null> {
     const user = await this.db.orm.public.User.first({ email });
+    return user
+      ? {
+          ...user,
+          deletedAt: stringToDateNullable(user.deletedAt),
+          createdAt: stringToDate(user.createdAt),
+          updatedAt: stringToDate(user.updatedAt),
+        }
+      : null;
+  }
+
+  async softDelete(id: string): Promise<User | null> {
+    const user = await this.db.orm.public.User.where({ id }).update({
+      deletedAt: new Date().toISOString(),
+    });
     return user
       ? {
           ...user,
