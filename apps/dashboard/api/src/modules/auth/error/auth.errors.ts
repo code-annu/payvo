@@ -1,6 +1,6 @@
 import { AppError } from "@payvo/shared/error";
 import { HttpStatusCode } from "@payvo/shared/http";
-import AuthErrorCode from "./AuthErrorCode";
+import AuthErrorCode from "./AuthErrorCode.js";
 
 export class EmailAlreadyExists extends AppError {
   constructor(message: string = "Email already exists") {

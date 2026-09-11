@@ -1,10 +1,10 @@
-import TYPES from "@/core/di/inversify.types";
+import TYPES from "@/core/di/inversify.types.js";
 import { inject, injectable } from "inversify";
-import UserRepository from "../user/repository/user.repository";
-import SessionRepository from "./repository/session.repository";
-import RefreshTokenRepository from "./repository/refresh-token.repository";
-import { SignupDto } from "./dto/SignupDto";
-import * as authErrors from "./error/auth.errors";
+import UserRepository from "../user/repository/user.repository.js";
+import SessionRepository from "./repository/session.repository.js";
+import RefreshTokenRepository from "./repository/refresh-token.repository.js";
+import { SignupDto } from "./dto/SignupDto.js";
+import * as authErrors from "./error/auth.errors.js";
 import { hashPassword, verifyPassword } from "@payvo/shared/crypto";
 import { jwtConfig, sessionConfig } from "@payvo/config/auth";
 import { addDays } from "date-fns";
@@ -13,7 +13,7 @@ import {
   hashRefreshToken,
 } from "@payvo/shared/refresh-token";
 import { signAccessToken } from "@payvo/shared/jwt";
-import { LoginDto } from "./dto/LoginDto";
+import { LoginDto } from "./dto/LoginDto.js";
 import { dbTransaction } from "@payvo/database/client";
 
 @injectable()

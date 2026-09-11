@@ -1,17 +1,17 @@
 import "reflect-metadata";
-import type UserRepository from "../../user/repository/user.repository";
-import type SessionRepository from "../repository/session.repository";
-import type RefreshTokenRepository from "../repository/refresh-token.repository";
+import type UserRepository from "../../user/repository/user.repository.js";
+import type SessionRepository from "../repository/session.repository.js";
+import type RefreshTokenRepository from "../repository/refresh-token.repository.js";
 import {
   InvalidRefreshTokenError,
   RevokedRefreshTokenError,
   ExpiredSessionError,
   SessionRevokedError,
   InactiveUserError,
-} from "../error/auth.errors";
-import type { Session } from "../entity/session.entity";
-import type { RefreshToken } from "../entity/refresh-token.entity";
-import type { RefreshTokenRotate } from "../entity/refresh-token-rotate.entity";
+} from "../error/auth.errors.js";
+import type { Session } from "../entity/session.entity.js";
+import type { RefreshToken } from "../entity/refresh-token.entity.js";
+import type { RefreshTokenRotate } from "../entity/refresh-token-rotate.entity.js";
 
 // ---------------------------------------------------------------------------
 // Mock modules that would trigger database connections or env reads
@@ -59,7 +59,7 @@ import {
   hashRefreshToken,
 } from "@payvo/shared/refresh-token";
 import { signAccessToken } from "@payvo/shared/jwt";
-import AuthService from "../auth.service";
+import AuthService from "../auth.service.js";
 
 // ---------------------------------------------------------------------------
 // Fixtures

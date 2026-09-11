@@ -1,9 +1,9 @@
 import { client, TransactionClient } from "@payvo/database/client";
 import { injectable } from "inversify";
-import { RefreshToken } from "../entity/refresh-token.entity";
+import { RefreshToken } from "../entity/refresh-token.entity.js";
 import { RefreshTokenCreateInput } from "@payvo/database/types";
-import { stringToDate, stringToDateNullable } from "@/core/utils/date.utils";
-import { RefreshTokenRotate } from "../entity/refresh-token-rotate.entity";
+import { stringToDate, stringToDateNullable } from "@/core/utils/date.utils.js";
+import { RefreshTokenRotate } from "../entity/refresh-token-rotate.entity.js";
 
 @injectable()
 export default class RefreshTokenRepository {

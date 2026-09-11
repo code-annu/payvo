@@ -1,8 +1,8 @@
 import { SessionCreateInput } from "@payvo/database/types";
 import { injectable } from "inversify";
-import { Session } from "../entity/session.entity";
+import { Session } from "../entity/session.entity.js";
 import { client, TransactionClient } from "@payvo/database/client";
-import { stringToDate, stringToDateNullable } from "@/core/utils/date.utils";
+import { stringToDate, stringToDateNullable } from "@/core/utils/date.utils.js";
 
 @injectable()
 export default class SessionRepository {

@@ -1,12 +1,12 @@
-import TYPES from "@/core/di/inversify.types";
-import { validateRequest } from "@/core/middleware/validate-request.middleware";
+import TYPES from "@/core/di/inversify.types.js";
+import { validateRequest } from "@/core/middleware/validate-request.middleware.js";
 import { Router } from "express";
 import { inject, injectable } from "inversify";
-import AuthController from "./auth.controller";
-import { RefreshTokenSchema } from "./schema/RefreshTokenSchema";
-import { SignupSchema } from "./schema/SignupSchema";
-import { LoginSchema } from "./schema/LoginSchema";
-import authenticateUser from "@/core/middleware/authenticate.middleware";
+import AuthController from "./auth.controller.js";
+import { RefreshTokenSchema } from "./schema/RefreshTokenSchema.js";
+import { SignupSchema } from "./schema/SignupSchema.js";
+import { LoginSchema } from "./schema/LoginSchema.js";
+import authenticateUser from "@/core/middleware/authenticate.middleware.js";
 
 @injectable()
 export default class AuthRouter {

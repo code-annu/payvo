@@ -3,11 +3,11 @@ import { buildSuccessResponse, HttpStatusCode } from "@payvo/shared/http";
 import { inject, injectable } from "inversify";
 import { CookieOptions, Request, Response } from "express";
 import { differenceInDays } from "date-fns";
-import TYPES from "@/core/di/inversify.types";
-import catchAsync from "@/core/handlers/async.catch";
-import AuthService from "./auth.service";
-import ClientInfoUtil from "@/core/utils/client.util";
-import { AuthRequest } from "@/core/middleware/authenticate.middleware";
+import TYPES from "@/core/di/inversify.types.js";
+import catchAsync from "@/core/handlers/async.catch.js";
+import AuthService from "./auth.service.js";
+import ClientInfoUtil from "@/core/utils/client.util.js";
+import { AuthRequest } from "@/core/middleware/authenticate.middleware.js";
 
 const COOKIE_PATH = "/api/auth/rotate-token";
 
