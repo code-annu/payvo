@@ -1,6 +1,6 @@
-import { HttpStatusCode } from "../http";
-import { AppError } from "./AppError";
-import AppErrorCode from "./AppErrorCode";
+import { HttpStatusCode } from "../http/index.js";
+import { AppError } from "./AppError.js";
+import AppErrorCode from "./AppErrorCode.js";
 
 export class BadRequestError extends AppError {
   constructor(message: string, details?: any) {

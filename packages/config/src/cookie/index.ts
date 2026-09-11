@@ -1,1 +1,1 @@
-export * from "./cookie.config";
+export * from "./cookie.config.js";

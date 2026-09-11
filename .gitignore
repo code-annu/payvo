@@ -1,6 +1,6 @@
 node_modules
 dist
-.env
+.env*
 **/generated
 .vscode
 **/prisma/contract.d.ts

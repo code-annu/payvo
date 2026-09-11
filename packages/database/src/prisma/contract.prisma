@@ -13,6 +13,7 @@ model User {
   updatedAt      temporal.updatedAtString()  @map("updated_at") 
 
   sessions  Session[]
+  merchants Merchant[]
 
   @@index([deletedAt], map: "idx_users_deleted_at")
   @@map("users")
@@ -52,3 +53,19 @@ model RefreshToken {
   @@index([sessionId], map: "idx_refresh_tokens_session_id")
   @@map("refresh_tokens")
 }
+
+
+model Merchant {
+  id        String   @id @default(uuid()) 
+  mid       String   @unique @map("mid") 
+  userId    String   @map("user_id") 
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt TimestamptzString  @default(now()) @map("created_at") 
+  updatedAt temporal.updatedAtString()  @map("updated_at") 
+
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId], map: "idx_merchants_user_id")
+  @@map("merchants")
+}
+

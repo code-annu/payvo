@@ -1,2 +1,2 @@
-export { generateRefreshToken } from "./generate";
-export { hashRefreshToken } from "./hash";
+export { generateRefreshToken } from "./generate.js";
+export { hashRefreshToken } from "./hash.js";

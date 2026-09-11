@@ -1,2 +1,2 @@
-export { HttpStatusCode } from "./HttpStatusCode";
-export { buildSuccessResponse } from "./success.response";
+export { HttpStatusCode } from "./HttpStatusCode.js";
+export { buildSuccessResponse } from "./success.response.js";

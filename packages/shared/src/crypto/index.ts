@@ -1,2 +1,2 @@
-export { hashPassword } from "./password/hash";
-export { verifyPassword } from "./password/verify";
+export { hashPassword } from "./password/hash.js";
+export { verifyPassword } from "./password/verify.js";

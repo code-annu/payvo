@@ -1,4 +1,4 @@
-import { db } from "../prisma/db";
+import { db } from "../prisma/db.js";
 
 export type Session = Awaited<ReturnType<typeof db.orm.public.Session.create>>;
 

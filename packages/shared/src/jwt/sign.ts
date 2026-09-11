@@ -1,5 +1,5 @@
 import { SignJWT } from "jose";
-import { AccessTokenPayload } from "./payload.types";
+import { AccessTokenPayload } from "./payload.types.js";
 
 export async function signAccessToken(
   payload: AccessTokenPayload,

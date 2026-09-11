@@ -1,5 +1,5 @@
 import { jwtVerify } from "jose";
-import { AccessTokenPayload } from "./payload.types";
+import { AccessTokenPayload } from "./payload.types.js";
 
 export async function verifyAccessToken(
   token: string,
