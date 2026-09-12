@@ -1,9 +1,9 @@
 import request from "supertest";
-import app from "../../src/app";
+import app from "../../src/app.js";
 import type { RefreshToken, Session, User } from "@payvo/database/types";
-import { RefreshTokenFactory } from "../factory/refresh-token.factory";
-import { SessionFactory } from "../factory/session.factory";
-import { UserFactory, type UserOverrides } from "../factory/user.factory";
+import { RefreshTokenFactory } from "../factory/refresh-token.factory.js";
+import { SessionFactory } from "../factory/session.factory.js";
+import { UserFactory, type UserOverrides } from "../factory/user.factory.js";
 
 export interface AuthUserOverrides extends UserOverrides {}
 

@@ -15,12 +15,17 @@ const TYPES = {
   AuthService: Symbol.for("AuthService"),
   AuthRouter: Symbol.for("AuthRouter"),
 
-  // // Merchant types
-  // MerchantRepository: Symbol.for("MerchantRepository"),
-  // MerchantMapper: Symbol.for("MerchantMapper"),
-  // MerchantService: Symbol.for("MerchantService"),
-  // MerchantController: Symbol.for("MerchantController"),
-  // MerchantRouter: Symbol.for("MerchantRouter"),
+  // Merchant types
+  MerchantRepository: Symbol.for("MerchantRepository"),
+  MerchantService: Symbol.for("MerchantService"),
+  MerchantController: Symbol.for("MerchantController"),
+  MerchantRouter: Symbol.for("MerchantRouter"),
+
+  // ApiKey types
+  ApiKeyRepository: Symbol.for("ApiKeyRepository"),
+  ApiKeyService: Symbol.for("ApiKeyService"),
+  ApiKeyController: Symbol.for("ApiKeyController"),
+  ApiKeyRouter: Symbol.for("ApiKeyRouter"),
 };
 
 export default TYPES;

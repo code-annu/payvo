@@ -1,9 +1,9 @@
 import request from "supertest";
-import resetDb from "../../helper/cleanup";
-import { UserFactory } from "../../factory/user.factory";
-import { getAuthenticatedUser } from "../../helper/auth.helper";
+import resetDb from "../../helper/cleanup.js";
+import { UserFactory } from "../../factory/user.factory.js";
+import { getAuthenticatedUser } from "../../helper/auth.helper.js";
 import { beforeEach, describe, expect, it } from "vitest";
-import app from "../../../src/app";
+import app from "../../../src/app.js";
 
 describe("GET /api/user/me", () => {
   beforeEach(async () => {

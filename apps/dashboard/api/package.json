@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "dotenv -e .env.development -- tsx --watch src/server.ts",
     "test:unit": "vitest src/modules",
-    "test:integration": "dotenv -e .env.test -- vitest test/integration",
+    "test:integration": "dotenv -e .env.test -- vitest",
     "build": "tsc && tsc-alias",
     "start": "node dist/server.js"
   },

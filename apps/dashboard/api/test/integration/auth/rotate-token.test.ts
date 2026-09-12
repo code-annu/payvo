@@ -1,11 +1,11 @@
 import request from "supertest";
-import resetDb from "../../helper/cleanup";
-import { UserFactory } from "../../factory/user.factory";
-import { SessionFactory } from "../../factory/session.factory";
-import { RefreshTokenFactory } from "../../factory/refresh-token.factory";
+import resetDb from "../../helper/cleanup.js";
+import { UserFactory } from "../../factory/user.factory.js";
+import { SessionFactory } from "../../factory/session.factory.js";
+import { RefreshTokenFactory } from "../../factory/refresh-token.factory.js";
 import { subDays } from "date-fns";
 import { beforeEach, describe, expect, it } from "vitest";
-import app from "../../../src/app";
+import app from "../../../src/app.js";
 
 describe("POST /api/auth/rotate-token", () => {
   beforeEach(async () => {

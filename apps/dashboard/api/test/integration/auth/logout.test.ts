@@ -1,12 +1,12 @@
 import request from "supertest";
 import { beforeEach, describe, expect, it } from "vitest";
-import resetDb from "../../helper/cleanup";
-import { getAuthenticatedUser } from "../../helper/auth.helper";
-import { SessionFactory } from "../../factory/session.factory";
-import { RefreshTokenFactory } from "../../factory/refresh-token.factory";
+import resetDb from "../../helper/cleanup.js";
+import { getAuthenticatedUser } from "../../helper/auth.helper.js";
+import { SessionFactory } from "../../factory/session.factory.js";
+import { RefreshTokenFactory } from "../../factory/refresh-token.factory.js";
 import { jwtConfig } from "@payvo/config/auth";
 import crypto from "node:crypto";
-import app from "../../../src/app";
+import app from "../../../src/app.js";
 
 // ---------------------------------------------------------------------------
 // Helper to create an expired JWT without importing jose directly
