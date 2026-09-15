@@ -14,11 +14,11 @@ export class UserNotFoundError extends AppError {
 
 export class UserDeletedError extends AppError {
   constructor(
-    message: string = "Account has been deactivated. Please contact support for assistance.",
+    message: string = "Account has been deleted. Please contact support for assistance.",
   ) {
     super({
       message,
-      statusCode: HttpStatusCode.Error.FORBIDDEN,
+      statusCode: HttpStatusCode.Error.UNAUTHORIZED,
       code: UserErrorCode.USER_DELETED,
     });
   }
