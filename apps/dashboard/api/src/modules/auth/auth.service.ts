@@ -15,6 +15,7 @@ import {
 import { signAccessToken } from "@payvo/shared/jwt";
 import { LoginDto } from "./dto/LoginDto.js";
 import { dbTransaction } from "@payvo/database/client";
+import { UserDeletedError } from "../user/error/user.errors.js";
 
 @injectable()
 export default class AuthService {
@@ -72,13 +73,12 @@ export default class AuthService {
 
   async login(input: LoginDto) {
     const user = await this.userRepo.findByEmail(input.email);
-    if (!user || !(await verifyPassword(input.password, user.passwordHash))) {
+    if (
+      !user ||
+      !(await verifyPassword(input.password, user.passwordHash)) ||
+      user.deletedAt
+    ) {
       throw new authErrors.InvalidCredentialsError("Invalid email or password");
-    }
-    if (user.deletedAt) {
-      throw new authErrors.InactiveUserError(
-        "Account has been deactivated. Please contact support for assistance.",
-      );
     }
 
     const client = input.client;
@@ -135,9 +135,7 @@ export default class AuthService {
         );
       }
       if (user.deletedAt) {
-        throw new authErrors.InactiveUserError(
-          "Token belongs to an inactive user, please contact admin",
-        );
+        throw new UserDeletedError("Token belongs to a deleted user");
       }
 
       const refreshTokenStr = generateRefreshToken();
