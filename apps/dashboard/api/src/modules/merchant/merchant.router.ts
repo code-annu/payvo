@@ -5,10 +5,12 @@ import { Router } from "express";
 import { inject, injectable } from "inversify";
 import MerchantController from "./merchant.controller.js";
 import { MerchantIdSchema } from "./schema/MerchantIdSchema.js";
+import requireActiveUser from "@/core/middleware/require-active-user.middleware.js";
 
 @injectable()
 export default class MerchantRouter {
   readonly router: Router;
+  private readonly authProtectionSuite = [authenticateUser, requireActiveUser];
 
   constructor(
     @inject(TYPES.MerchantController)
@@ -19,20 +21,28 @@ export default class MerchantRouter {
   }
 
   private initRoutes() {
-    this.router.post("/", authenticateUser, this.controller.createMerchant);
+    this.router.post(
+      "/",
+      this.authProtectionSuite,
+      this.controller.createMerchant,
+    );
 
-    this.router.get("/", authenticateUser, this.controller.getUserMerchants);
+    this.router.get(
+      "/",
+      this.authProtectionSuite,
+      this.controller.getUserMerchants,
+    );
 
     this.router.get(
       "/:id",
-      authenticateUser,
+      this.authProtectionSuite,
       validateRequest({ params: MerchantIdSchema }),
       this.controller.getMerchant,
     );
 
     this.router.delete(
       "/:id",
-      authenticateUser,
+      this.authProtectionSuite,
       validateRequest({ params: MerchantIdSchema }),
       this.controller.deleteMerchant,
     );
