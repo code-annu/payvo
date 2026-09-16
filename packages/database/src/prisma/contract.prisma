@@ -64,8 +64,166 @@ model Merchant {
   updatedAt temporal.updatedAtString()  @map("updated_at") 
 
   user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  apiKeys      ApiKey[]
+  paymentOrders PaymentOrder[]
+  transactions  Transaction[]
 
   @@index([userId], map: "idx_merchants_user_id")
   @@map("merchants")
 }
 
+
+enum Environment {
+  TEST
+  LIVE
+
+  @@map("environment")
+}
+
+enum ApiKeyStatus {
+  ACTIVE
+  GRACE_PERIOD
+  REVOKED
+
+  @@map("api_key_status")
+}
+
+model ApiKey {
+  id          String      @id @default(uuid()) 
+  merchantId  String      @map("merchant_id") 
+  keyId       String      @unique @map("key_id")
+  secretHash  String      @map("secret_hash")
+  environment Environment @map("environment")
+  status      ApiKeyStatus     @default(ACTIVE) @map("status")
+  graceEndsAt TimestamptzString? @map("grace_ends_at")
+  revokedAt   TimestamptzString?   @map("revoked_at") 
+  lastUsedAt  TimestamptzString?   @map("last_used_at") 
+  createdAt   TimestamptzString    @default(now()) @map("created_at") 
+  updatedAt   temporal.updatedAtString()    @map("updated_at") 
+
+  merchant Merchant @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+
+  @@index([merchantId], map: "idx_api_keys_merchant_id")
+  @@index([merchantId, environment],map: "idx_api_keys_merchant_id_environment")
+  // Partial unique index: only one ACTIVE key per merchant per environment.
+  // Enforced via raw SQL migration (PSL does not support filtered unique constraints).
+  // CREATE UNIQUE INDEX "uq_api_keys_active_merchant_env" ON "api_keys" ("merchant_id", "environment") WHERE status = 'ACTIVE';
+  @@map("api_keys")
+}
+
+
+
+enum PaymentOrderStatus {
+  CREATED
+  REQUIRES_ACTION
+  PROCESSING
+  FAILED
+  COMPLETED
+  CANCELLED
+  EXPIRED
+
+  @@map("payment_order_status")
+}
+
+model PaymentOrder {
+  id                 String              @id @default(uuid())
+  merchantId         String              @map("merchant_id")
+  merchantCustomerId Uuid                @map("merchant_customer_id")
+  merchantOrderId    Uuid                @map("merchant_order_id")
+  idempotencyKey     String              @unique @map("idempotency_key")
+  status             PaymentOrderStatus  @default(CREATED) @map("status")
+  amount             Decimal      @map("amount")
+  currency           Char(3)             @map("currency")
+  clientToken         String               @unique @map("client_token") 
+  description        String?             @map("description")
+  failureCode        String?             @map("failure_code")
+  failureMessage     String?             @map("failure_message")
+  paidAt             TimestamptzString?  @map("paid_at")
+  expiresAt          TimestamptzString  @map("expires_at")
+  createdAt          TimestamptzString   @default(now()) @map("created_at")
+  updatedAt          temporal.updatedAtString()  @map("updated_at")
+
+  merchant        Merchant          @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  paymentAttempts PaymentAttempt[]  @relation("PaymentOrderAttempts")
+  transactions    Transaction[]     @relation("PaymentOrderTransactions")
+
+  @@index([merchantId], map: "idx_payment_orders_merchant_id")
+  @@index([merchantId, status], map: "idx_payment_orders_merchant_id_status")
+  @@map("payment_orders")
+}
+
+
+enum PaymentAttemptStatus {
+  INITIATED
+  PROCESSING
+  FAILED
+  CANCELED
+  SUCCEED
+
+  @@map("payment_attempt_status")
+}
+
+enum PaymentMethod {
+  CARD
+  UPI
+  NET_BANKING
+
+  @@map("payment_method")
+}
+
+model PaymentAttempt {
+  id              String                @id @default(uuid())
+  paymentOrderId  String                @map("payment_order_id")
+  attemptNumber   Int                   @map("attempt_number")
+  status          PaymentAttemptStatus  @default(INITIATED) @map("status")
+  paymentMethod   PaymentMethod         @map("payment_method")
+  completedAt     TimestamptzString?    @map("completed_at")
+  createdAt       TimestamptzString     @default(now()) @map("created_at")
+  updatedAt       temporal.updatedAtString()  @map("updated_at")
+
+  paymentOrder PaymentOrder @relation("PaymentOrderAttempts", fields: [paymentOrderId], references: [id], onDelete: Cascade)
+  transactions Transaction[] @relation("PaymentAttemptTransactions")
+
+  @@index([paymentOrderId], map: "idx_payment_attempts_payment_order_id")
+  @@map("payment_attempts")
+}
+
+
+enum PaymentType {
+  PAYIN
+  REFUND
+
+  @@map("payment_type")
+}
+
+enum PayoutStatus {
+  PENDING
+  PAID
+
+  @@map("payout_status")
+}
+
+model Transaction {
+  id               String        @id @default(uuid())
+  merchantId       String        @map("merchant_id")
+  paymentOrderId   String        @map("payment_order_id")
+  paymentAttemptId String        @map("payment_attempt_id")
+  paymentType      PaymentType   @map("payment_type")
+  grossAmount      Decimal @map("gross_amount")
+  feeAmount        Decimal @map("fee_amount")
+  netAmount        Decimal @map("net_amount")
+  currency         Char(3)        @map("currency")
+  payoutStatus     PayoutStatus  @default(PENDING) @map("payout_status")
+  createdAt        TimestamptzString  @default(now()) @map("created_at")
+  updatedAt        temporal.updatedAtString()  @map("updated_at")
+
+  merchant       Merchant       @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  paymentOrder   PaymentOrder   @relation("PaymentOrderTransactions", fields: [paymentOrderId], references: [id], onDelete: Cascade)
+  paymentAttempt PaymentAttempt @relation("PaymentAttemptTransactions", fields: [paymentAttemptId], references: [id], onDelete: Cascade)
+
+  @@index([merchantId], map: "idx_transactions_merchant_id")
+  @@index([paymentOrderId], map: "idx_transactions_payment_order_id")
+  @@index([paymentAttemptId], map: "idx_transactions_payment_attempt_id")
+  @@index([merchantId, payoutStatus], map: "idx_transactions_merchant_id_payout_status")
+  @@map("transactions")
+}

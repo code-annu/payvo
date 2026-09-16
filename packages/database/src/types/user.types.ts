@@ -8,3 +8,5 @@ export type UserCreateInput = Parameters<typeof db.orm.public.User.create>[0];
 // the data parameter from a where-scoped collection, not the root model.
 type UserWhereChain = ReturnType<typeof db.orm.public.User.where>;
 export type UserUpdateInput = Parameters<UserWhereChain["update"]>[0];
+
+
