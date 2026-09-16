@@ -32,6 +32,12 @@ import ApiKeyService from "@/modules/api-key/api-key.service.js";
 import ApiKeyController from "@/modules/api-key/api-key.controller.js";
 import ApiKeyRouter from "@/modules/api-key/api-key.router.js";
 
+// Internal
+import InternalService from "@/internals/internal.service.js";
+import InternalController from "@/internals/internal.controller.js";
+import InternalRouter from "@/internals/internal.router.js";
+import UserCacheService from "@/modules/user/user-cache.service.js";
+
 const container = new Container();
 
 // Utils
@@ -48,6 +54,7 @@ container.bind(TYPES.ApiKeyRepository).to(ApiKeyRepository);
 container.bind(TYPES.UserService).to(UserService);
 container.bind(TYPES.UserController).to(UserController);
 container.bind(TYPES.UserRouter).to(UserRouter);
+container.bind(TYPES.UserCacheService).to(UserCacheService);
 
 // Auth
 container.bind(TYPES.AuthService).to(AuthService);
@@ -63,5 +70,10 @@ container.bind(TYPES.MerchantRouter).to(MerchantRouter);
 container.bind(TYPES.ApiKeyService).to(ApiKeyService);
 container.bind(TYPES.ApiKeyController).to(ApiKeyController);
 container.bind(TYPES.ApiKeyRouter).to(ApiKeyRouter);
+
+// Internal
+container.bind(TYPES.InternalService).to(InternalService);
+container.bind(TYPES.InternalController).to(InternalController);
+container.bind(TYPES.InternalRouter).to(InternalRouter);
 
 export default container;

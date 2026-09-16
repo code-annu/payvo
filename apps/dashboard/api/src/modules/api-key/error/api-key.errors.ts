@@ -21,3 +21,23 @@ export class ApiKeyAlreadyExistsError extends AppError {
     });
   }
 }
+
+export class ApiKeyInvalidError extends AppError {
+  constructor(message: string = "Api key invalid") {
+    super({
+      message,
+      statusCode: HttpStatusCode.Error.UNAUTHORIZED,
+      code: ApiKeyErrorCode.API_KEY_INVALID,
+    });
+  }
+}
+
+export class ApiKeyRevokedError extends AppError {
+  constructor(message: string = "Api key revoked") {
+    super({
+      message,
+      statusCode: HttpStatusCode.Error.UNAUTHORIZED,
+      code: ApiKeyErrorCode.API_KEY_REVOKED,
+    });
+  }
+}

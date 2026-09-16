@@ -250,7 +250,7 @@ describe("AuthService.login", () => {
   // InvalidCredentialsError – soft-deleted user
   // -----------------------------------------------------------------------
 
-  it("should throw InactiveUserError when the user has been soft-deleted", async () => {
+  it("should throw InvalidCredentialsError when the user has been soft-deleted", async () => {
     const deletedUser: User = {
       ...fakeUser,
       deletedAt: new Date("2026-08-01T00:00:00.000Z"),
@@ -260,7 +260,7 @@ describe("AuthService.login", () => {
     vi.mocked(verifyPassword).mockResolvedValue(true);
 
     await expect(authService.login(loginInput)).rejects.toThrow(
-      InactiveUserError,
+      InvalidCredentialsError,
     );
   });
 

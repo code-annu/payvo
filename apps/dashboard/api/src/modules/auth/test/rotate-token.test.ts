@@ -7,7 +7,7 @@ import {
   RevokedRefreshTokenError,
   ExpiredSessionError,
   SessionRevokedError,
-  InactiveUserError,
+  InvalidCredentialsError,
 } from "../error/auth.errors.js";
 import type { Session } from "../entity/session.entity.js";
 import type { RefreshToken } from "../entity/refresh-token.entity.js";
@@ -368,7 +368,7 @@ describe("AuthService.rotateToken", () => {
   // InactiveUserError – user has been soft-deleted
   // -----------------------------------------------------------------------
 
-  it("should throw InactiveUserError when the user has been soft-deleted", async () => {
+  it("should throw InvalidCredentialsError when the user has been soft-deleted", async () => {
     const deletedUserToken: RefreshTokenRotate = {
       ...fakeRotateToken,
       session: {
@@ -385,10 +385,10 @@ describe("AuthService.rotateToken", () => {
     );
 
     await expect(authService.rotateToken(rawInputToken)).rejects.toThrow(
-      InactiveUserError,
+      InvalidCredentialsError,
     );
     await expect(authService.rotateToken(rawInputToken)).rejects.toThrow(
-      "Token belongs to an inactive user, please contact admin",
+      "Token belongs to a deleted user, please login again",
     );
   });
 

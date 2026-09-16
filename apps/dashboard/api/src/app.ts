@@ -7,6 +7,7 @@ import AuthRouter from "./modules/auth/auth.router.js";
 import UserRouter from "./modules/user/user.router.js";
 import MerchantRouter from "./modules/merchant/merchant.router.js";
 import ApiKeyRouter from "./modules/api-key/api-key.router.js";
+import InternalRouter from "./internals/internal.router.js";
 
 const app: Express = express();
 
@@ -26,6 +27,9 @@ app.use("/api/merchants", merchantRouter.router);
 
 const apiKeyRouter = container.get<ApiKeyRouter>(TYPES.ApiKeyRouter);
 app.use("/api", apiKeyRouter.router);
+
+const internalRouter = container.get<InternalRouter>(TYPES.InternalRouter);
+app.use("/internal", internalRouter.router);
 
 app.use(handleError);
 

@@ -15,7 +15,6 @@ import {
 import { signAccessToken } from "@payvo/shared/jwt";
 import { LoginDto } from "./dto/LoginDto.js";
 import { dbTransaction } from "@payvo/database/client";
-import { UserDeletedError } from "../user/error/user.errors.js";
 
 @injectable()
 export default class AuthService {
@@ -135,7 +134,9 @@ export default class AuthService {
         );
       }
       if (user.deletedAt) {
-        throw new UserDeletedError("Token belongs to a deleted user");
+        throw new authErrors.InvalidCredentialsError(
+          "Token belongs to a deleted user, please login again",
+        );
       }
 
       const refreshTokenStr = generateRefreshToken();

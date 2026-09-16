@@ -1,6 +1,6 @@
 import "reflect-metadata";
 import type UserRepository from "../repository/user.repository.js";
-import { UserNotFoundError, UserDeletedError } from "../error/user.errors.js";
+import { UserNotFoundError } from "../error/user.errors.js";
 import type { UpdateUserDto } from "../dto/UpdateUserDto.js";
 import type { User } from "../entity/user.entity.js";
 
@@ -32,11 +32,6 @@ const fakeUser: User = {
   deletedAt: null,
   createdAt: now,
   updatedAt: now,
-};
-
-const deletedUser: User = {
-  ...fakeUser,
-  deletedAt: new Date("2026-08-01T00:00:00.000Z"),
 };
 
 const updateInput: UpdateUserDto = {
@@ -88,7 +83,6 @@ describe("UserService.updateUser", () => {
       updatedAt: new Date("2026-09-10T01:00:00.000Z"),
     };
 
-    vi.mocked(userRepo.findById).mockResolvedValue(fakeUser);
     vi.mocked(userRepo.update).mockResolvedValue(updatedUser);
 
     const result = await userService.updateUser(updateInput);
@@ -96,18 +90,19 @@ describe("UserService.updateUser", () => {
     expect(result).toStrictEqual(updatedUser);
   });
 
-  it("should check user exists before updating", async () => {
-    vi.mocked(userRepo.findById).mockResolvedValue(fakeUser);
+  it("should call userRepo.update with the correct id and fields", async () => {
     vi.mocked(userRepo.update).mockResolvedValue(fakeUser);
 
     await userService.updateUser(updateInput);
 
-    expect(userRepo.findById).toHaveBeenCalledOnce();
-    expect(userRepo.findById).toHaveBeenCalledWith("user-1");
+    expect(userRepo.update).toHaveBeenCalledOnce();
+    expect(userRepo.update).toHaveBeenCalledWith("user-1", {
+      fullname: "Jane Doe",
+      companyName: "New Corp",
+    });
   });
 
   it("should pass only update fields (without id) to userRepo.update", async () => {
-    vi.mocked(userRepo.findById).mockResolvedValue(fakeUser);
     vi.mocked(userRepo.update).mockResolvedValue(fakeUser);
 
     await userService.updateUser(updateInput);
@@ -122,7 +117,6 @@ describe("UserService.updateUser", () => {
   it("should handle partial update with only fullname", async () => {
     const partialInput: UpdateUserDto = { id: "user-1", fullname: "Jane Doe" };
 
-    vi.mocked(userRepo.findById).mockResolvedValue(fakeUser);
     vi.mocked(userRepo.update).mockResolvedValue({
       ...fakeUser,
       fullname: "Jane Doe",
@@ -142,7 +136,6 @@ describe("UserService.updateUser", () => {
       companyName: null,
     };
 
-    vi.mocked(userRepo.findById).mockResolvedValue(fakeUser);
     vi.mocked(userRepo.update).mockResolvedValue({
       ...fakeUser,
       companyName: null,
@@ -161,47 +154,39 @@ describe("UserService.updateUser", () => {
   // -----------------------------------------------------------------------
 
   it("should throw UserNotFoundError when user does not exist", async () => {
-    vi.mocked(userRepo.findById).mockResolvedValue(null);
+    vi.mocked(userRepo.update).mockResolvedValue(null);
 
     await expect(userService.updateUser(updateInput)).rejects.toThrow(
       UserNotFoundError,
     );
   });
 
-  it("should NOT call userRepo.update when user is not found", async () => {
-    vi.mocked(userRepo.findById).mockResolvedValue(null);
-
-    await expect(userService.updateUser(updateInput)).rejects.toThrow();
-
-    expect(userRepo.update).not.toHaveBeenCalled();
-  });
-
-  // -----------------------------------------------------------------------
-  // Soft-deleted user
-  // -----------------------------------------------------------------------
-
-  it("should throw UserDeletedError when user is soft-deleted", async () => {
-    vi.mocked(userRepo.findById).mockResolvedValue(deletedUser);
+  it("should throw UserNotFoundError when update returns null", async () => {
+    vi.mocked(userRepo.update).mockResolvedValue(null);
 
     await expect(userService.updateUser(updateInput)).rejects.toThrow(
-      UserDeletedError,
+      UserNotFoundError,
     );
   });
 
-  it("should NOT call userRepo.update when user is soft-deleted", async () => {
-    vi.mocked(userRepo.findById).mockResolvedValue(deletedUser);
+  // -----------------------------------------------------------------------
+  // Soft-deleted user (repo update uses where deletedAt: null, returns null)
+  // -----------------------------------------------------------------------
 
-    await expect(userService.updateUser(updateInput)).rejects.toThrow();
+  it("should throw UserNotFoundError when user is soft-deleted", async () => {
+    vi.mocked(userRepo.update).mockResolvedValue(null);
 
-    expect(userRepo.update).not.toHaveBeenCalled();
+    await expect(userService.updateUser(updateInput)).rejects.toThrow(
+      UserNotFoundError,
+    );
   });
 
   // -----------------------------------------------------------------------
   // Propagation of repository errors
   // -----------------------------------------------------------------------
 
-  it("should propagate errors thrown by userRepo.findById", async () => {
-    vi.mocked(userRepo.findById).mockRejectedValue(
+  it("should propagate errors thrown by userRepo.update", async () => {
+    vi.mocked(userRepo.update).mockRejectedValue(
       new Error("DB connection lost"),
     );
 
@@ -210,8 +195,7 @@ describe("UserService.updateUser", () => {
     );
   });
 
-  it("should propagate errors thrown by userRepo.update", async () => {
-    vi.mocked(userRepo.findById).mockResolvedValue(fakeUser);
+  it("should propagate unexpected errors thrown by userRepo.update", async () => {
     vi.mocked(userRepo.update).mockRejectedValue(
       new Error("Update failed"),
     );
@@ -225,20 +209,11 @@ describe("UserService.updateUser", () => {
   // Execution order
   // -----------------------------------------------------------------------
 
-  it("should call operations in the correct order: findById → update", async () => {
-    const callOrder: string[] = [];
-
-    vi.mocked(userRepo.findById).mockImplementation(async () => {
-      callOrder.push("findById");
-      return fakeUser;
-    });
-    vi.mocked(userRepo.update).mockImplementation(async () => {
-      callOrder.push("update");
-      return fakeUser;
-    });
+  it("should call userRepo.update exactly once", async () => {
+    vi.mocked(userRepo.update).mockResolvedValue(fakeUser);
 
     await userService.updateUser(updateInput);
 
-    expect(callOrder).toEqual(["findById", "update"]);
+    expect(userRepo.update).toHaveBeenCalledOnce();
   });
 });

@@ -7,10 +7,12 @@ import ApiKeyController from "./api-key.controller.js";
 import { CreateApiKeySchema } from "./schema/GenerateApiKeySchema.js";
 import { GetActiveApiKeySchema } from "./schema/GetActiveApiKeySchema.js";
 import { RotateMerchantApiKeySchema } from "./schema/RotateApiKeySchema.js";
+import requireActiveUser from "@/core/middleware/require-active-user.middleware.js";
 
 @injectable()
 export default class ApiKeyRouter {
   readonly router: Router;
+  private readonly authProtectionSuite = [authenticateUser, requireActiveUser];
 
   constructor(
     @inject(TYPES.ApiKeyController)
@@ -23,21 +25,21 @@ export default class ApiKeyRouter {
   private initRoutes() {
     this.router.post(
       "/merchants/:id/generate",
-      authenticateUser,
+      this.authProtectionSuite,
       validateRequest(CreateApiKeySchema),
       this.controller.generateApiKey,
     );
 
     this.router.get(
       "/merchants/:id/active-key",
-      authenticateUser,
+      this.authProtectionSuite,
       validateRequest(GetActiveApiKeySchema),
       this.controller.getActiveApiKey,
     );
 
     this.router.post(
       "/api-keys/:id/rotate",
-      authenticateUser,
+      this.authProtectionSuite,
       validateRequest(RotateMerchantApiKeySchema),
       this.controller.rotateApiKey,
     );

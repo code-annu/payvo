@@ -98,4 +98,22 @@ export default class ApiKeyRepository {
         }
       : null;
   }
+
+  async findByKeyId(keyId: string): Promise<ApiKey | null> {
+    const apiKey = await this.db.orm.public.ApiKey.where({ keyId })
+      .include("merchant", (m) => m.select("id", "isActive", "userId"))
+      .first();
+
+    if (!apiKey) {
+      return null;
+    }
+    return {
+      ...apiKey,
+      graceEndsAt: stringToDateNullable(apiKey.graceEndsAt),
+      revokedAt: stringToDateNullable(apiKey.revokedAt),
+      lastUsedAt: stringToDateNullable(apiKey.lastUsedAt),
+      createdAt: stringToDate(apiKey.createdAt),
+      updatedAt: stringToDate(apiKey.updatedAt),
+    };
+  }
 }

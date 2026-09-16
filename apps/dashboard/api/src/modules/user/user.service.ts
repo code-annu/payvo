@@ -2,8 +2,7 @@ import TYPES from "@/core/di/inversify.types.js";
 import { inject, injectable } from "inversify";
 import UserRepository from "./repository/user.repository.js";
 import { UpdateUserDto } from "./dto/UpdateUserDto.js";
-import { UserNotFoundError, UserDeletedError } from "./error/user.errors.js";
-import { User } from "./entity/user.entity.js";
+import { UserNotFoundError } from "./error/user.errors.js";
 import { dbTransaction } from "@payvo/database/client";
 import UserCacheService from "./user-cache.service.js";
 

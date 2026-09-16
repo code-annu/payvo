@@ -1,6 +1,6 @@
 import "reflect-metadata";
 import type UserRepository from "../repository/user.repository.js";
-import { UserNotFoundError, UserDeletedError } from "../error/user.errors.js";
+import { UserNotFoundError } from "../error/user.errors.js";
 import type { User } from "../entity/user.entity.js";
 
 // ---------------------------------------------------------------------------
@@ -109,14 +109,14 @@ describe("UserService.getUser", () => {
   // Soft-deleted user
   // -----------------------------------------------------------------------
 
-  it("should throw UserDeletedError when the user has been soft-deleted", async () => {
+  it("should throw UserNotFoundError when the user has been soft-deleted", async () => {
     vi.mocked(userRepo.findById).mockResolvedValue(deletedUser);
 
     await expect(userService.getUser("user-1")).rejects.toThrow(
-      UserDeletedError,
+      UserNotFoundError,
     );
     await expect(userService.getUser("user-1")).rejects.toThrow(
-      "Account has been deactivated. Please contact support for assistance.",
+      "User not found",
     );
   });
 

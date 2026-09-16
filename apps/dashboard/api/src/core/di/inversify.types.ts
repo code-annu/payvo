@@ -1,12 +1,13 @@
 const TYPES = {
   // Util types
   ClientInfoUtil: Symbol.for("ClientInfoUtil"),
-
+  
   // User types
   UserRepository: Symbol.for("UserRepository"),
   UserService: Symbol.for("UserService"),
   UserController: Symbol.for("UserController"),
   UserRouter: Symbol.for("UserRouter"),
+  UserCacheService: Symbol.for("UserCacheService"),
 
   // Auth types
   SessionRepository: Symbol.for("SessionRepository"),
@@ -26,6 +27,12 @@ const TYPES = {
   ApiKeyService: Symbol.for("ApiKeyService"),
   ApiKeyController: Symbol.for("ApiKeyController"),
   ApiKeyRouter: Symbol.for("ApiKeyRouter"),
+
+  // Internal types
+  InternalService: Symbol.for("InternalService"),
+  InternalController: Symbol.for("InternalController"),
+  InternalRouter: Symbol.for("InternalRouter"),
+
 };
 
 export default TYPES;
