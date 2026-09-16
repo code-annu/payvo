@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "dotenv -e .env.development -- tsx --watch src/server.ts",
-    "test:unit": "vitest src/modules",
+    "test:unit": "vitest src/modules src/internals",
     "test:integration": "dotenv -e .env.test -- vitest",
     "build": "tsc && tsc-alias",
     "start": "node dist/server.js"
@@ -16,6 +16,7 @@
   "dependencies": {
     "@payvo/config": "workspace:*",
     "@payvo/database": "workspace:*",
+    "@payvo/redis": "workspace:*",
     "@payvo/shared": "workspace:*",
     "cookie-parser": "^1.4.7",
     "date-fns": "^4.4.0",
