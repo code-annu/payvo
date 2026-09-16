@@ -108,7 +108,7 @@ describe("POST /api/auth/login", () => {
   // Inactive user
   // ---------------------------------------------------------------------------
 
-  it("should return 401 INACTIVE_USER for soft-deleted user", async () => {
+  it("should return 401 INVALID_CREDENTIALS for soft-deleted user", async () => {
     const { user, plainPassword } = await UserFactory.createUser({
       email: "deleted@example.com",
       deletedAt: new Date().toISOString(),
@@ -122,7 +122,7 @@ describe("POST /api/auth/login", () => {
     expect(res.body).toEqual({
       success: false,
       error: expect.objectContaining({
-        code: "INACTIVE_USER",
+        code: "INVALID_CREDENTIALS",
       }),
     });
   });
