@@ -1,5 +1,5 @@
 import TYPES from "@/core/di/inversify.types.js";
-import authenticateInternals from "@/core/middleware/authenticate-internal.middleware.js";
+import authenticateInternal from "@/core/middleware/authenticate-internal.middleware.js";
 import { validateRequest } from "@/core/middleware/validate-request.middleware.js";
 import { Router } from "express";
 import { inject, injectable } from "inversify";
@@ -21,7 +21,7 @@ export default class InternalRouter {
   private initRoutes() {
     this.router.post(
       "/validate-api-key",
-      authenticateInternals,
+      authenticateInternal,
       validateRequest(ValidateApiKeySchema),
       this.controller.validateApiKey,
     );

@@ -20,6 +20,14 @@ export default class InternalController {
       keySecret,
     });
 
-    res.status(HttpStatusCode.Success.OK).json(buildSuccessResponse(apiKey));
+    res
+      .status(HttpStatusCode.Success.OK)
+      .json(
+        buildSuccessResponse({
+          valid: true,
+          merchantId: apiKey.merchantId,
+          environment: apiKey.environment,
+        }),
+      );
   });
 }

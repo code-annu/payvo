@@ -1,12 +1,13 @@
 import "reflect-metadata";
 import type ApiKeyRepository from "../../modules/api-key/repository/api-key.repository.js";
 import {
-  ApiKeyInvalidError,
-  ApiKeyRevokedError,
+  InvalidApiKeyCredentialsError,
+  RevokedApiKeyError,
 } from "../../modules/api-key/error/api-key.errors.js";
-import { MerchantInactiveError } from "../../modules/merchant/error/merchant.errors.js";
 import type { ValidateApiKeyDto } from "../dto/ValidateApiKeyDto.js";
 import type { ApiKey } from "../../modules/api-key/entity/api-key.entity.js";
+import type MerchantCacheService from "../../modules/merchant/merchant-cache.service.js";
+import type UserCacheService from "../../modules/user/user-cache.service.js";
 
 // ---------------------------------------------------------------------------
 // Mock modules that would trigger database connections or env reads
@@ -74,6 +75,20 @@ function createMockApiKeyRepo(): ApiKeyRepository {
   } as unknown as ApiKeyRepository;
 }
 
+function createMockMerchantCacheService(): MerchantCacheService {
+  return {
+    getCachedMerchant: vi.fn(),
+    invalidateCachedMerchant: vi.fn(),
+  } as unknown as MerchantCacheService;
+}
+
+function createMockUserCacheService(): UserCacheService {
+  return {
+    getCachedUser: vi.fn(),
+    invalidateCachedUser: vi.fn(),
+  } as unknown as UserCacheService;
+}
+
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
@@ -81,14 +96,31 @@ function createMockApiKeyRepo(): ApiKeyRepository {
 describe("InternalService.validateApiKey", () => {
   let internalService: InternalService;
   let apiKeyRepo: ApiKeyRepository;
+  let merchantCacheService: MerchantCacheService;
+  let userCacheService: UserCacheService;
 
   beforeEach(() => {
     vi.clearAllMocks();
 
     apiKeyRepo = createMockApiKeyRepo();
+    merchantCacheService = createMockMerchantCacheService();
+    userCacheService = createMockUserCacheService();
+    vi.mocked(merchantCacheService.getCachedMerchant).mockResolvedValue({
+      id: "merchant-1",
+      userId: "user-1",
+      isActive: true,
+    });
+    vi.mocked(userCacheService.getCachedUser).mockResolvedValue({
+      id: "user-1",
+      deletedAt: null,
+    });
 
     // Manually construct InternalService, bypassing inversify DI
-    internalService = new (InternalService as any)(apiKeyRepo);
+    internalService = new (InternalService as any)(
+      apiKeyRepo,
+      userCacheService,
+      merchantCacheService,
+    );
   });
 
   // -----------------------------------------------------------------------
@@ -137,7 +169,7 @@ describe("InternalService.validateApiKey", () => {
     vi.mocked(apiKeyRepo.findByKeyId).mockResolvedValue(null);
 
     await expect(internalService.validateApiKey(validInput)).rejects.toThrow(
-      ApiKeyInvalidError,
+      InvalidApiKeyCredentialsError,
     );
     await expect(internalService.validateApiKey(validInput)).rejects.toThrow(
       "Invalid API key id or secret",
@@ -156,26 +188,33 @@ describe("InternalService.validateApiKey", () => {
     vi.mocked(apiKeyRepo.findByKeyId).mockResolvedValue(keyWithDifferentHash);
 
     await expect(internalService.validateApiKey(validInput)).rejects.toThrow(
-      ApiKeyInvalidError,
+      InvalidApiKeyCredentialsError,
     );
   });
 
   // -----------------------------------------------------------------------
-  // MerchantInactiveError – inactive merchant
+  // InvalidApiKeyCredentialsError – inactive merchant
   // -----------------------------------------------------------------------
 
-  it("should throw MerchantInactiveError when the merchant is inactive", async () => {
+  it("should throw InvalidApiKeyCredentialsError when the merchant is inactive", async () => {
     const keyWithInactiveMerchant: ApiKey = {
       ...fakeApiKey,
       merchant: { ...fakeApiKey.merchant, isActive: false },
     };
-    vi.mocked(apiKeyRepo.findByKeyId).mockResolvedValue(keyWithInactiveMerchant);
+    vi.mocked(apiKeyRepo.findByKeyId).mockResolvedValue(
+      keyWithInactiveMerchant,
+    );
+    vi.mocked(merchantCacheService.getCachedMerchant).mockResolvedValue({
+      id: "merchant-1",
+      userId: "user-1",
+      isActive: false,
+    });
 
     await expect(internalService.validateApiKey(validInput)).rejects.toThrow(
-      MerchantInactiveError,
+      InvalidApiKeyCredentialsError,
     );
     await expect(internalService.validateApiKey(validInput)).rejects.toThrow(
-      "This key belongs to inactive merchant",
+      "Api key is associated with inactive or deleted merchant",
     );
   });
 
@@ -191,18 +230,18 @@ describe("InternalService.validateApiKey", () => {
     vi.mocked(apiKeyRepo.findByKeyId).mockResolvedValue(revokedKey);
 
     await expect(internalService.validateApiKey(validInput)).rejects.toThrow(
-      ApiKeyRevokedError,
+      RevokedApiKeyError,
     );
     await expect(internalService.validateApiKey(validInput)).rejects.toThrow(
-      "Revoked api key cannot be used to perform this action",
+      "Api key is revoked",
     );
   });
 
   // -----------------------------------------------------------------------
-  // ApiKeyRevokedError – grace period expired
+  // Grace period status is accepted by the current validator
   // -----------------------------------------------------------------------
 
-  it("should throw ApiKeyRevokedError when grace period has expired", async () => {
+  it("should return the api key when grace period has expired", async () => {
     const expiredGraceKey: ApiKey = {
       ...fakeApiKey,
       status: "GRACE_PERIOD",
@@ -210,9 +249,9 @@ describe("InternalService.validateApiKey", () => {
     };
     vi.mocked(apiKeyRepo.findByKeyId).mockResolvedValue(expiredGraceKey);
 
-    await expect(internalService.validateApiKey(validInput)).rejects.toThrow(
-      ApiKeyRevokedError,
-    );
+    const result = await internalService.validateApiKey(validInput);
+
+    expect(result).toEqual(expiredGraceKey);
   });
 
   // -----------------------------------------------------------------------
@@ -240,7 +279,7 @@ describe("InternalService.validateApiKey", () => {
     vi.mocked(apiKeyRepo.findByKeyId).mockResolvedValue(null);
 
     await expect(internalService.validateApiKey(validInput)).rejects.toThrow(
-      ApiKeyInvalidError,
+      InvalidApiKeyCredentialsError,
     );
   });
 
