@@ -63,7 +63,7 @@ describe("GET /api/merchant/:id", () => {
   // User mismatch
   // ---------------------------------------------------------------------------
 
-  it("should return 403 when merchant belongs to another user", async () => {
+  it("should return 404 when merchant belongs to another user", async () => {
     const user1 = await getAuthenticatedUser({ email: "user1@example.com" });
     const user2 = await getAuthenticatedUser({ email: "user2@example.com" });
 
@@ -74,17 +74,17 @@ describe("GET /api/merchant/:id", () => {
     const res = await request(app)
       .get(`/api/merchant/${merchant.id}`)
       .set("Authorization", `Bearer ${user2.accessToken}`)
-      .expect(403);
+      .expect(404);
 
     expect(res.body.success).toBe(false);
-    expect(res.body.error.code).toBe("MERCHANT_ACCESS_DENIED");
+    expect(res.body.error.code).toBe("MERCHANT_NOT_FOUND");
   });
 
   // ---------------------------------------------------------------------------
   // Inactive merchant
   // ---------------------------------------------------------------------------
 
-  it("should return 403 when merchant is inactive", async () => {
+  it("should return 200 with merchant data when merchant is inactive", async () => {
     const { accessToken, user } = await getAuthenticatedUser();
 
     const inactiveMerchant = await MerchantFactory.createMerchant({
@@ -95,10 +95,19 @@ describe("GET /api/merchant/:id", () => {
     const res = await request(app)
       .get(`/api/merchant/${inactiveMerchant.id}`)
       .set("Authorization", `Bearer ${accessToken}`)
-      .expect(403);
+      .expect(200);
 
-    expect(res.body.success).toBe(false);
-    expect(res.body.error.code).toBe("MERCHANT_INACTIVE");
+    expect(res.body).toEqual({
+      success: true,
+      data: {
+        id: inactiveMerchant.id,
+        mid: inactiveMerchant.mid,
+        userId: user.id,
+        isActive: false,
+        createdAt: expect.any(String),
+        updatedAt: expect.any(String),
+      },
+    });
   });
 
   // ---------------------------------------------------------------------------

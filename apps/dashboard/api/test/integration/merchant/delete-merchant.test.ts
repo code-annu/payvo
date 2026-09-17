@@ -53,7 +53,7 @@ describe("DELETE /api/merchant/:id", () => {
   // User mismatch
   // ---------------------------------------------------------------------------
 
-  it("should return 403 and NOT delete merchant when owned by another user", async () => {
+  it("should return 404 and NOT delete merchant when owned by another user", async () => {
     const user1 = await getAuthenticatedUser({ email: "owner1@example.com" });
     const user2 = await getAuthenticatedUser({ email: "owner2@example.com" });
 
@@ -64,10 +64,10 @@ describe("DELETE /api/merchant/:id", () => {
     const res = await request(app)
       .delete(`/api/merchant/${merchant.id}`)
       .set("Authorization", `Bearer ${user2.accessToken}`)
-      .expect(403);
+      .expect(404);
 
     expect(res.body.success).toBe(false);
-    expect(res.body.error.code).toBe("MERCHANT_ACCESS_DENIED");
+    expect(res.body.error.code).toBe("MERCHANT_NOT_FOUND");
 
     // Verify record still exists in database
     const dbMerchant = await MerchantFactory.findMerchantById(merchant.id);
@@ -78,7 +78,7 @@ describe("DELETE /api/merchant/:id", () => {
   // Inactive merchant
   // ---------------------------------------------------------------------------
 
-  it("should return 403 and NOT delete merchant when inactive", async () => {
+  it("should return 204 and delete merchant when inactive", async () => {
     const { accessToken, user } = await getAuthenticatedUser();
 
     const inactiveMerchant = await MerchantFactory.createMerchant({
@@ -89,14 +89,10 @@ describe("DELETE /api/merchant/:id", () => {
     const res = await request(app)
       .delete(`/api/merchant/${inactiveMerchant.id}`)
       .set("Authorization", `Bearer ${accessToken}`)
-      .expect(403);
+      .expect(204);
 
-    expect(res.body.success).toBe(false);
-    expect(res.body.error.code).toBe("MERCHANT_INACTIVE");
-
-    // Verify record still exists in database
     const dbMerchant = await MerchantFactory.findMerchantById(inactiveMerchant.id);
-    expect(dbMerchant).not.toBeNull();
+    expect(dbMerchant).toBeNull();
   });
 
   // ---------------------------------------------------------------------------
