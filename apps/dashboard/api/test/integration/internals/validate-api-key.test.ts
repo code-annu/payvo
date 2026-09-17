@@ -80,7 +80,7 @@ describe("POST /internal/validate-api-key", () => {
   // Invalid API key
   // ---------------------------------------------------------------------------
 
-  it("should return 401 API_KEY_INVALID for non-existent keyId", async () => {
+  it("should return 401 INVALID_API_KEY_CREDENTIALS for non-existent keyId", async () => {
     const res = await request(app)
       .post(ENDPOINT)
       .set("X-Internal-Secret", INTERNAL_SECRET)
@@ -90,12 +90,12 @@ describe("POST /internal/validate-api-key", () => {
     expect(res.body).toEqual({
       success: false,
       error: expect.objectContaining({
-        code: "API_KEY_INVALID",
+        code: "INVALID_API_KEY_CREDENTIALS",
       }),
     });
   });
 
-  it("should return 401 API_KEY_INVALID for wrong keySecret", async () => {
+  it("should return 401 INVALID_API_KEY_CREDENTIALS for wrong keySecret", async () => {
     const { user } = await UserFactory.createUser({ email: "owner@test.com" });
     const merchant = await MerchantFactory.createMerchant({ userId: user.id });
     const { apiKey } = await ApiKeyFactory.createApiKey({
@@ -111,7 +111,7 @@ describe("POST /internal/validate-api-key", () => {
     expect(res.body).toEqual({
       success: false,
       error: expect.objectContaining({
-        code: "API_KEY_INVALID",
+        code: "INVALID_API_KEY_CREDENTIALS",
       }),
     });
   });
@@ -120,7 +120,7 @@ describe("POST /internal/validate-api-key", () => {
   // Inactive merchant
   // ---------------------------------------------------------------------------
 
-  it("should return 403 MERCHANT_INACTIVE when merchant is not active", async () => {
+  it("should return 401 INVALID_API_KEY_CREDENTIALS when merchant is not active", async () => {
     const { user } = await UserFactory.createUser({ email: "owner@test.com" });
     const merchant = await MerchantFactory.createMerchant({
       userId: user.id,
@@ -134,12 +134,12 @@ describe("POST /internal/validate-api-key", () => {
       .post(ENDPOINT)
       .set("X-Internal-Secret", INTERNAL_SECRET)
       .send({ keyId: apiKey.keyId, keySecret: plainKeySecret })
-      .expect(403);
+      .expect(401);
 
     expect(res.body).toEqual({
       success: false,
       error: expect.objectContaining({
-        code: "MERCHANT_INACTIVE",
+        code: "INVALID_API_KEY_CREDENTIALS",
       }),
     });
   });
@@ -148,7 +148,7 @@ describe("POST /internal/validate-api-key", () => {
   // Revoked API key
   // ---------------------------------------------------------------------------
 
-  it("should return 401 API_KEY_REVOKED when api key is revoked", async () => {
+  it("should return 401 REVOKED_API_KEY when api key is revoked", async () => {
     const { user } = await UserFactory.createUser({ email: "owner@test.com" });
     const merchant = await MerchantFactory.createMerchant({ userId: user.id });
     const { apiKey, plainKeySecret } = await ApiKeyFactory.createApiKey({
@@ -165,7 +165,7 @@ describe("POST /internal/validate-api-key", () => {
     expect(res.body).toEqual({
       success: false,
       error: expect.objectContaining({
-        code: "API_KEY_REVOKED",
+        code: "REVOKED_API_KEY",
       }),
     });
   });
