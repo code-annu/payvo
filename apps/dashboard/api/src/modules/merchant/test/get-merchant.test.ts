@@ -2,27 +2,12 @@ import "reflect-metadata";
 import type MerchantRepository from "../repository/merchant.repository.js";
 import type { Merchant } from "../entity/merchant.entity.js";
 import type { GetMerchantDto } from "../dto/GetMerchantDto.js";
-import {
-  MerchantAccessDeniedError,
-  MerchantInactiveError,
-  MerchantNotFoundError,
-} from "../error/merchant.errors.js";
+import { MerchantNotFoundError } from "../error/merchant.errors.js";
 
-// ---------------------------------------------------------------------------
-// Mock modules that would trigger database connections or env reads
-// ---------------------------------------------------------------------------
-
-vi.mock("@payvo/database/client", () => ({
-  client: {},
-}));
-
+vi.mock("@payvo/database/client", () => ({ client: {} }));
 vi.mock("@payvo/database/types", () => ({}));
 
 import MerchantService from "../merchant.service.js";
-
-// ---------------------------------------------------------------------------
-// Fixtures
-// ---------------------------------------------------------------------------
 
 const now = new Date("2026-09-11T00:00:00.000Z");
 
@@ -35,38 +20,22 @@ const fakeMerchant: Merchant = {
   updatedAt: now,
 };
 
-const inactiveMerchant: Merchant = {
-  ...fakeMerchant,
-  isActive: false,
-};
-
-const otherUserMerchant: Merchant = {
-  ...fakeMerchant,
-  userId: "user-other",
-};
-
 const getMerchantInput: GetMerchantDto = {
   userId: "user-1",
   merchantId: "merchant-1",
 };
-
-// ---------------------------------------------------------------------------
-// Helpers – create mock repository instance
-// ---------------------------------------------------------------------------
 
 function createMockMerchantRepo(): MerchantRepository {
   return {
     create: vi.fn(),
     findById: vi.fn(),
     findByMid: vi.fn(),
+    findUserMerchant: vi.fn(),
     findByUserId: vi.fn(),
+    checkMidExists: vi.fn(),
     delete: vi.fn(),
   } as unknown as MerchantRepository;
 }
-
-// ---------------------------------------------------------------------------
-// Tests – getMerchant
-// ---------------------------------------------------------------------------
 
 describe("MerchantService.getMerchant", () => {
   let merchantService: MerchantService;
@@ -74,81 +43,38 @@ describe("MerchantService.getMerchant", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-
     merchantRepo = createMockMerchantRepo();
     merchantService = new MerchantService(merchantRepo);
   });
 
-  // -----------------------------------------------------------------------
-  // Happy path
-  // -----------------------------------------------------------------------
+  it("should return the merchant when found for the requesting user", async () => {
+    vi.mocked(merchantRepo.findUserMerchant).mockResolvedValue(fakeMerchant);
 
-  it("should return the merchant when found, active, and owned by the requesting user", async () => {
-    vi.mocked(merchantRepo.findById).mockResolvedValue(fakeMerchant);
+    const result = await merchantService.getMerchantDetails(getMerchantInput);
 
-    const result = await merchantService.getMerchant(getMerchantInput);
-
-    expect(merchantRepo.findById).toHaveBeenCalledOnce();
-    expect(merchantRepo.findById).toHaveBeenCalledWith("merchant-1");
+    expect(merchantRepo.findUserMerchant).toHaveBeenCalledOnce();
+    expect(merchantRepo.findUserMerchant).toHaveBeenCalledWith(getMerchantInput);
     expect(result).toStrictEqual(fakeMerchant);
   });
 
-  // -----------------------------------------------------------------------
-  // Not found check
-  // -----------------------------------------------------------------------
+  it("should throw MerchantNotFoundError when the merchant does not exist", async () => {
+    vi.mocked(merchantRepo.findUserMerchant).mockResolvedValue(null);
 
-  it("should throw MerchantNotFoundError when merchant does not exist", async () => {
-    vi.mocked(merchantRepo.findById).mockResolvedValue(null);
-
-    await expect(merchantService.getMerchant(getMerchantInput)).rejects.toThrow(
-      MerchantNotFoundError,
-    );
-    await expect(merchantService.getMerchant(getMerchantInput)).rejects.toThrow(
-      "Merchant not found",
-    );
+    await expect(
+      merchantService.getMerchantDetails(getMerchantInput),
+    ).rejects.toThrow(MerchantNotFoundError);
+    await expect(
+      merchantService.getMerchantDetails(getMerchantInput),
+    ).rejects.toThrow("Merchant not found");
   });
 
-  // -----------------------------------------------------------------------
-  // User mismatch check
-  // -----------------------------------------------------------------------
-
-  it("should throw MerchantAccessDeniedError when merchant belongs to another user", async () => {
-    vi.mocked(merchantRepo.findById).mockResolvedValue(otherUserMerchant);
-
-    await expect(merchantService.getMerchant(getMerchantInput)).rejects.toThrow(
-      MerchantAccessDeniedError,
-    );
-    await expect(merchantService.getMerchant(getMerchantInput)).rejects.toThrow(
-      "Merchant does not belong to user",
-    );
-  });
-
-  // -----------------------------------------------------------------------
-  // Inactive check
-  // -----------------------------------------------------------------------
-
-  it("should throw MerchantInactiveError when merchant is inactive", async () => {
-    vi.mocked(merchantRepo.findById).mockResolvedValue(inactiveMerchant);
-
-    await expect(merchantService.getMerchant(getMerchantInput)).rejects.toThrow(
-      MerchantInactiveError,
-    );
-    await expect(merchantService.getMerchant(getMerchantInput)).rejects.toThrow(
-      "Merchant is inactive",
-    );
-  });
-
-  // -----------------------------------------------------------------------
-  // Error propagation
-  // -----------------------------------------------------------------------
-
-  it("should propagate errors thrown by merchantRepo.findById", async () => {
-    vi.mocked(merchantRepo.findById).mockRejectedValue(
+  it("should propagate repository errors", async () => {
+    vi.mocked(merchantRepo.findUserMerchant).mockRejectedValue(
       new Error("DB read error"),
     );
 
-    await expect(merchantService.getMerchant(getMerchantInput)).rejects.toThrow(
-      "DB read error",
-    );
+    await expect(
+      merchantService.getMerchantDetails(getMerchantInput),
+    ).rejects.toThrow("DB read error");
   });
 });

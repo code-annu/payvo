@@ -24,7 +24,7 @@ export default class MerchantController {
   getMerchant = catchAsync(async (req: AuthRequest, res: Response) => {
     const userId = req.auth!.sub;
     const merchantId = req.params.id as string;
-    const merchant = await this.merchantService.getMerchant({
+    const merchant = await this.merchantService.getMerchantDetails({
       userId,
       merchantId,
     });

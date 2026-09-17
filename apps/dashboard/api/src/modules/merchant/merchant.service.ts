@@ -6,11 +6,7 @@ import { GetMerchantDto } from "./dto/GetMerchantDto.js";
 import { DeleteMerchantDto } from "./dto/DeleteMerchantDto.js";
 import { Merchant } from "./entity/merchant.entity.js";
 import { UserMerchants } from "./entity/user-merchants.entity.js";
-import {
-  MerchantAccessDeniedError,
-  MerchantInactiveError,
-  MerchantNotFoundError,
-} from "./error/merchant.errors.js";
+import { MerchantNotFoundError } from "./error/merchant.errors.js";
 
 @injectable()
 export default class MerchantService {
@@ -19,42 +15,25 @@ export default class MerchantService {
     private readonly merchantRepo: MerchantRepository,
   ) {}
 
-  private async findActiveMerchantForUserOrThrow(
-    userId: string,
-    merchantId: string,
-  ): Promise<Merchant> {
-    const merchant = await this.merchantRepo.findById(merchantId);
-    if (!merchant) {
-      throw new MerchantNotFoundError("Merchant not found");
-    }
-    if (merchant.userId !== userId) {
-      throw new MerchantAccessDeniedError("Merchant does not belong to user");
-    }
-    if (!merchant.isActive) {
-      throw new MerchantInactiveError("Merchant is inactive");
-    }
-    return merchant;
-  }
-
   async createMerchant(userId: string): Promise<Merchant> {
     let mid = generateAlphaNumericId();
-    while (await this.merchantRepo.findByMid(mid)) {
+    while (await this.merchantRepo.checkMidExists(mid)) {
       mid = generateAlphaNumericId();
     }
 
-    return await this.merchantRepo.create({
-      userId,
-      mid,
-    });
+    return await this.merchantRepo.create({ userId, mid });
   }
 
-  async getMerchant(input: GetMerchantDto): Promise<Merchant> {
-    return this.findActiveMerchantForUserOrThrow(input.userId, input.merchantId);
+  async getMerchantDetails(input: GetMerchantDto): Promise<Merchant> {
+    const merchant = await this.merchantRepo.findUserMerchant(input);
+    if (!merchant) throw new MerchantNotFoundError();
+    return merchant;
   }
 
   async deleteMerchant(input: DeleteMerchantDto): Promise<void> {
-    await this.findActiveMerchantForUserOrThrow(input.userId, input.merchantId);
-    await this.merchantRepo.delete(input.merchantId);
+    const merchant = await this.merchantRepo.delete(input);
+    if (!merchant) throw new MerchantNotFoundError();
+    return;
   }
 
   async getUserMerchants(userId: string): Promise<UserMerchants> {

@@ -16,7 +16,7 @@ export class MerchantInactiveError extends AppError {
   constructor(message: string = "Merchant is inactive") {
     super({
       message,
-      statusCode: HttpStatusCode.Error.FORBIDDEN,
+      statusCode: HttpStatusCode.Error.CONFLICT,
       code: MerchantErrorCode.MERCHANT_INACTIVE,
     });
   }
