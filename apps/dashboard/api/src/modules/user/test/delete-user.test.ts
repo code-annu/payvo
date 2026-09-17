@@ -45,11 +45,15 @@ function createMockUserRepo(): UserRepository {
   return {
     findById: vi.fn(),
     findByEmail: vi.fn(),
+    findByEmailIncludingDeleted: vi.fn(),
+    findByIdIncludingDeleted: vi.fn(),
     create: vi.fn(),
     update: vi.fn(),
     softDelete: vi.fn(),
-    revokeSessions: vi.fn().mockResolvedValue({ sessionIds: [] }),
-    revokeRefreshTokens: vi.fn().mockResolvedValue(undefined),
+    revokeSessionsForAccountDeletion: vi.fn().mockResolvedValue({ sessionIds: [] }),
+    revokeRefreshTokensForAccountDeletion: vi.fn().mockResolvedValue(undefined),
+    disableMerchantForAccountDeletion: vi.fn().mockResolvedValue({ merchantIds: [] }),
+    revokeApiKeysForAccountDeletion: vi.fn().mockResolvedValue(undefined),
   } as unknown as UserRepository;
 }
 
@@ -59,10 +63,6 @@ function createMockUserCacheService() {
     getCachedUser: vi.fn(),
   };
 }
-
-// ---------------------------------------------------------------------------
-// Tests – deleteUser
-// ---------------------------------------------------------------------------
 
 describe("UserService.deleteUser", () => {
   let userService: UserService;
@@ -74,14 +74,8 @@ describe("UserService.deleteUser", () => {
 
     userRepo = createMockUserRepo();
     userCacheService = createMockUserCacheService();
-
-    // Manually construct UserService, bypassing inversify DI
     userService = new (UserService as any)(userRepo, userCacheService);
   });
-
-  // -----------------------------------------------------------------------
-  // Happy path
-  // -----------------------------------------------------------------------
 
   it("should soft-delete the user when found and not deleted", async () => {
     vi.mocked(userRepo.softDelete).mockResolvedValue({
@@ -94,7 +88,7 @@ describe("UserService.deleteUser", () => {
     expect(userRepo.softDelete).toHaveBeenCalledOnce();
     expect(userRepo.softDelete).toHaveBeenCalledWith(
       expect.anything(),
-      "user-1",
+      expect.objectContaining({ id: "user-1" }),
     );
   });
 
@@ -121,10 +115,6 @@ describe("UserService.deleteUser", () => {
     expect(result).toBeUndefined();
   });
 
-  // -----------------------------------------------------------------------
-  // User not found
-  // -----------------------------------------------------------------------
-
   it("should throw UserNotFoundError when user does not exist", async () => {
     vi.mocked(userRepo.softDelete).mockResolvedValue(null);
 
@@ -138,12 +128,8 @@ describe("UserService.deleteUser", () => {
 
     await expect(userService.deleteUser("non-existent")).rejects.toThrow();
 
-    expect((userRepo as any).revokeSessions).not.toHaveBeenCalled();
+    expect(userRepo.revokeSessionsForAccountDeletion).not.toHaveBeenCalled();
   });
-
-  // -----------------------------------------------------------------------
-  // Soft-deleted user (repo softDelete uses where deletedAt: null → returns null)
-  // -----------------------------------------------------------------------
 
   it("should throw UserNotFoundError when user is already soft-deleted", async () => {
     vi.mocked(userRepo.softDelete).mockResolvedValue(null);
@@ -158,12 +144,8 @@ describe("UserService.deleteUser", () => {
 
     await expect(userService.deleteUser("user-1")).rejects.toThrow();
 
-    expect((userRepo as any).revokeSessions).not.toHaveBeenCalled();
+    expect(userRepo.revokeSessionsForAccountDeletion).not.toHaveBeenCalled();
   });
-
-  // -----------------------------------------------------------------------
-  // Propagation of repository errors
-  // -----------------------------------------------------------------------
 
   it("should propagate errors thrown by userRepo.softDelete", async () => {
     vi.mocked(userRepo.softDelete).mockRejectedValue(
@@ -175,12 +157,12 @@ describe("UserService.deleteUser", () => {
     );
   });
 
-  it("should propagate errors thrown by userRepo.revokeSessions", async () => {
+  it("should propagate errors thrown by userRepo.revokeSessionsForAccountDeletion", async () => {
     vi.mocked(userRepo.softDelete).mockResolvedValue({
       ...fakeUser,
       deletedAt: new Date(),
     });
-    (userRepo as any).revokeSessions.mockRejectedValue(
+    vi.mocked(userRepo.revokeSessionsForAccountDeletion).mockRejectedValue(
       new Error("Delete failed"),
     );
 
@@ -189,24 +171,28 @@ describe("UserService.deleteUser", () => {
     );
   });
 
-  // -----------------------------------------------------------------------
-  // Execution order
-  // -----------------------------------------------------------------------
-
-  it("should call operations in the correct order: softDelete → revokeSessions", async () => {
+  it("should call operations in the correct order: softDelete → revokeSessionsForAccountDeletion → disableMerchantForAccountDeletion", async () => {
     const callOrder: string[] = [];
 
     vi.mocked(userRepo.softDelete).mockImplementation(async () => {
       callOrder.push("softDelete");
       return { ...fakeUser, deletedAt: new Date() };
     });
-    (userRepo as any).revokeSessions.mockImplementation(async () => {
+    vi.mocked(userRepo.revokeSessionsForAccountDeletion).mockImplementation(async () => {
       callOrder.push("revokeSessions");
       return { sessionIds: [] };
+    });
+    vi.mocked(userRepo.disableMerchantForAccountDeletion).mockImplementation(async () => {
+      callOrder.push("disableMerchant");
+      return { merchantIds: [] };
     });
 
     await userService.deleteUser("user-1");
 
-    expect(callOrder).toEqual(["softDelete", "revokeSessions"]);
+    expect(callOrder).toEqual([
+      "softDelete",
+      "revokeSessions",
+      "disableMerchant",
+    ]);
   });
 });

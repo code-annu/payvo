@@ -16,7 +16,7 @@ export default class UserService {
 
   async getUser(userId: string) {
     const user = await this.userRepo.findById(userId);
-    if (!user || user.deletedAt) throw new UserNotFoundError("User not found");
+    if (!user) throw new UserNotFoundError();
     return user;
   }
 
@@ -29,12 +29,33 @@ export default class UserService {
 
   async deleteUser(userId: string) {
     await dbTransaction(async (tx) => {
-      const deletedUser = await this.userRepo.softDelete(tx, userId);
+      const now = new Date();
+      const deletedUser = await this.userRepo.softDelete(tx, {
+        id: userId,
+        deletedAt: now,
+      });
       if (!deletedUser) throw new UserNotFoundError();
 
-      const { sessionIds } = await this.userRepo.revokeSessions(tx, userId);
+      const { sessionIds } =
+        await this.userRepo.revokeSessionsForAccountDeletion(tx, {
+          userId,
+          revokedAt: now,
+        });
       if (sessionIds.length > 0) {
-        await this.userRepo.revokeRefreshTokens(tx, sessionIds);
+        await this.userRepo.revokeRefreshTokensForAccountDeletion(tx, {
+          sessionIds,
+          revokedAt: now,
+        });
+      }
+      const { merchantIds } =
+        await this.userRepo.disableMerchantForAccountDeletion(tx, {
+          userId,
+        });
+      if (merchantIds.length > 0) {
+        await this.userRepo.revokeApiKeysForAccountDeletion(tx, {
+          merchantIds,
+          revokedAt: now,
+        });
       }
     });
     await this.userCacheService.invalidateCachedUser(userId);
