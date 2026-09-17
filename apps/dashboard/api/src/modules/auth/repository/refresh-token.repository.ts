@@ -23,7 +23,7 @@ export default class RefreshTokenRepository {
     };
   }
 
-  async findForRotate(
+  async findForRotation(
     tx: TransactionClient,
     tokenHash: string,
   ): Promise<RefreshTokenRotate | null> {
@@ -57,18 +57,24 @@ export default class RefreshTokenRepository {
     };
   }
 
-  async revoke(
+  async revokeForRotation(
     tx: TransactionClient,
     data: { tokenId: string; revokedBy: string },
-  ) {
+  ): Promise<{ revoked: boolean }> {
     const { tokenId, revokedBy } = data;
-    await tx.orm.public.RefreshToken.where({ id: tokenId }).update({
+    const updatedToken = await tx.orm.public.RefreshToken.where({
+      id: tokenId,
+      revokedAt: null,
+      revokedById: null,
+    }).update({
       revokedAt: new Date().toISOString(),
       revokedById: revokedBy,
     });
+
+    return { revoked: Boolean(updatedToken) };
   }
 
-  async revokeForSession(tx: TransactionClient, data: { sessionId: string }) {
+  async revokeForLogout(tx: TransactionClient, data: { sessionId: string }) {
     const { sessionId } = data;
     await tx.orm.public.RefreshToken.where({
       sessionId,

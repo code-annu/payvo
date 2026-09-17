@@ -15,6 +15,7 @@ import {
 import { signAccessToken } from "@payvo/shared/jwt";
 import { LoginDto } from "./dto/LoginDto.js";
 import { dbTransaction } from "@payvo/database/client";
+import { ClientInfoType } from "@/core/utils/client.util.js";
 
 @injectable()
 export default class AuthService {
@@ -26,8 +27,35 @@ export default class AuthService {
     private readonly refreshTokenRepo: RefreshTokenRepository,
   ) {}
 
+  // Private functions
+  private async createSessionWithRefreshToken(
+    userId: string,
+    client: ClientInfoType,
+  ) {
+    const session = await this.sessionRepo.create({
+      userId: userId,
+      userAgent: client.userAgent,
+      ipAddress: client.ipAddress,
+      expiresAt: addDays(
+        new Date(),
+        sessionConfig.sessionExpiryDays,
+      ).toISOString(),
+    });
+
+    const refreshTokenStr = generateRefreshToken();
+    await this.refreshTokenRepo.create({
+      sessionId: session.id,
+      tokenHash: hashRefreshToken(refreshTokenStr),
+    });
+
+    return { session, refreshToken: refreshTokenStr };
+  }
+
+  // Public functions
   async signup(input: SignupDto) {
-    const existingUser = await this.userRepo.findByEmail(input.email);
+    const existingUser = await this.userRepo.findByEmailIncludingDeleted(
+      input.email,
+    );
     if (existingUser) {
       throw new authErrors.EmailAlreadyExists(
         "This email is associated with another account",
@@ -42,23 +70,10 @@ export default class AuthService {
       companyName: input.companyName,
     });
 
-    const client = input.client;
-    const session = await this.sessionRepo.create({
-      userId: user.id,
-      userAgent: client.userAgent,
-      ipAddress: client.ipAddress,
-      expiresAt: addDays(
-        new Date(),
-        sessionConfig.sessionExpiryDays,
-      ).toISOString(),
-    });
-
-    const refreshTokenStr = generateRefreshToken();
-    await this.refreshTokenRepo.create({
-      sessionId: session.id,
-      tokenHash: hashRefreshToken(refreshTokenStr),
-    });
-
+    const { session, refreshToken } = await this.createSessionWithRefreshToken(
+      user.id,
+      input.client,
+    );
     const accessToken = await signAccessToken(
       { sub: user.id, sid: session.id },
       {
@@ -67,36 +82,19 @@ export default class AuthService {
       },
     );
 
-    return { accessToken, refreshToken: refreshTokenStr, session };
+    return { accessToken, refreshToken, session };
   }
 
   async login(input: LoginDto) {
     const user = await this.userRepo.findByEmail(input.email);
-    if (
-      !user ||
-      !(await verifyPassword(input.password, user.passwordHash)) ||
-      user.deletedAt
-    ) {
+    if (!user || !(await verifyPassword(input.password, user.passwordHash))) {
       throw new authErrors.InvalidCredentialsError("Invalid email or password");
     }
 
-    const client = input.client;
-    const session = await this.sessionRepo.create({
-      userId: user.id,
-      userAgent: client.userAgent,
-      ipAddress: client.ipAddress,
-      expiresAt: addDays(
-        new Date(),
-        sessionConfig.sessionExpiryDays,
-      ).toISOString(),
-    });
-
-    const refreshTokenStr = generateRefreshToken();
-    await this.refreshTokenRepo.create({
-      sessionId: session.id,
-      tokenHash: hashRefreshToken(refreshTokenStr),
-    });
-
+    const { session, refreshToken } = await this.createSessionWithRefreshToken(
+      user.id,
+      input.client,
+    );
     const accessToken = await signAccessToken(
       { sub: user.id, sid: session.id },
       {
@@ -105,12 +103,14 @@ export default class AuthService {
       },
     );
 
-    return { accessToken, refreshToken: refreshTokenStr, session };
+    return { accessToken, refreshToken, session };
   }
 
   async rotateToken(token: string) {
     return await dbTransaction(async (tx) => {
-      const existingRefreshToken = await this.refreshTokenRepo.findForRotate(
+      const now = new Date();
+
+      const existingRefreshToken = await this.refreshTokenRepo.findForRotation(
         tx,
         hashRefreshToken(token),
       );
@@ -121,9 +121,9 @@ export default class AuthService {
           "Revoked token cannot be used for token rotation",
         );
       }
+
       const session = existingRefreshToken.session;
-      const user = session.user;
-      if (session.expiresAt <= new Date()) {
+      if (session.expiresAt <= now) {
         throw new authErrors.ExpiredSessionError(
           "Token belongs to an expired session, please login again",
         );
@@ -133,7 +133,7 @@ export default class AuthService {
           "Token belongs to a revoked session, please login again",
         );
       }
-      if (user.deletedAt) {
+      if (session.user.deletedAt) {
         throw new authErrors.InvalidCredentialsError(
           "Token belongs to a deleted user, please login again",
         );
@@ -145,18 +145,24 @@ export default class AuthService {
         tx,
       );
 
-      await this.refreshTokenRepo.revoke(tx, {
+      const { revoked } = await this.refreshTokenRepo.revokeForRotation(tx, {
         tokenId: existingRefreshToken.id,
         revokedBy: newRefreshToken.id,
       });
+      if (!revoked) {
+        throw new authErrors.RevokedRefreshTokenError(
+          "Failed to rotate token, as it might have been rotated already",
+        );
+      }
 
       const updatedSession = await this.sessionRepo.extendExpiryDate(tx, {
         id: session.id,
+        now,
         expiresAt: addDays(new Date(), sessionConfig.sessionExpiryDays),
       });
 
       const accessToken = await signAccessToken(
-        { sub: user.id, sid: session.id },
+        { sub: session.user.id, sid: session.id },
         {
           secret: jwtConfig.accessToken.secret,
           expiresInMinute: jwtConfig.accessToken.expiryMinutes,
@@ -173,8 +179,8 @@ export default class AuthService {
 
   async logout(sessionId: string) {
     await dbTransaction(async (tx) => {
-      await this.refreshTokenRepo.revokeForSession(tx, { sessionId });
-      await this.sessionRepo.revoke(tx, { id: sessionId });
+      await this.refreshTokenRepo.revokeForLogout(tx, { sessionId });
+      await this.sessionRepo.revokeForLogout(tx, { id: sessionId });
     });
   }
 }

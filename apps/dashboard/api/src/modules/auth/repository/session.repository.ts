@@ -20,12 +20,17 @@ export default class SessionRepository {
 
   async extendExpiryDate(
     tx: TransactionClient,
-    data: { id: string; expiresAt: Date },
+    data: { id: string; expiresAt: Date; now: Date },
   ): Promise<Session | null> {
-    const { id, expiresAt } = data;
-    const session = await tx.orm.public.Session.where({ id }).update({
-      expiresAt: expiresAt.toISOString(),
-    });
+    const { id, expiresAt, now } = data;
+    const session = await tx.orm.public.Session.where({
+      id,
+      revokedAt: null,
+    })
+      .where((s) => s.expiresAt.gte(now.toISOString()))
+      .update({
+        expiresAt: expiresAt.toISOString(),
+      });
 
     return session
       ? {
@@ -38,7 +43,7 @@ export default class SessionRepository {
       : null;
   }
 
-  async revoke(tx: TransactionClient, data: { id: string }) {
+  async revokeForLogout(tx: TransactionClient, data: { id: string }) {
     await tx.orm.public.Session.where({ id: data.id }).update({
       revokedAt: new Date().toISOString(),
     });

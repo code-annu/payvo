@@ -8,19 +8,11 @@ import type { User } from "../../user/entity/user.entity.js";
 import type { Session } from "../entity/session.entity.js";
 import type { RefreshToken } from "../entity/refresh-token.entity.js";
 
-// ---------------------------------------------------------------------------
-// Mock modules that would trigger database connections or env reads
-// ---------------------------------------------------------------------------
-
 vi.mock("@payvo/database/client", () => ({
   client: {},
 }));
 
 vi.mock("@payvo/database/types", () => ({}));
-
-// ---------------------------------------------------------------------------
-// Mock external shared packages
-// ---------------------------------------------------------------------------
 
 vi.mock("@payvo/shared/crypto", () => ({
   hashPassword: vi.fn().mockResolvedValue("hashed-password-stub"),
@@ -43,7 +35,6 @@ vi.mock("@payvo/config/auth", () => ({
   sessionConfig: { sessionExpiryDays: 7 },
 }));
 
-// Re-import mocked modules so we can assert against them
 import { hashPassword } from "@payvo/shared/crypto";
 import {
   generateRefreshToken,
@@ -51,10 +42,6 @@ import {
 } from "@payvo/shared/refresh-token";
 import { signAccessToken } from "@payvo/shared/jwt";
 import AuthService from "../auth.service.js";
-
-// ---------------------------------------------------------------------------
-// Fixtures
-// ---------------------------------------------------------------------------
 
 const now = new Date("2026-09-10T00:00:00.000Z");
 
@@ -101,34 +88,38 @@ const signupInput: SignupDto = {
   },
 };
 
-// ---------------------------------------------------------------------------
-// Helpers – create mock repository instances
-// ---------------------------------------------------------------------------
-
 function createMockUserRepo(): UserRepository {
   return {
     findByEmail: vi.fn(),
+    findByEmailIncludingDeleted: vi.fn(),
+    findById: vi.fn(),
+    findByIdIncludingDeleted: vi.fn(),
     create: vi.fn(),
     update: vi.fn(),
+    softDelete: vi.fn(),
+    revokeSessionsForAccountDeletion: vi.fn(),
+    revokeRefreshTokensForAccountDeletion: vi.fn(),
+    disableMerchantForAccountDeletion: vi.fn(),
+    revokeApiKeysForAccountDeletion: vi.fn(),
   } as unknown as UserRepository;
 }
 
 function createMockSessionRepo(): SessionRepository {
   return {
     create: vi.fn(),
-    revoke: vi.fn(),
+    extendExpiryDate: vi.fn(),
+    revokeForLogout: vi.fn(),
   } as unknown as SessionRepository;
 }
 
 function createMockRefreshTokenRepo(): RefreshTokenRepository {
   return {
     create: vi.fn(),
+    findForRotation: vi.fn(),
+    revokeForRotation: vi.fn(),
+    revokeForLogout: vi.fn(),
   } as unknown as RefreshTokenRepository;
 }
-
-// ---------------------------------------------------------------------------
-// Tests
-// ---------------------------------------------------------------------------
 
 describe("AuthService.signup", () => {
   let authService: AuthService;
@@ -138,32 +129,20 @@ describe("AuthService.signup", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-
     userRepo = createMockUserRepo();
     sessionRepo = createMockSessionRepo();
     refreshTokenRepo = createMockRefreshTokenRepo();
-
-    // Manually construct AuthService, bypassing inversify DI
-    authService = new (AuthService as any)(
-      userRepo,
-      sessionRepo,
-      refreshTokenRepo,
-    );
+    authService = new (AuthService as any)(userRepo, sessionRepo, refreshTokenRepo);
   });
 
-  // -----------------------------------------------------------------------
-  // Happy path
-  // -----------------------------------------------------------------------
-
   it("should create a user, session, refresh token, and return tokens on successful signup", async () => {
-    vi.mocked(userRepo.findByEmail).mockResolvedValue(null);
+    vi.mocked(userRepo.findByEmailIncludingDeleted).mockResolvedValue(null);
     vi.mocked(userRepo.create).mockResolvedValue(fakeUser);
     vi.mocked(sessionRepo.create).mockResolvedValue(fakeSession);
     vi.mocked(refreshTokenRepo.create).mockResolvedValue(fakeRefreshToken);
 
     const result = await authService.signup(signupInput);
 
-    // Returns the expected shape
     expect(result).toEqual({
       accessToken: "access-token-stub",
       refreshToken: "raw-refresh-token-stub",
@@ -171,35 +150,29 @@ describe("AuthService.signup", () => {
     });
   });
 
-  // -----------------------------------------------------------------------
-  // Email uniqueness check
-  // -----------------------------------------------------------------------
-
   it("should check if the email already exists before creating a user", async () => {
-    vi.mocked(userRepo.findByEmail).mockResolvedValue(null);
+    vi.mocked(userRepo.findByEmailIncludingDeleted).mockResolvedValue(null);
     vi.mocked(userRepo.create).mockResolvedValue(fakeUser);
     vi.mocked(sessionRepo.create).mockResolvedValue(fakeSession);
     vi.mocked(refreshTokenRepo.create).mockResolvedValue(fakeRefreshToken);
 
     await authService.signup(signupInput);
 
-    expect(userRepo.findByEmail).toHaveBeenCalledOnce();
-    expect(userRepo.findByEmail).toHaveBeenCalledWith(signupInput.email);
+    expect(userRepo.findByEmailIncludingDeleted).toHaveBeenCalledOnce();
+    expect(userRepo.findByEmailIncludingDeleted).toHaveBeenCalledWith(signupInput.email);
   });
 
   it("should throw EmailAlreadyExists when the email is already registered", async () => {
-    vi.mocked(userRepo.findByEmail).mockResolvedValue(fakeUser);
+    vi.mocked(userRepo.findByEmailIncludingDeleted).mockResolvedValue(fakeUser);
 
-    await expect(authService.signup(signupInput)).rejects.toThrow(
-      EmailAlreadyExists,
-    );
+    await expect(authService.signup(signupInput)).rejects.toThrow(EmailAlreadyExists);
     await expect(authService.signup(signupInput)).rejects.toThrow(
       "This email is associated with another account",
     );
   });
 
   it("should NOT create a user, session, or refresh token when email already exists", async () => {
-    vi.mocked(userRepo.findByEmail).mockResolvedValue(fakeUser);
+    vi.mocked(userRepo.findByEmailIncludingDeleted).mockResolvedValue(fakeUser);
 
     await expect(authService.signup(signupInput)).rejects.toThrow();
 
@@ -208,12 +181,8 @@ describe("AuthService.signup", () => {
     expect(refreshTokenRepo.create).not.toHaveBeenCalled();
   });
 
-  // -----------------------------------------------------------------------
-  // Password hashing
-  // -----------------------------------------------------------------------
-
   it("should hash the password before persisting the user", async () => {
-    vi.mocked(userRepo.findByEmail).mockResolvedValue(null);
+    vi.mocked(userRepo.findByEmailIncludingDeleted).mockResolvedValue(null);
     vi.mocked(userRepo.create).mockResolvedValue(fakeUser);
     vi.mocked(sessionRepo.create).mockResolvedValue(fakeSession);
     vi.mocked(refreshTokenRepo.create).mockResolvedValue(fakeRefreshToken);
@@ -224,8 +193,8 @@ describe("AuthService.signup", () => {
     expect(hashPassword).toHaveBeenCalledWith(signupInput.password);
   });
 
-  it("should pass the hashed password (not plaintext) to userRepo.create", async () => {
-    vi.mocked(userRepo.findByEmail).mockResolvedValue(null);
+  it("should pass the hashed password to userRepo.create", async () => {
+    vi.mocked(userRepo.findByEmailIncludingDeleted).mockResolvedValue(null);
     vi.mocked(userRepo.create).mockResolvedValue(fakeUser);
     vi.mocked(sessionRepo.create).mockResolvedValue(fakeSession);
     vi.mocked(refreshTokenRepo.create).mockResolvedValue(fakeRefreshToken);
@@ -242,12 +211,8 @@ describe("AuthService.signup", () => {
     );
   });
 
-  // -----------------------------------------------------------------------
-  // Session creation
-  // -----------------------------------------------------------------------
-
   it("should create a session with the correct userId and client info", async () => {
-    vi.mocked(userRepo.findByEmail).mockResolvedValue(null);
+    vi.mocked(userRepo.findByEmailIncludingDeleted).mockResolvedValue(null);
     vi.mocked(userRepo.create).mockResolvedValue(fakeUser);
     vi.mocked(sessionRepo.create).mockResolvedValue(fakeSession);
     vi.mocked(refreshTokenRepo.create).mockResolvedValue(fakeRefreshToken);
@@ -264,8 +229,8 @@ describe("AuthService.signup", () => {
     );
   });
 
-  it("should set session expiresAt based on sessionConfig.sessionExpiryDays", async () => {
-    vi.mocked(userRepo.findByEmail).mockResolvedValue(null);
+  it("should set session expiry based on sessionConfig.sessionExpiryDays", async () => {
+    vi.mocked(userRepo.findByEmailIncludingDeleted).mockResolvedValue(null);
     vi.mocked(userRepo.create).mockResolvedValue(fakeUser);
     vi.mocked(sessionRepo.create).mockResolvedValue(fakeSession);
     vi.mocked(refreshTokenRepo.create).mockResolvedValue(fakeRefreshToken);
@@ -273,22 +238,16 @@ describe("AuthService.signup", () => {
     await authService.signup(signupInput);
 
     const createCall = vi.mocked(sessionRepo.create).mock.calls[0]![0];
-    // expiresAt should be an ISO string approximately 7 days from now
     const expiresAt = new Date(createCall.expiresAt);
-    const nowDate = new Date();
     const diffDays =
-      (expiresAt.getTime() - nowDate.getTime()) / (1000 * 60 * 60 * 24);
+      (expiresAt.getTime() - Date.now()) / (1000 * 60 * 60 * 24);
 
     expect(diffDays).toBeGreaterThan(6);
     expect(diffDays).toBeLessThanOrEqual(7.01);
   });
 
-  // -----------------------------------------------------------------------
-  // Refresh token creation
-  // -----------------------------------------------------------------------
-
   it("should generate a refresh token and persist its hash", async () => {
-    vi.mocked(userRepo.findByEmail).mockResolvedValue(null);
+    vi.mocked(userRepo.findByEmailIncludingDeleted).mockResolvedValue(null);
     vi.mocked(userRepo.create).mockResolvedValue(fakeUser);
     vi.mocked(sessionRepo.create).mockResolvedValue(fakeSession);
     vi.mocked(refreshTokenRepo.create).mockResolvedValue(fakeRefreshToken);
@@ -298,7 +257,6 @@ describe("AuthService.signup", () => {
     expect(generateRefreshToken).toHaveBeenCalledOnce();
     expect(hashRefreshToken).toHaveBeenCalledOnce();
     expect(hashRefreshToken).toHaveBeenCalledWith("raw-refresh-token-stub");
-
     expect(refreshTokenRepo.create).toHaveBeenCalledOnce();
     expect(refreshTokenRepo.create).toHaveBeenCalledWith({
       sessionId: fakeSession.id,
@@ -306,12 +264,8 @@ describe("AuthService.signup", () => {
     });
   });
 
-  // -----------------------------------------------------------------------
-  // Access token signing
-  // -----------------------------------------------------------------------
-
   it("should sign an access token with the correct payload and config", async () => {
-    vi.mocked(userRepo.findByEmail).mockResolvedValue(null);
+    vi.mocked(userRepo.findByEmailIncludingDeleted).mockResolvedValue(null);
     vi.mocked(userRepo.create).mockResolvedValue(fakeUser);
     vi.mocked(sessionRepo.create).mockResolvedValue(fakeSession);
     vi.mocked(refreshTokenRepo.create).mockResolvedValue(fakeRefreshToken);
@@ -325,25 +279,20 @@ describe("AuthService.signup", () => {
     );
   });
 
-  // -----------------------------------------------------------------------
-  // Return value structure
-  // -----------------------------------------------------------------------
-
-  it("should return the raw (unhashed) refresh token string", async () => {
-    vi.mocked(userRepo.findByEmail).mockResolvedValue(null);
+  it("should return the raw refresh token string", async () => {
+    vi.mocked(userRepo.findByEmailIncludingDeleted).mockResolvedValue(null);
     vi.mocked(userRepo.create).mockResolvedValue(fakeUser);
     vi.mocked(sessionRepo.create).mockResolvedValue(fakeSession);
     vi.mocked(refreshTokenRepo.create).mockResolvedValue(fakeRefreshToken);
 
     const result = await authService.signup(signupInput);
 
-    // Should return the raw token, NOT the hash
     expect(result.refreshToken).toBe("raw-refresh-token-stub");
     expect(result.refreshToken).not.toBe("hashed-refresh-token-stub");
   });
 
   it("should return the session object from the repository", async () => {
-    vi.mocked(userRepo.findByEmail).mockResolvedValue(null);
+    vi.mocked(userRepo.findByEmailIncludingDeleted).mockResolvedValue(null);
     vi.mocked(userRepo.create).mockResolvedValue(fakeUser);
     vi.mocked(sessionRepo.create).mockResolvedValue(fakeSession);
     vi.mocked(refreshTokenRepo.create).mockResolvedValue(fakeRefreshToken);
@@ -353,21 +302,14 @@ describe("AuthService.signup", () => {
     expect(result.session).toStrictEqual(fakeSession);
   });
 
-  // -----------------------------------------------------------------------
-  // Signup with optional companyName as null
-  // -----------------------------------------------------------------------
-
   it("should handle signup when companyName is null", async () => {
     const inputWithoutCompany: SignupDto = {
       ...signupInput,
       companyName: null,
     };
 
-    vi.mocked(userRepo.findByEmail).mockResolvedValue(null);
-    vi.mocked(userRepo.create).mockResolvedValue({
-      ...fakeUser,
-      companyName: null,
-    });
+    vi.mocked(userRepo.findByEmailIncludingDeleted).mockResolvedValue(null);
+    vi.mocked(userRepo.create).mockResolvedValue({ ...fakeUser, companyName: null });
     vi.mocked(sessionRepo.create).mockResolvedValue(fakeSession);
     vi.mocked(refreshTokenRepo.create).mockResolvedValue(fakeRefreshToken);
 
@@ -379,35 +321,23 @@ describe("AuthService.signup", () => {
     );
   });
 
-  // -----------------------------------------------------------------------
-  // Propagation of repository errors
-  // -----------------------------------------------------------------------
-
   it("should propagate errors thrown by userRepo.create", async () => {
-    vi.mocked(userRepo.findByEmail).mockResolvedValue(null);
-    vi.mocked(userRepo.create).mockRejectedValue(
-      new Error("DB connection lost"),
-    );
+    vi.mocked(userRepo.findByEmailIncludingDeleted).mockResolvedValue(null);
+    vi.mocked(userRepo.create).mockRejectedValue(new Error("DB connection lost"));
 
-    await expect(authService.signup(signupInput)).rejects.toThrow(
-      "DB connection lost",
-    );
+    await expect(authService.signup(signupInput)).rejects.toThrow("DB connection lost");
   });
 
   it("should propagate errors thrown by sessionRepo.create", async () => {
-    vi.mocked(userRepo.findByEmail).mockResolvedValue(null);
+    vi.mocked(userRepo.findByEmailIncludingDeleted).mockResolvedValue(null);
     vi.mocked(userRepo.create).mockResolvedValue(fakeUser);
-    vi.mocked(sessionRepo.create).mockRejectedValue(
-      new Error("Session insert failed"),
-    );
+    vi.mocked(sessionRepo.create).mockRejectedValue(new Error("Session insert failed"));
 
-    await expect(authService.signup(signupInput)).rejects.toThrow(
-      "Session insert failed",
-    );
+    await expect(authService.signup(signupInput)).rejects.toThrow("Session insert failed");
   });
 
   it("should propagate errors thrown by refreshTokenRepo.create", async () => {
-    vi.mocked(userRepo.findByEmail).mockResolvedValue(null);
+    vi.mocked(userRepo.findByEmailIncludingDeleted).mockResolvedValue(null);
     vi.mocked(userRepo.create).mockResolvedValue(fakeUser);
     vi.mocked(sessionRepo.create).mockResolvedValue(fakeSession);
     vi.mocked(refreshTokenRepo.create).mockRejectedValue(
@@ -419,14 +349,10 @@ describe("AuthService.signup", () => {
     );
   });
 
-  // -----------------------------------------------------------------------
-  // Execution order
-  // -----------------------------------------------------------------------
-
   it("should call operations in the correct order: findByEmail → hashPassword → create user → create session → create refreshToken → signAccessToken", async () => {
     const callOrder: string[] = [];
 
-    vi.mocked(userRepo.findByEmail).mockImplementation(async () => {
+    vi.mocked(userRepo.findByEmailIncludingDeleted).mockImplementation(async () => {
       callOrder.push("findByEmail");
       return null;
     });
