@@ -45,13 +45,14 @@ export default class ApiKeyController {
 
   rotateApiKey = catchAsync(async (req: AuthRequest, res: Response) => {
     const userId = req.auth!.sub;
-    const apiKeyId = req.params.id as string;
-    const { oldKeyRevokeStrategy } = req.body;
+    const merchantId = req.params.id as string;
+    const { oldKeyRevokeStrategy, environment } = req.body;
 
     const result = await this.apiKeyService.rotateApiKey({
       userId,
-      apiKeyId,
+      merchantId,
       oldKeyRevokeStrategy,
+      environment,
     });
 
     res

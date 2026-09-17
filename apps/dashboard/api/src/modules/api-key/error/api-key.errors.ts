@@ -22,22 +22,32 @@ export class ApiKeyAlreadyExistsError extends AppError {
   }
 }
 
-export class ApiKeyInvalidError extends AppError {
-  constructor(message: string = "Api key invalid") {
+export class InvalidApiKeyStatusError extends AppError {
+  constructor(message: string = "Api key is not in valid status") {
     super({
       message,
-      statusCode: HttpStatusCode.Error.UNAUTHORIZED,
-      code: ApiKeyErrorCode.API_KEY_INVALID,
+      statusCode: HttpStatusCode.Error.CONFLICT,
+      code: ApiKeyErrorCode.INVALID_API_KEY_STATUS,
     });
   }
 }
 
-export class ApiKeyRevokedError extends AppError {
-  constructor(message: string = "Api key revoked") {
+export class InvalidApiKeyCredentialsError extends AppError {
+  constructor(message: string = "Invalid api key id or secret") {
     super({
       message,
       statusCode: HttpStatusCode.Error.UNAUTHORIZED,
-      code: ApiKeyErrorCode.API_KEY_REVOKED,
+      code: ApiKeyErrorCode.INVALID_API_KEY_CREDENTIALS,
+    });
+  }
+}
+
+export class RevokedApiKeyError extends AppError {
+  constructor(message: string = "Api key is revoked") {
+    super({
+      message,
+      statusCode: HttpStatusCode.Error.UNAUTHORIZED,
+      code: ApiKeyErrorCode.REVOKED_API_KEY,
     });
   }
 }

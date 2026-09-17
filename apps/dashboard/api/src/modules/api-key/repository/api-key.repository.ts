@@ -1,30 +1,25 @@
 import { client, TransactionClient } from "@payvo/database/client";
 import { ApiKeyCreateInput } from "@payvo/database/types";
-import { injectable } from "inversify";
+import { inject, injectable } from "inversify";
 import { ApiKey, ApiKeyEnvironment } from "../entity/api-key.entity.js";
-import { stringToDate, stringToDateNullable } from "@/core/utils/date.utils.js";
+import TYPES from "@/core/di/inversify.types.js";
+import ApiKeyMapper from "../api-key.mapper.js";
 
 @injectable()
 export default class ApiKeyRepository {
   private readonly db = client;
 
+  constructor(
+    @inject(TYPES.ApiKeyMapper) private readonly mapper: ApiKeyMapper,
+  ) {}
+
   async create(
     data: ApiKeyCreateInput,
     tx?: TransactionClient,
   ): Promise<ApiKey> {
-    const apiKey = await (tx ?? this.db).orm.public.ApiKey.include(
-      "merchant",
-      (m) => m.select("id", "isActive", "userId"),
-    ).create(data);
+    const apiKey = await (tx ?? this.db).orm.public.ApiKey.create(data);
 
-    return {
-      ...apiKey,
-      graceEndsAt: stringToDateNullable(apiKey.graceEndsAt),
-      revokedAt: stringToDateNullable(apiKey.revokedAt),
-      lastUsedAt: stringToDateNullable(apiKey.lastUsedAt),
-      createdAt: stringToDate(apiKey.createdAt),
-      updatedAt: stringToDate(apiKey.updatedAt),
-    };
+    return this.mapper.toApiKeyEntity(apiKey);
   }
 
   async findActiveKey(
@@ -39,81 +34,40 @@ export default class ApiKeyRepository {
     })
       .orderBy((k) => k.createdAt.desc())
       .limit(1)
-      .include("merchant", (m) => m.select("id", "isActive", "userId"))
       .first();
 
-    if (!apiKey) {
-      return null;
-    }
-    return {
-      ...apiKey,
-      graceEndsAt: stringToDateNullable(apiKey.graceEndsAt),
-      revokedAt: stringToDateNullable(apiKey.revokedAt),
-      lastUsedAt: stringToDateNullable(apiKey.lastUsedAt),
-      createdAt: stringToDate(apiKey.createdAt),
-      updatedAt: stringToDate(apiKey.updatedAt),
-    };
+    return apiKey ? this.mapper.toApiKeyEntity(apiKey) : null;
   }
 
-  async findById(id: string): Promise<ApiKey | null> {
-    const apiKey = await this.db.orm.public.ApiKey.where({ id })
-      .include("merchant", (m) => m.select("id", "isActive", "userId"))
-      .first();
+  // async findById(id: string): Promise<ApiKey | null> {
+  //   const apiKey = await this.db.orm.public.ApiKey.where({ id }).first();
 
-    if (!apiKey) {
-      return null;
-    }
-    return {
-      ...apiKey,
-      graceEndsAt: stringToDateNullable(apiKey.graceEndsAt),
-      revokedAt: stringToDateNullable(apiKey.revokedAt),
-      lastUsedAt: stringToDateNullable(apiKey.lastUsedAt),
-      createdAt: stringToDate(apiKey.createdAt),
-      updatedAt: stringToDate(apiKey.updatedAt),
-    };
-  }
+  //   return apiKey ? this.mapper.toApiKeyEntity(apiKey) : null;
+  // }
 
   async revokeKeyForRotation(
     tx: TransactionClient,
-    data: { id: string; revokeAt: Date },
+    data: { merchantId: string; revokeAt: Date },
   ): Promise<ApiKey | null> {
-    const { id, revokeAt } = data;
+    const { merchantId, revokeAt } = data;
     const revokeNow = revokeAt <= new Date();
-    const apiKey = await tx.orm.public.ApiKey.where({ id })
-      .include("merchant", (m) => m.select("id", "isActive", "userId"))
-      .update({
-        graceEndsAt: revokeAt.toISOString(),
-        status: revokeNow ? "REVOKED" : "GRACE_PERIOD",
-        revokedAt: revokeNow ? revokeAt.toISOString() : null,
-      });
+    const apiKey = await tx.orm.public.ApiKey.where({
+      merchantId,
+      status: "ACTIVE",
+      revokedAt: null,
+      graceEndsAt: null,
+    }).update({
+      graceEndsAt: revokeAt.toISOString(),
+      status: revokeNow ? "REVOKED" : "GRACE_PERIOD",
+      revokedAt: revokeNow ? revokeAt.toISOString() : null,
+    });
 
-    return apiKey
-      ? {
-          ...apiKey,
-          graceEndsAt: stringToDateNullable(apiKey.graceEndsAt),
-          revokedAt: stringToDateNullable(apiKey.revokedAt),
-          lastUsedAt: stringToDateNullable(apiKey.lastUsedAt),
-          createdAt: stringToDate(apiKey.createdAt),
-          updatedAt: stringToDate(apiKey.updatedAt),
-        }
-      : null;
+    return apiKey ? this.mapper.toApiKeyEntity(apiKey) : null;
   }
 
   async findByKeyId(keyId: string): Promise<ApiKey | null> {
-    const apiKey = await this.db.orm.public.ApiKey.where({ keyId })
-      .include("merchant", (m) => m.select("id", "isActive", "userId"))
-      .first();
+    const apiKey = await this.db.orm.public.ApiKey.where({ keyId }).first();
 
-    if (!apiKey) {
-      return null;
-    }
-    return {
-      ...apiKey,
-      graceEndsAt: stringToDateNullable(apiKey.graceEndsAt),
-      revokedAt: stringToDateNullable(apiKey.revokedAt),
-      lastUsedAt: stringToDateNullable(apiKey.lastUsedAt),
-      createdAt: stringToDate(apiKey.createdAt),
-      updatedAt: stringToDate(apiKey.updatedAt),
-    };
+    return apiKey ? this.mapper.toApiKeyEntity(apiKey) : null;
   }
 }

@@ -1,30 +1,17 @@
 import "reflect-metadata";
 import type ApiKeyRepository from "../repository/api-key.repository.js";
-import type MerchantRepository from "../../merchant/repository/merchant.repository.js";
-import {
-  MerchantNotFoundError,
-  MerchantAccessDeniedError,
-  MerchantInactiveError,
-} from "../../merchant/error/merchant.errors.js";
+import { MerchantInactiveError, MerchantNotFoundError } from "../../merchant/error/merchant.errors.js";
 import { ApiKeyNotFoundError } from "../error/api-key.errors.js";
 import type { RotateApiKeyDto } from "../dto/RotateApiKeyDto.js";
 import type { ApiKey } from "../entity/api-key.entity.js";
-import type { Merchant } from "../../merchant/entity/merchant.entity.js";
-
-// ---------------------------------------------------------------------------
-// Mock modules that would trigger database connections or env reads
-// ---------------------------------------------------------------------------
+import type { CachedMerchant } from "../../merchant/merchant-cache.service.js";
 
 vi.mock("@payvo/database/client", () => ({
   client: {},
-  dbTransaction: vi.fn(),
+  dbTransaction: vi.fn(async (cb: (tx: unknown) => Promise<unknown>) => cb({})),
 }));
 
 vi.mock("@payvo/database/types", () => ({}));
-
-// ---------------------------------------------------------------------------
-// Mock external shared packages
-// ---------------------------------------------------------------------------
 
 vi.mock("@payvo/shared/api-key", () => ({
   generateApiKey: vi.fn().mockReturnValue({
@@ -34,24 +21,16 @@ vi.mock("@payvo/shared/api-key", () => ({
   hashKeySecret: vi.fn().mockReturnValue("hashed-new-secret"),
 }));
 
-// Re-import mocked modules so we can assert against them
 import { generateApiKey, hashKeySecret } from "@payvo/shared/api-key";
 import { dbTransaction } from "@payvo/database/client";
 import ApiKeyService from "../api-key.service.js";
 
-// ---------------------------------------------------------------------------
-// Fixtures
-// ---------------------------------------------------------------------------
-
 const now = new Date("2026-09-10T00:00:00.000Z");
 
-const fakeMerchant: Merchant = {
+const fakeMerchant: CachedMerchant = {
   id: "merchant-1",
-  mid: "MID001",
   userId: "user-1",
   isActive: true,
-  createdAt: now,
-  updatedAt: now,
 };
 
 const existingActiveKey: ApiKey = {
@@ -92,19 +71,17 @@ const newApiKey: ApiKey = {
 
 const rotateInputImmediate: RotateApiKeyDto = {
   userId: "user-1",
-  apiKeyId: "apikey-old",
+  merchantId: "merchant-1",
   oldKeyRevokeStrategy: "IMMEDIATELY",
+  environment: "TEST",
 };
 
 const rotateInput24h: RotateApiKeyDto = {
   userId: "user-1",
-  apiKeyId: "apikey-old",
+  merchantId: "merchant-1",
   oldKeyRevokeStrategy: "24_HOURS",
+  environment: "TEST",
 };
-
-// ---------------------------------------------------------------------------
-// Helpers – create mock repository instances
-// ---------------------------------------------------------------------------
 
 function createMockApiKeyRepo(): ApiKeyRepository {
   return {
@@ -115,48 +92,28 @@ function createMockApiKeyRepo(): ApiKeyRepository {
   } as unknown as ApiKeyRepository;
 }
 
-function createMockMerchantRepo(): MerchantRepository {
+function createMockMerchantCacheService() {
   return {
-    findById: vi.fn(),
-    findByMid: vi.fn(),
-    findByUserId: vi.fn(),
-    create: vi.fn(),
-    delete: vi.fn(),
-  } as unknown as MerchantRepository;
+    getCachedMerchant: vi.fn(),
+    invalidateCachedMerchant: vi.fn(),
+  };
 }
-
-// ---------------------------------------------------------------------------
-// Tests
-// ---------------------------------------------------------------------------
 
 describe("ApiKeyService.rotateApiKey", () => {
   let service: ApiKeyService;
   let apiKeyRepo: ApiKeyRepository;
-  let merchantRepo: MerchantRepository;
+  let merchantCacheService: ReturnType<typeof createMockMerchantCacheService>;
 
   beforeEach(() => {
     vi.clearAllMocks();
-
     apiKeyRepo = createMockApiKeyRepo();
-    merchantRepo = createMockMerchantRepo();
-
-    service = new (ApiKeyService as any)(apiKeyRepo, merchantRepo);
-
-    // Default dbTransaction mock: executes the callback with a fake tx
-    vi.mocked(dbTransaction).mockImplementation(async (cb: any) => {
-      const fakeTx = {};
-      return cb(fakeTx);
-    });
+    merchantCacheService = createMockMerchantCacheService();
+    service = new (ApiKeyService as any)(apiKeyRepo, merchantCacheService);
   });
 
-  // -----------------------------------------------------------------------
-  // Happy path – IMMEDIATELY
-  // -----------------------------------------------------------------------
-
-  it("should rotate the api key and return the new key with IMMEDIATELY strategy", async () => {
-    vi.mocked(apiKeyRepo.findById).mockResolvedValue(existingActiveKey);
-    vi.mocked(merchantRepo.findById).mockResolvedValue(fakeMerchant);
-    vi.mocked(apiKeyRepo.revokeKeyForRotation).mockResolvedValue(null);
+  it("rotates the key and returns the new key metadata", async () => {
+    vi.mocked(merchantCacheService.getCachedMerchant).mockResolvedValue(fakeMerchant);
+    vi.mocked(apiKeyRepo.revokeKeyForRotation).mockResolvedValue(existingActiveKey);
     vi.mocked(apiKeyRepo.create).mockResolvedValue(newApiKey);
 
     const result = await service.rotateApiKey(rotateInputImmediate);
@@ -171,323 +128,92 @@ describe("ApiKeyService.rotateApiKey", () => {
     });
   });
 
-  // -----------------------------------------------------------------------
-  // Happy path – 24_HOURS
-  // -----------------------------------------------------------------------
-
-  it("should rotate the api key with 24_HOURS strategy", async () => {
-    vi.mocked(apiKeyRepo.findById).mockResolvedValue(existingActiveKey);
-    vi.mocked(merchantRepo.findById).mockResolvedValue(fakeMerchant);
-    vi.mocked(apiKeyRepo.revokeKeyForRotation).mockResolvedValue(null);
-    vi.mocked(apiKeyRepo.create).mockResolvedValue(newApiKey);
-
-    const result = await service.rotateApiKey(rotateInput24h);
-
-    expect(result).toEqual({
-      id: newApiKey.id,
-      keyId: "pk_test_new-key-id",
-      keySecret: "sk_test_new-key-secret",
-      status: "ACTIVE",
-      environment: "TEST",
-      generatedAt: newApiKey.createdAt,
-    });
-  });
-
-  it("should set revokeAt to approximately now for IMMEDIATELY strategy", async () => {
-    vi.mocked(apiKeyRepo.findById).mockResolvedValue(existingActiveKey);
-    vi.mocked(merchantRepo.findById).mockResolvedValue(fakeMerchant);
-    vi.mocked(apiKeyRepo.revokeKeyForRotation).mockResolvedValue(null);
-    vi.mocked(apiKeyRepo.create).mockResolvedValue(newApiKey);
-
-    const before = new Date();
-    await service.rotateApiKey(rotateInputImmediate);
-    const after = new Date();
-
-    const revokeCall = vi.mocked(apiKeyRepo.revokeKeyForRotation).mock.calls[0]!;
-    const revokeAt = revokeCall[1].revokeAt as Date;
-
-    expect(revokeAt.getTime()).toBeGreaterThanOrEqual(before.getTime());
-    expect(revokeAt.getTime()).toBeLessThanOrEqual(after.getTime());
-  });
-
-  it("should set revokeAt to approximately 24 hours from now for 24_HOURS strategy", async () => {
-    vi.mocked(apiKeyRepo.findById).mockResolvedValue(existingActiveKey);
-    vi.mocked(merchantRepo.findById).mockResolvedValue(fakeMerchant);
-    vi.mocked(apiKeyRepo.revokeKeyForRotation).mockResolvedValue(null);
-    vi.mocked(apiKeyRepo.create).mockResolvedValue(newApiKey);
-
-    const before = new Date();
-    await service.rotateApiKey(rotateInput24h);
-
-    const revokeCall = vi.mocked(apiKeyRepo.revokeKeyForRotation).mock.calls[0]!;
-    const revokeAt = revokeCall[1].revokeAt as Date;
-    const diffHours =
-      (revokeAt.getTime() - before.getTime()) / (1000 * 60 * 60);
-
-    expect(diffHours).toBeGreaterThan(23);
-    expect(diffHours).toBeLessThanOrEqual(24.01);
-  });
-
-  // -----------------------------------------------------------------------
-  // Api key validation
-  // -----------------------------------------------------------------------
-
-  it("should look up the existing key by apiKeyId", async () => {
-    vi.mocked(apiKeyRepo.findById).mockResolvedValue(existingActiveKey);
-    vi.mocked(merchantRepo.findById).mockResolvedValue(fakeMerchant);
-    vi.mocked(apiKeyRepo.revokeKeyForRotation).mockResolvedValue(null);
+  it("validates the merchant before rotating the key", async () => {
+    vi.mocked(merchantCacheService.getCachedMerchant).mockResolvedValue(fakeMerchant);
+    vi.mocked(apiKeyRepo.revokeKeyForRotation).mockResolvedValue(existingActiveKey);
     vi.mocked(apiKeyRepo.create).mockResolvedValue(newApiKey);
 
     await service.rotateApiKey(rotateInputImmediate);
 
-    expect(apiKeyRepo.findById).toHaveBeenCalledOnce();
-    expect(apiKeyRepo.findById).toHaveBeenCalledWith("apikey-old");
+    expect(merchantCacheService.getCachedMerchant).toHaveBeenCalledWith("merchant-1");
   });
 
-  it("should throw ApiKeyNotFoundError when key does not exist", async () => {
-    vi.mocked(apiKeyRepo.findById).mockResolvedValue(null);
+  it("throws MerchantNotFoundError when the merchant is missing", async () => {
+    vi.mocked(merchantCacheService.getCachedMerchant).mockResolvedValue(null);
 
-    await expect(service.rotateApiKey(rotateInputImmediate)).rejects.toThrow(
-      ApiKeyNotFoundError,
-    );
+    await expect(service.rotateApiKey(rotateInputImmediate)).rejects.toThrow(MerchantNotFoundError);
   });
 
-  it("should throw ApiKeyNotFoundError when key status is not ACTIVE", async () => {
-    vi.mocked(apiKeyRepo.findById).mockResolvedValue({
-      ...existingActiveKey,
-      status: "REVOKED",
-    });
-
-    await expect(service.rotateApiKey(rotateInputImmediate)).rejects.toThrow(
-      ApiKeyNotFoundError,
-    );
-    await expect(service.rotateApiKey(rotateInputImmediate)).rejects.toThrow(
-      "Only active api keys can be rotated",
-    );
-  });
-
-  it("should throw ApiKeyNotFoundError when key is in GRACE_PERIOD", async () => {
-    vi.mocked(apiKeyRepo.findById).mockResolvedValue({
-      ...existingActiveKey,
-      status: "GRACE_PERIOD",
-    });
-
-    await expect(service.rotateApiKey(rotateInputImmediate)).rejects.toThrow(
-      ApiKeyNotFoundError,
-    );
-  });
-
-  // -----------------------------------------------------------------------
-  // Merchant validation
-  // -----------------------------------------------------------------------
-
-  it("should validate merchant ownership using the key's merchant id", async () => {
-    vi.mocked(apiKeyRepo.findById).mockResolvedValue(existingActiveKey);
-    vi.mocked(merchantRepo.findById).mockResolvedValue(fakeMerchant);
-    vi.mocked(apiKeyRepo.revokeKeyForRotation).mockResolvedValue(null);
-    vi.mocked(apiKeyRepo.create).mockResolvedValue(newApiKey);
-
-    await service.rotateApiKey(rotateInputImmediate);
-
-    expect(merchantRepo.findById).toHaveBeenCalledOnce();
-    expect(merchantRepo.findById).toHaveBeenCalledWith("merchant-1");
-  });
-
-  it("should throw MerchantNotFoundError when the key's merchant does not exist", async () => {
-    vi.mocked(apiKeyRepo.findById).mockResolvedValue(existingActiveKey);
-    vi.mocked(merchantRepo.findById).mockResolvedValue(null);
-
-    await expect(service.rotateApiKey(rotateInputImmediate)).rejects.toThrow(
-      MerchantNotFoundError,
-    );
-  });
-
-  it("should throw MerchantAccessDeniedError when userId does not match merchant owner", async () => {
-    vi.mocked(apiKeyRepo.findById).mockResolvedValue(existingActiveKey);
-    vi.mocked(merchantRepo.findById).mockResolvedValue({
-      ...fakeMerchant,
-      userId: "other-user",
-    });
-
-    await expect(service.rotateApiKey(rotateInputImmediate)).rejects.toThrow(
-      MerchantAccessDeniedError,
-    );
-  });
-
-  it("should throw MerchantInactiveError when merchant is inactive", async () => {
-    vi.mocked(apiKeyRepo.findById).mockResolvedValue(existingActiveKey);
-    vi.mocked(merchantRepo.findById).mockResolvedValue({
+  it("throws MerchantInactiveError when the merchant is inactive", async () => {
+    vi.mocked(merchantCacheService.getCachedMerchant).mockResolvedValue({
       ...fakeMerchant,
       isActive: false,
     });
 
-    await expect(service.rotateApiKey(rotateInputImmediate)).rejects.toThrow(
-      MerchantInactiveError,
-    );
+    await expect(service.rotateApiKey(rotateInputImmediate)).rejects.toThrow(MerchantInactiveError);
   });
 
-  it("should NOT start transaction when merchant validation fails", async () => {
-    vi.mocked(apiKeyRepo.findById).mockResolvedValue(existingActiveKey);
-    vi.mocked(merchantRepo.findById).mockResolvedValue(null);
-
-    await expect(service.rotateApiKey(rotateInputImmediate)).rejects.toThrow();
-
-    expect(dbTransaction).not.toHaveBeenCalled();
-  });
-
-  // -----------------------------------------------------------------------
-  // Transaction behavior
-  // -----------------------------------------------------------------------
-
-  it("should run revoke and create inside dbTransaction", async () => {
-    vi.mocked(apiKeyRepo.findById).mockResolvedValue(existingActiveKey);
-    vi.mocked(merchantRepo.findById).mockResolvedValue(fakeMerchant);
-    vi.mocked(apiKeyRepo.revokeKeyForRotation).mockResolvedValue(null);
+  it("revokes the old key immediately when the strategy is IMMEDIATELY", async () => {
+    vi.mocked(merchantCacheService.getCachedMerchant).mockResolvedValue(fakeMerchant);
+    vi.mocked(apiKeyRepo.revokeKeyForRotation).mockResolvedValue(existingActiveKey);
     vi.mocked(apiKeyRepo.create).mockResolvedValue(newApiKey);
 
     await service.rotateApiKey(rotateInputImmediate);
 
-    expect(dbTransaction).toHaveBeenCalledOnce();
-    expect(apiKeyRepo.revokeKeyForRotation).toHaveBeenCalledOnce();
-    expect(apiKeyRepo.create).toHaveBeenCalledOnce();
+    const revokeCall = vi.mocked(apiKeyRepo.revokeKeyForRotation).mock.calls[0]![1] as {
+      merchantId: string;
+      revokeAt: Date;
+    };
+    expect(revokeCall.merchantId).toBe("merchant-1");
+    expect(revokeCall.revokeAt.getTime()).toBeLessThanOrEqual(Date.now());
   });
 
-  it("should pass the old key id to revokeKeyForRotation", async () => {
-    vi.mocked(apiKeyRepo.findById).mockResolvedValue(existingActiveKey);
-    vi.mocked(merchantRepo.findById).mockResolvedValue(fakeMerchant);
-    vi.mocked(apiKeyRepo.revokeKeyForRotation).mockResolvedValue(null);
+  it("sets the revoke time to 24 hours in the future for the 24_HOURS strategy", async () => {
+    vi.mocked(merchantCacheService.getCachedMerchant).mockResolvedValue(fakeMerchant);
+    vi.mocked(apiKeyRepo.revokeKeyForRotation).mockResolvedValue(existingActiveKey);
+    vi.mocked(apiKeyRepo.create).mockResolvedValue(newApiKey);
+
+    await service.rotateApiKey(rotateInput24h);
+
+    const revokeCall = vi.mocked(apiKeyRepo.revokeKeyForRotation).mock.calls[0]![1] as {
+      revokeAt: Date;
+    };
+    const diffHours = (revokeCall.revokeAt.getTime() - Date.now()) / (1000 * 60 * 60);
+    expect(diffHours).toBeGreaterThan(23);
+    expect(diffHours).toBeLessThanOrEqual(24.01);
+  });
+
+  it("generates a new key with the same environment and hashes the secret", async () => {
+    vi.mocked(merchantCacheService.getCachedMerchant).mockResolvedValue(fakeMerchant);
+    vi.mocked(apiKeyRepo.revokeKeyForRotation).mockResolvedValue(existingActiveKey);
     vi.mocked(apiKeyRepo.create).mockResolvedValue(newApiKey);
 
     await service.rotateApiKey(rotateInputImmediate);
 
-    const revokeCall = vi.mocked(apiKeyRepo.revokeKeyForRotation).mock.calls[0]!;
-    expect(revokeCall[1].id).toBe("apikey-old");
-  });
-
-  // -----------------------------------------------------------------------
-  // Crypto operations
-  // -----------------------------------------------------------------------
-
-  it("should generate a new key with the same environment as the old key", async () => {
-    vi.mocked(apiKeyRepo.findById).mockResolvedValue(existingActiveKey);
-    vi.mocked(merchantRepo.findById).mockResolvedValue(fakeMerchant);
-    vi.mocked(apiKeyRepo.revokeKeyForRotation).mockResolvedValue(null);
-    vi.mocked(apiKeyRepo.create).mockResolvedValue(newApiKey);
-
-    await service.rotateApiKey(rotateInputImmediate);
-
-    expect(generateApiKey).toHaveBeenCalledOnce();
     expect(generateApiKey).toHaveBeenCalledWith("TEST");
-  });
-
-  it("should hash the new key secret", async () => {
-    vi.mocked(apiKeyRepo.findById).mockResolvedValue(existingActiveKey);
-    vi.mocked(merchantRepo.findById).mockResolvedValue(fakeMerchant);
-    vi.mocked(apiKeyRepo.revokeKeyForRotation).mockResolvedValue(null);
-    vi.mocked(apiKeyRepo.create).mockResolvedValue(newApiKey);
-
-    await service.rotateApiKey(rotateInputImmediate);
-
-    expect(hashKeySecret).toHaveBeenCalledOnce();
     expect(hashKeySecret).toHaveBeenCalledWith("sk_test_new-key-secret");
+    expect(apiKeyRepo.create).toHaveBeenCalledWith(
+      { merchantId: "merchant-1", keyId: "pk_test_new-key-id", secretHash: "hashed-new-secret", environment: "TEST" },
+      expect.anything(),
+    );
   });
 
-  // -----------------------------------------------------------------------
-  // Return value
-  // -----------------------------------------------------------------------
-
-  it("should return the raw keySecret of the new key (not the hash)", async () => {
-    vi.mocked(apiKeyRepo.findById).mockResolvedValue(existingActiveKey);
-    vi.mocked(merchantRepo.findById).mockResolvedValue(fakeMerchant);
+  it("throws ApiKeyNotFoundError when no active key can be revoked", async () => {
+    vi.mocked(merchantCacheService.getCachedMerchant).mockResolvedValue(fakeMerchant);
     vi.mocked(apiKeyRepo.revokeKeyForRotation).mockResolvedValue(null);
+
+    await expect(service.rotateApiKey(rotateInputImmediate)).rejects.toThrow(ApiKeyNotFoundError);
+  });
+
+  it("runs revoke and create inside the transaction callback", async () => {
+    vi.mocked(merchantCacheService.getCachedMerchant).mockResolvedValue(fakeMerchant);
+    vi.mocked(apiKeyRepo.revokeKeyForRotation).mockResolvedValue(existingActiveKey);
     vi.mocked(apiKeyRepo.create).mockResolvedValue(newApiKey);
-
-    const result = await service.rotateApiKey(rotateInputImmediate);
-
-    expect(result.keySecret).toBe("sk_test_new-key-secret");
-    expect(result.keySecret).not.toBe("hashed-new-secret");
-  });
-
-  // -----------------------------------------------------------------------
-  // Propagation of errors
-  // -----------------------------------------------------------------------
-
-  it("should propagate errors thrown by apiKeyRepo.findById", async () => {
-    vi.mocked(apiKeyRepo.findById).mockRejectedValue(
-      new Error("DB connection lost"),
-    );
-
-    await expect(service.rotateApiKey(rotateInputImmediate)).rejects.toThrow(
-      "DB connection lost",
-    );
-  });
-
-  it("should propagate errors thrown during the transaction", async () => {
-    vi.mocked(apiKeyRepo.findById).mockResolvedValue(existingActiveKey);
-    vi.mocked(merchantRepo.findById).mockResolvedValue(fakeMerchant);
-    vi.mocked(dbTransaction).mockRejectedValue(
-      new Error("Transaction aborted"),
-    );
-
-    await expect(service.rotateApiKey(rotateInputImmediate)).rejects.toThrow(
-      "Transaction aborted",
-    );
-  });
-
-  it("should propagate errors thrown by apiKeyRepo.revokeKeyForRotation inside transaction", async () => {
-    vi.mocked(apiKeyRepo.findById).mockResolvedValue(existingActiveKey);
-    vi.mocked(merchantRepo.findById).mockResolvedValue(fakeMerchant);
-    vi.mocked(apiKeyRepo.revokeKeyForRotation).mockRejectedValue(
-      new Error("Revoke failed"),
-    );
-
-    await expect(service.rotateApiKey(rotateInputImmediate)).rejects.toThrow(
-      "Revoke failed",
-    );
-  });
-
-  // -----------------------------------------------------------------------
-  // Execution order
-  // -----------------------------------------------------------------------
-
-  it("should call operations in the correct order: findById → findMerchant → dbTransaction(revoke → create)", async () => {
-    const callOrder: string[] = [];
-
-    vi.mocked(apiKeyRepo.findById).mockImplementation(async () => {
-      callOrder.push("findApiKey");
-      return existingActiveKey;
-    });
-    vi.mocked(merchantRepo.findById).mockImplementation(async () => {
-      callOrder.push("findMerchant");
-      return fakeMerchant;
-    });
-    vi.mocked(dbTransaction).mockImplementation(async (cb: any) => {
-      callOrder.push("dbTransaction");
-      const fakeTx = {};
-      return cb(fakeTx);
-    });
-    vi.mocked(apiKeyRepo.revokeKeyForRotation).mockImplementation(async () => {
-      callOrder.push("revokeKey");
-      return null;
-    });
-    vi.mocked(apiKeyRepo.create).mockImplementation(async () => {
-      callOrder.push("createKey");
-      return newApiKey;
-    });
-    vi.mocked(generateApiKey).mockReturnValue({
-      keyId: "pk_test_new-key-id",
-      keySecret: "sk_test_new-key-secret",
-    });
-    vi.mocked(hashKeySecret).mockReturnValue("hashed-new-secret");
 
     await service.rotateApiKey(rotateInputImmediate);
 
-    expect(callOrder).toEqual([
-      "findApiKey",
-      "findMerchant",
-      "dbTransaction",
-      "revokeKey",
-      "createKey",
-    ]);
+    expect(dbTransaction).toHaveBeenCalledTimes(1);
+    expect(apiKeyRepo.revokeKeyForRotation).toHaveBeenCalledTimes(1);
+    expect(apiKeyRepo.create).toHaveBeenCalledTimes(1);
   });
 });

@@ -6,7 +6,7 @@ import { inject, injectable } from "inversify";
 import ApiKeyController from "./api-key.controller.js";
 import { CreateApiKeySchema } from "./schema/GenerateApiKeySchema.js";
 import { GetActiveApiKeySchema } from "./schema/GetActiveApiKeySchema.js";
-import { RotateMerchantApiKeySchema } from "./schema/RotateApiKeySchema.js";
+import { RotateApiKeySchema } from "./schema/RotateApiKeySchema.js";
 import requireActiveUser from "@/core/middleware/require-active-user.middleware.js";
 
 @injectable()
@@ -24,23 +24,23 @@ export default class ApiKeyRouter {
 
   private initRoutes() {
     this.router.post(
-      "/merchants/:id/generate",
+      "/merchants/:id/api-keys/generate",
       this.authProtectionSuite,
       validateRequest(CreateApiKeySchema),
       this.controller.generateApiKey,
     );
 
     this.router.get(
-      "/merchants/:id/active-key",
+      "/merchants/:id/api-keys/active-key",
       this.authProtectionSuite,
       validateRequest(GetActiveApiKeySchema),
       this.controller.getActiveApiKey,
     );
 
     this.router.post(
-      "/api-keys/:id/rotate",
+      "/merchants/:id/api-keys/rotate",
       this.authProtectionSuite,
-      validateRequest(RotateMerchantApiKeySchema),
+      validateRequest(RotateApiKeySchema),
       this.controller.rotateApiKey,
     );
   }

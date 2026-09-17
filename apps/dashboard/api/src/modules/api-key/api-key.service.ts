@@ -4,9 +4,7 @@ import ApiKeyRepository from "./repository/api-key.repository.js";
 import { GenerateApiKeyDto } from "./dto/GenerateApiKeyDto.js";
 import { GetActiveApiKeyDto } from "./dto/GetActiveApiKeyDto.js";
 import { RotateApiKeyDto } from "./dto/RotateApiKeyDto.js";
-import MerchantRepository from "../merchant/repository/merchant.repository.js";
 import {
-  MerchantAccessDeniedError,
   MerchantInactiveError,
   MerchantNotFoundError,
 } from "../merchant/error/merchant.errors.js";
@@ -17,24 +15,27 @@ import {
 import { generateApiKey, hashKeySecret } from "@payvo/shared/api-key";
 import { dbTransaction } from "@payvo/database/client";
 import { addHours } from "date-fns";
-import { Merchant } from "../merchant/entity/merchant.entity.js";
+import MerchantCacheService, {
+  CachedMerchant,
+} from "../merchant/merchant-cache.service.js";
 
 @injectable()
 export default class ApiKeyService {
   constructor(
     @inject(TYPES.ApiKeyRepository)
     private readonly apiKeyRepo: ApiKeyRepository,
-    @inject(TYPES.MerchantRepository)
-    private readonly merchantRepo: MerchantRepository,
+    @inject(TYPES.MerchantCacheService)
+    private readonly merchantCacheService: MerchantCacheService,
   ) {}
 
-  private async findActiveMerchantForUserOrThrow(
+  private async findActiveMerchantOrThrow(
     userId: string,
     merchantId: string,
-  ): Promise<Merchant> {
-    const merchant = await this.merchantRepo.findById(merchantId);
-    if (!merchant) throw new MerchantNotFoundError();
-    if (merchant.userId !== userId) throw new MerchantAccessDeniedError();
+  ): Promise<CachedMerchant> {
+    const merchant =
+      await this.merchantCacheService.getCachedMerchant(merchantId);
+    if (!merchant || merchant.userId !== userId)
+      throw new MerchantNotFoundError();
     if (!merchant.isActive) {
       throw new MerchantInactiveError(
         "Inactive merchant cannot perform api key operations",
@@ -45,13 +46,13 @@ export default class ApiKeyService {
 
   async generateMerchantApiKey(input: GenerateApiKeyDto) {
     const { userId, merchantId, environment } = input;
-    await this.findActiveMerchantForUserOrThrow(userId, merchantId);
+    await this.findActiveMerchantOrThrow(userId, merchantId);
 
-    const existingApiKey = await this.apiKeyRepo.findActiveKey({
+    const activeKey = await this.apiKeyRepo.findActiveKey({
       merchantId,
       environment,
     });
-    if (existingApiKey) {
+    if (activeKey) {
       throw new ApiKeyAlreadyExistsError(
         "Active api key already exists for this merchant and environment",
       );
@@ -77,7 +78,7 @@ export default class ApiKeyService {
 
   async getActiveApiKey(input: GetActiveApiKeyDto) {
     const { userId, merchantId, environment } = input;
-    await this.findActiveMerchantForUserOrThrow(userId, merchantId);
+    await this.findActiveMerchantOrThrow(userId, merchantId);
 
     const apiKey = await this.apiKeyRepo.findActiveKey({
       merchantId,
@@ -100,40 +101,27 @@ export default class ApiKeyService {
   }
 
   async rotateApiKey(input: RotateApiKeyDto) {
-    const { userId, apiKeyId, oldKeyRevokeStrategy } = input;
+    const { userId, merchantId, oldKeyRevokeStrategy, environment } = input;
 
-    const existingKey = await this.apiKeyRepo.findById(apiKeyId);
-    if (!existingKey) throw new ApiKeyNotFoundError();
-    if (existingKey.status !== "ACTIVE") {
-      throw new ApiKeyNotFoundError("Only active api keys can be rotated");
-    }
-
-    await this.findActiveMerchantForUserOrThrow(
-      userId,
-      existingKey.merchant.id,
-    );
+    await this.findActiveMerchantOrThrow(userId, merchantId);
 
     const revokeAt =
       oldKeyRevokeStrategy === "IMMEDIATELY"
         ? new Date()
         : addHours(new Date(), 24);
 
-    const { keyId, keySecret } = generateApiKey(existingKey.environment);
+    const { keyId, keySecret } = generateApiKey(environment);
     const secretHash = hashKeySecret(keySecret);
 
     const newKey = await dbTransaction(async (tx) => {
-      await this.apiKeyRepo.revokeKeyForRotation(tx, {
-        id: apiKeyId,
+      const revokedKey = await this.apiKeyRepo.revokeKeyForRotation(tx, {
+        merchantId,
         revokeAt,
       });
+      if (!revokedKey) throw new ApiKeyNotFoundError();
 
       return this.apiKeyRepo.create(
-        {
-          merchantId: existingKey.merchant.id,
-          keyId,
-          secretHash,
-          environment: existingKey.environment,
-        },
+        { merchantId, keyId, secretHash, environment },
         tx,
       );
     });
