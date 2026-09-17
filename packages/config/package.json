@@ -26,6 +26,10 @@
     "./cookie": {
       "types": "./dist/cookie/index.d.ts",
       "import": "./dist/cookie/index.js"
+    },
+    "./redis": {
+      "types": "./dist/redis/index.d.ts",
+      "import": "./dist/redis/index.js"
     }
   },
   "dependencies": {

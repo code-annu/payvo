@@ -5,6 +5,7 @@ dist
 .vscode
 **/prisma/contract.d.ts
 **/prisma/contract.json
+**/migrations
 
 
 # src/prisma/contract.json linguist-generated
