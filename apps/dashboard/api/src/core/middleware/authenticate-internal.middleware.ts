@@ -5,7 +5,7 @@ import {
 import { appConfig } from "@payvo/config/app";
 import { NextFunction, Request, Response } from "express";
 
-export default async function authenticateInternals(
+export default async function authenticateInternal(
   req: Request,
   _res: Response,
   next: NextFunction,

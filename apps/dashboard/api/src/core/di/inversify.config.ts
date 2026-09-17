@@ -25,18 +25,22 @@ import MerchantRepository from "@/modules/merchant/repository/merchant.repositor
 import MerchantService from "@/modules/merchant/merchant.service.js";
 import MerchantController from "@/modules/merchant/merchant.controller.js";
 import MerchantRouter from "@/modules/merchant/merchant.router.js";
+import MerchantMapper from "@/modules/merchant/merchant.mapper.js";
+import MerchantCacheService from "@/modules/merchant/merchant-cache.service.js";
 
 // ApiKey
 import ApiKeyRepository from "@/modules/api-key/repository/api-key.repository.js";
 import ApiKeyService from "@/modules/api-key/api-key.service.js";
 import ApiKeyController from "@/modules/api-key/api-key.controller.js";
 import ApiKeyRouter from "@/modules/api-key/api-key.router.js";
+import ApiKeyMapper from "@/modules/api-key/api-key.mapper.js";
 
 // Internal
 import InternalService from "@/internals/internal.service.js";
 import InternalController from "@/internals/internal.controller.js";
 import InternalRouter from "@/internals/internal.router.js";
 import UserCacheService from "@/modules/user/user-cache.service.js";
+import UserMapper from "@/modules/user/user.mapper.js";
 
 const container = new Container();
 
@@ -54,6 +58,7 @@ container.bind(TYPES.ApiKeyRepository).to(ApiKeyRepository);
 container.bind(TYPES.UserService).to(UserService);
 container.bind(TYPES.UserController).to(UserController);
 container.bind(TYPES.UserRouter).to(UserRouter);
+container.bind(TYPES.UserMapper).to(UserMapper);
 container.bind(TYPES.UserCacheService).to(UserCacheService);
 
 // Auth
@@ -65,11 +70,14 @@ container.bind(TYPES.AuthRouter).to(AuthRouter);
 container.bind(TYPES.MerchantService).to(MerchantService);
 container.bind(TYPES.MerchantController).to(MerchantController);
 container.bind(TYPES.MerchantRouter).to(MerchantRouter);
+container.bind(TYPES.MerchantMapper).to(MerchantMapper);
+container.bind(TYPES.MerchantCacheService).to(MerchantCacheService);
 
 // ApiKey
 container.bind(TYPES.ApiKeyService).to(ApiKeyService);
 container.bind(TYPES.ApiKeyController).to(ApiKeyController);
 container.bind(TYPES.ApiKeyRouter).to(ApiKeyRouter);
+container.bind(TYPES.ApiKeyMapper).to(ApiKeyMapper);
 
 // Internal
 container.bind(TYPES.InternalService).to(InternalService);
