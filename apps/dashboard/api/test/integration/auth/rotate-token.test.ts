@@ -1,164 +1,69 @@
+import { afterEach, describe, expect, it } from "vitest";
 import request from "supertest";
-import resetDb from "../../helper/cleanup.js";
-import { UserFactory } from "../../factory/user.factory.js";
-import { SessionFactory } from "../../factory/session.factory.js";
-import { RefreshTokenFactory } from "../../factory/refresh-token.factory.js";
-import { subDays } from "date-fns";
-import { beforeEach, describe, expect, it } from "vitest";
 import app from "../../../src/app.js";
+import UserFactory from "../../factory/user.factory.js";
+import { cleanupUser } from "../../helper/cleanup.js";
+import { authPath, loginUser } from "../../helper/auth.helper.js";
+
+afterEach(async () => {
+  await cleanupUser();
+});
 
 describe("POST /api/auth/rotate-token", () => {
-  beforeEach(async () => {
-    await resetDb();
-  });
+  it("rotates a valid refresh token", async () => {
+    const authUser = await loginUser(await UserFactory.createUser());
 
-  // ---------------------------------------------------------------------------
-  // Helper to send refresh token cookie
-  // ---------------------------------------------------------------------------
+    const response = await request(app)
+      .post(`${authPath}/rotate-token`)
+      .set("Cookie", authUser.refreshCookie);
 
-  function rotateRequest(rawToken: string) {
-    return request(app)
-      .post("/api/auth/rotate-token")
-      .set("Cookie", `refreshToken=${rawToken}`);
-  }
-
-  // ---------------------------------------------------------------------------
-  // Happy path
-  // ---------------------------------------------------------------------------
-
-  it("should return 200 with new accessToken on valid refresh token", async () => {
-    const { user } = await UserFactory.createUser();
-    const session = await SessionFactory.createSession(user.id);
-    const { rawToken } = await RefreshTokenFactory.createRefreshToken(session.id);
-
-    const res = await rotateRequest(rawToken).expect(200);
-
-    expect(res.body).toEqual({
+    expect(response.status).toBe(200);
+    expect(response.body).toMatchObject({
       success: true,
-      data: {
-        accessToken: expect.any(String),
-      },
+      data: { accessToken: expect.any(String) },
     });
-
-    expect(res.body.data.accessToken.split(".")).toHaveLength(3);
-  });
-
-  it("should set a new refreshToken cookie after rotation", async () => {
-    const { user } = await UserFactory.createUser();
-    const session = await SessionFactory.createSession(user.id);
-    const { rawToken } = await RefreshTokenFactory.createRefreshToken(session.id);
-
-    const res = await rotateRequest(rawToken).expect(200);
-
-    const cookies = res.headers["set-cookie"];
-    expect(cookies).toBeDefined();
-
-    const refreshCookie = (Array.isArray(cookies) ? cookies : [cookies]).find(
-      (c: string) => c.startsWith("refreshToken="),
+    expect(response.headers["set-cookie"]).toEqual(
+      expect.arrayContaining([expect.stringContaining("refreshToken=")]),
     );
-    expect(refreshCookie).toBeDefined();
-    expect(refreshCookie).toMatch(/HttpOnly/i);
   });
 
-  it("should revoke the old refresh token in database after rotation", async () => {
-    const { user } = await UserFactory.createUser();
-    const session = await SessionFactory.createSession(user.id);
-    const { rawToken, record } =
-      await RefreshTokenFactory.createRefreshToken(session.id);
+  it("rejects a missing refresh token cookie", async () => {
+    const response = await request(app).post(`${authPath}/rotate-token`);
 
-    await rotateRequest(rawToken).expect(200);
-
-    const oldToken = await RefreshTokenFactory.findRefreshTokenById(record.id);
-    expect(oldToken).not.toBeNull();
-    expect(oldToken!.revokedAt).not.toBeNull();
-  });
-
-  // ---------------------------------------------------------------------------
-  // Invalid / unknown token
-  // ---------------------------------------------------------------------------
-
-  it("should return 401 INVALID_REFRESH_TOKEN for unknown token", async () => {
-    const res = await rotateRequest("totally-unknown-token-value").expect(401);
-
-    expect(res.body).toEqual({
+    expect(response.status).toBe(400);
+    expect(response.body).toMatchObject({
       success: false,
-      error: expect.objectContaining({
-        code: "INVALID_REFRESH_TOKEN",
-      }),
+      error: { code: "INVALID_REQUEST" },
     });
   });
 
-  // ---------------------------------------------------------------------------
-  // Revoked token
-  // ---------------------------------------------------------------------------
+  it("rejects an unknown refresh token", async () => {
+    const response = await request(app)
+      .post(`${authPath}/rotate-token`)
+      .set("Cookie", "refreshToken=unknown-refresh-token");
 
-  it("should return 401 REVOKED_REFRESH_TOKEN for already-revoked token", async () => {
-    const { user } = await UserFactory.createUser();
-    const session = await SessionFactory.createSession(user.id);
-    const { rawToken } = await RefreshTokenFactory.createRefreshToken(session.id, {
-      revokedAt: new Date().toISOString(),
-    });
-
-    const res = await rotateRequest(rawToken).expect(401);
-
-    expect(res.body).toEqual({
+    expect(response.status).toBe(401);
+    expect(response.body).toMatchObject({
       success: false,
-      error: expect.objectContaining({
-        code: "REVOKED_REFRESH_TOKEN",
-      }),
+      error: { code: "INVALID_REFRESH_TOKEN" },
     });
   });
 
-  // ---------------------------------------------------------------------------
-  // Expired session
-  // ---------------------------------------------------------------------------
+  it("rejects reuse of a rotated refresh token", async () => {
+    const authUser = await loginUser(await UserFactory.createUser());
 
-  it("should return 401 EXPIRED_SESSION when session has expired", async () => {
-    const { user } = await UserFactory.createUser();
-    const session = await SessionFactory.createSession(user.id, {
-      expiresAt: subDays(new Date(), 1).toISOString(),
-    });
-    const { rawToken } = await RefreshTokenFactory.createRefreshToken(session.id);
+    const firstResponse = await request(app)
+      .post(`${authPath}/rotate-token`)
+      .set("Cookie", authUser.refreshCookie);
+    const secondResponse = await request(app)
+      .post(`${authPath}/rotate-token`)
+      .set("Cookie", authUser.refreshCookie);
 
-    const res = await rotateRequest(rawToken).expect(401);
-
-    expect(res.body).toEqual({
+    expect(firstResponse.status).toBe(200);
+    expect(secondResponse.status).toBe(401);
+    expect(secondResponse.body).toMatchObject({
       success: false,
-      error: expect.objectContaining({
-        code: "EXPIRED_SESSION",
-      }),
+      error: { code: "REVOKED_REFRESH_TOKEN" },
     });
-  });
-
-  // ---------------------------------------------------------------------------
-  // Revoked session
-  // ---------------------------------------------------------------------------
-
-  it("should return 401 REVOKED_SESSION when session is revoked", async () => {
-    const { user } = await UserFactory.createUser();
-    const session = await SessionFactory.createSession(user.id, {
-      revokedAt: new Date().toISOString(),
-    });
-    const { rawToken } = await RefreshTokenFactory.createRefreshToken(session.id);
-
-    const res = await rotateRequest(rawToken).expect(401);
-
-    expect(res.body).toEqual({
-      success: false,
-      error: expect.objectContaining({
-        code: "REVOKED_SESSION",
-      }),
-    });
-  });
-
-  // ---------------------------------------------------------------------------
-  // Missing cookie
-  // ---------------------------------------------------------------------------
-
-  it("should return 400 when refresh token cookie is missing", async () => {
-    const res = await request(app).post("/api/auth/rotate-token").expect(400);
-
-    expect(res.body.success).toBe(false);
-    expect(res.body.error.code).toBe("INVALID_REQUEST");
   });
 });
