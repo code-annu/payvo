@@ -1,13 +1,15 @@
+import { injectable, inject } from "inversify";
+import AuthMapper from "../auth.mapper.js";
+import TYPES from "@/core/di/inversify.types.js";
 import { client, TransactionClient } from "@payvo/database/client";
-import { injectable } from "inversify";
-import { RefreshToken } from "../entity/refresh-token.entity.js";
 import { RefreshTokenCreateInput } from "@payvo/database/types";
-import { stringToDate, stringToDateNullable } from "@/core/utils/date.utils.js";
-import { RefreshTokenRotate } from "../entity/refresh-token-rotate.entity.js";
+import { RefreshToken } from "../entity/refresh-token.entity.js";
+import { RefreshTokenRotation } from "../entity/refresh-token-rotation.entity.js";
 
 @injectable()
 export default class RefreshTokenRepository {
   private readonly db = client;
+  constructor(@inject(TYPES.AuthMapper) private readonly mapper: AuthMapper) {}
 
   async create(
     data: RefreshTokenCreateInput,
@@ -16,18 +18,14 @@ export default class RefreshTokenRepository {
     const refreshToken = await (tx ?? this.db).orm.public.RefreshToken.create(
       data,
     );
-    return {
-      ...refreshToken,
-      revokedAt: stringToDateNullable(refreshToken.revokedAt),
-      createdAt: stringToDate(refreshToken.createdAt),
-    };
+    return this.mapper.toRefreshTokenEntity(refreshToken);
   }
 
   async findForRotation(
     tx: TransactionClient,
     tokenHash: string,
-  ): Promise<RefreshTokenRotate | null> {
-    const token = await tx.orm.public.RefreshToken.where({
+  ): Promise<RefreshTokenRotation | null> {
+    const refreshToken = await tx.orm.public.RefreshToken.where({
       tokenHash,
     })
       .include("session", (session) =>
@@ -37,50 +35,30 @@ export default class RefreshTokenRepository {
       )
       .first();
 
-    if (!token) return null;
-    const { session, ...rest } = token;
-    const { user } = session;
-
-    return {
-      id: rest.id,
-      revokedAt: stringToDateNullable(rest.revokedAt),
-      tokenHash: rest.tokenHash,
-      session: {
-        id: session.id,
-        expiresAt: stringToDate(session.expiresAt),
-        revokedAt: stringToDateNullable(session.revokedAt),
-        user: {
-          id: user.id,
-          deletedAt: stringToDateNullable(user.deletedAt),
-        },
-      },
-    };
+    return refreshToken
+      ? this.mapper.toRefreshTokenRotationEntity(refreshToken)
+      : null;
   }
 
-  async revokeForRotation(
+  async revoke(
     tx: TransactionClient,
-    data: { tokenId: string; revokedBy: string },
-  ): Promise<{ revoked: boolean }> {
-    const { tokenId, revokedBy } = data;
-    const updatedToken = await tx.orm.public.RefreshToken.where({
-      id: tokenId,
+    data: { id: string; now: Date },
+  ): Promise<RefreshToken | null> {
+    const refreshToken = await tx.orm.public.RefreshToken.where({
+      id: data.id,
       revokedAt: null,
-      revokedById: null,
-    }).update({
-      revokedAt: new Date().toISOString(),
-      revokedById: revokedBy,
-    });
+    }).update({ revokedAt: data.now.toISOString() });
 
-    return { revoked: Boolean(updatedToken) };
+    return refreshToken ? this.mapper.toRefreshTokenEntity(refreshToken) : null;
   }
 
-  async revokeForLogout(tx: TransactionClient, data: { sessionId: string }) {
-    const { sessionId } = data;
+  async revokeForLogout(
+    tx: TransactionClient,
+    data: { sessionId: string; now: Date },
+  ): Promise<void> {
     await tx.orm.public.RefreshToken.where({
-      sessionId,
+      sessionId: data.sessionId,
       revokedAt: null,
-    }).update({
-      revokedAt: new Date().toISOString(),
-    });
+    }).update({ revokedAt: data.now.toISOString() });
   }
 }

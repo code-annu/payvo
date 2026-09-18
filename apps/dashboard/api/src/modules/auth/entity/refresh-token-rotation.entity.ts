@@ -1,4 +1,4 @@
-export interface RefreshTokenRotate {
+export interface RefreshTokenRotation {
   readonly id: string;
   readonly tokenHash: string;
   readonly revokedAt: Date | null;

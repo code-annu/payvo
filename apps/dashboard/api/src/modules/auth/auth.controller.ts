@@ -1,79 +1,99 @@
+import { sessionConfig } from "@payvo/config/auth";
 import { cookieConfig } from "@payvo/config/cookie";
 import { buildSuccessResponse, HttpStatusCode } from "@payvo/shared/http";
-import { inject, injectable } from "inversify";
+import { injectable, inject } from "inversify";
 import { CookieOptions, Request, Response } from "express";
-import { differenceInDays } from "date-fns";
 import TYPES from "@/core/di/inversify.types.js";
+import SignupUsecase from "./application/usecase/SignupUsecase.js";
+import LoginUsecase from "./application/usecase/LoginUsecase.js";
+import RotateTokenUsecase from "./application/usecase/RotateTokenUsecase.js";
+import LogoutUsecase from "./application/usecase/LogoutUsecase.js";
+import ClientInfoUtil from "@/core/util/client.util.js";
 import catchAsync from "@/core/handlers/async.catch.js";
-import AuthService from "./auth.service.js";
-import ClientInfoUtil from "@/core/utils/client.util.js";
 import { AuthRequest } from "@/core/middleware/authenticate.middleware.js";
 
-const COOKIE_PATH = "/api/auth/rotate-token";
+const ROTATE_TOKEN_PATH = "/api/auth/rotate-token";
 
 @injectable()
 export default class AuthController {
   constructor(
-    @inject(TYPES.AuthService) private readonly authService: AuthService,
+    @inject(TYPES.SignupUsecase)
+    private readonly signupUsecase: SignupUsecase,
+    @inject(TYPES.LoginUsecase)
+    private readonly loginUsecase: LoginUsecase,
+    @inject(TYPES.RotateTokenUsecase)
+    private readonly rotateTokenUsecase: RotateTokenUsecase,
+    @inject(TYPES.LogoutUsecase)
+    private readonly logoutUsecase: LogoutUsecase,
     @inject(TYPES.ClientInfoUtil)
     private readonly clientInfoUtil: ClientInfoUtil,
   ) {}
 
   postSignup = catchAsync(async (req: Request, res: Response) => {
     const client = this.clientInfoUtil.getClientInfo(req);
-    const result = await this.authService.signup({ ...req.body, client });
 
-    const maxAgeDays = differenceInDays(result.session.expiresAt, new Date());
-    const cookie = cookieConfig.refreshToken(maxAgeDays, COOKIE_PATH);
-    res.cookie(
-      cookie.key,
-      result.refreshToken,
-      cookie.options as CookieOptions,
+    const { accessToken, refreshToken } = await this.signupUsecase.execute({
+      ...req.body,
+      client,
+    });
+
+    const cookie = cookieConfig.refreshToken(
+      sessionConfig.sessionExpiryDays,
+      ROTATE_TOKEN_PATH,
     );
 
     res
+      .cookie(cookie.key, refreshToken, cookie.options as CookieOptions)
       .status(HttpStatusCode.Success.CREATED)
-      .json(buildSuccessResponse({ accessToken: result.accessToken }));
+      .json(buildSuccessResponse({ accessToken }));
   });
 
   postLogin = catchAsync(async (req: Request, res: Response) => {
     const client = this.clientInfoUtil.getClientInfo(req);
-    const result = await this.authService.login({ ...req.body, client });
 
-    const maxAgeDays = differenceInDays(result.session.expiresAt, new Date());
-    const cookie = cookieConfig.refreshToken(maxAgeDays, COOKIE_PATH);
-    res.cookie(
-      cookie.key,
-      result.refreshToken,
-      cookie.options as CookieOptions,
+    const { accessToken, refreshToken } = await this.loginUsecase.execute({
+      ...req.body,
+      client,
+    });
+
+    const cookie = cookieConfig.refreshToken(
+      sessionConfig.sessionExpiryDays,
+      ROTATE_TOKEN_PATH,
     );
 
     res
+      .cookie(cookie.key, refreshToken, cookie.options as CookieOptions)
       .status(HttpStatusCode.Success.OK)
-      .json(buildSuccessResponse({ accessToken: result.accessToken }));
+      .json(buildSuccessResponse({ accessToken }));
   });
 
   postRotateToken = catchAsync(async (req: Request, res: Response) => {
-    const refreshToken = req.cookies[cookieConfig.refreshToken(0, "").key];
-    const result = await this.authService.rotateToken(refreshToken);
+    const { refreshToken: token } = req.cookies;
 
-    const maxAgeDays = differenceInDays(result.session.expiresAt, new Date());
-    const cookie = cookieConfig.refreshToken(maxAgeDays, COOKIE_PATH);
-    res.cookie(
-      cookie.key,
-      result.refreshToken,
-      cookie.options as CookieOptions,
+    const { accessToken, refreshToken } =
+      await this.rotateTokenUsecase.execute(token);
+
+    const cookie = cookieConfig.refreshToken(
+      sessionConfig.sessionExpiryDays,
+      ROTATE_TOKEN_PATH,
     );
 
     res
+      .cookie(cookie.key, refreshToken, cookie.options as CookieOptions)
       .status(HttpStatusCode.Success.OK)
-      .json(buildSuccessResponse({ accessToken: result.accessToken }));
+      .json(buildSuccessResponse({ accessToken }));
   });
 
   postLogout = catchAsync(async (req: AuthRequest, res: Response) => {
-    const sid = req.auth!.sid;
-    await this.authService.logout(sid);
-    res.clearCookie(cookieConfig.refreshToken(0, COOKIE_PATH).key);
-    res.status(HttpStatusCode.Success.NO_CONTENT).end();
+    const { sid: sessionId } = req.auth!;
+
+    await this.logoutUsecase.execute(sessionId);
+
+    const cookie = cookieConfig.refreshToken(0, ROTATE_TOKEN_PATH);
+
+    res
+      .clearCookie(cookie.key, cookie.options as CookieOptions)
+      .status(HttpStatusCode.Success.OK)
+      .json(buildSuccessResponse({ message: "Logged out successfully" }));
   });
 }
