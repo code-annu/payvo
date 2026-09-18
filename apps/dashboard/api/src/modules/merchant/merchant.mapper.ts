@@ -1,7 +1,7 @@
-import { Merchant as PrismaMerchant } from "@payvo/database/types";
+import type { Merchant as PrismaMerchant } from "@payvo/database/types";
 import { injectable } from "inversify";
-import { Merchant } from "./entity/merchant.entity.js";
-import { UserMerchants } from "./entity/user-merchants.entity.js";
+import type { Merchant } from "./entity/merchant.entity.js";
+import type { UserMerchants } from "./entity/user-merchants.entity.js";
 
 @injectable()
 export default class MerchantMapper {
@@ -9,8 +9,8 @@ export default class MerchantMapper {
     return {
       id: merchant.id,
       mid: merchant.mid,
-      userId: merchant.userId,
       isActive: merchant.isActive,
+      userId: merchant.userId,
       createdAt: new Date(merchant.createdAt),
       updatedAt: new Date(merchant.updatedAt),
     };
@@ -18,14 +18,14 @@ export default class MerchantMapper {
 
   toUserMerchantsEntity(
     userId: string,
-    merchants: Array<Pick<PrismaMerchant, "id" | "mid" | "isActive">>,
+    merchants: PrismaMerchant[],
   ): UserMerchants {
     return {
       userId,
-      merchants: merchants.map((m) => ({
-        id: m.id,
-        mid: m.mid,
-        isActive: m.isActive,
+      merchants: merchants.map((merchant) => ({
+        id: merchant.id,
+        isActive: merchant.isActive,
+        mid: merchant.mid,
       })),
     };
   }

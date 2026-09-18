@@ -4,46 +4,53 @@ import { Response } from "express";
 import TYPES from "@/core/di/inversify.types.js";
 import catchAsync from "@/core/handlers/async.catch.js";
 import { AuthRequest } from "@/core/middleware/authenticate.middleware.js";
-import MerchantService from "./merchant.service.js";
+import CreateMerchantUsecase from "./application/usecase/CreateMerchantUsecase.js";
+import GetMerchantDetailsUsecase from "./application/usecase/GetMerchantDetailsUsecase.js";
+import GetUserMerchantsUsecase from "./application/usecase/GetUserMerchantsUsecase.js";
+import DeleteMerchantUsecase from "./application/usecase/DeleteMerchantUsecase.js";
 
 @injectable()
 export default class MerchantController {
   constructor(
-    @inject(TYPES.MerchantService)
-    private readonly merchantService: MerchantService,
+    @inject(TYPES.CreateMerchantUsecase)
+    private readonly createMerchantUsecase: CreateMerchantUsecase,
+    @inject(TYPES.GetMerchantDetailsUsecase)
+    private readonly getMerchantDetailsUsecase: GetMerchantDetailsUsecase,
+    @inject(TYPES.GetUserMerchantsUsecase)
+    private readonly getUserMerchantsUsecase: GetUserMerchantsUsecase,
+    @inject(TYPES.DeleteMerchantUsecase)
+    private readonly deleteMerchantUsecase: DeleteMerchantUsecase,
   ) {}
 
   createMerchant = catchAsync(async (req: AuthRequest, res: Response) => {
-    const userId = req.auth!.sub;
-    const merchant = await this.merchantService.createMerchant(userId);
+    const merchant = await this.createMerchantUsecase.execute(req.auth!.sub);
+
     res
       .status(HttpStatusCode.Success.CREATED)
       .json(buildSuccessResponse(merchant));
   });
 
-  getMerchant = catchAsync(async (req: AuthRequest, res: Response) => {
-    const userId = req.auth!.sub;
-    const merchantId = req.params.id as string;
-    const merchant = await this.merchantService.getMerchantDetails({
-      userId,
-      merchantId,
+  getMerchantDetails = catchAsync(async (req: AuthRequest, res: Response) => {
+    const merchant = await this.getMerchantDetailsUsecase.execute({
+      merchantId: req.params.merchantId as string,
+      userId: req.auth!.sub,
     });
+
     res.status(HttpStatusCode.Success.OK).json(buildSuccessResponse(merchant));
   });
 
-  deleteMerchant = catchAsync(async (req: AuthRequest, res: Response) => {
-    const userId = req.auth!.sub;
-    const merchantId = req.params.id as string;
-    await this.merchantService.deleteMerchant({
-      userId,
-      merchantId,
-    });
-    res.status(HttpStatusCode.Success.NO_CONTENT).end();
+  getUserMerchants = catchAsync(async (req: AuthRequest, res: Response) => {
+    const merchants = await this.getUserMerchantsUsecase.execute(req.auth!.sub);
+
+    res.status(HttpStatusCode.Success.OK).json(buildSuccessResponse(merchants));
   });
 
-  getUserMerchants = catchAsync(async (req: AuthRequest, res: Response) => {
-    const userId = req.auth!.sub;
-    const merchants = await this.merchantService.getUserMerchants(userId);
-    res.status(HttpStatusCode.Success.OK).json(buildSuccessResponse(merchants));
+  deleteMerchant = catchAsync(async (req: AuthRequest, res: Response) => {
+    await this.deleteMerchantUsecase.execute({
+      merchantId: req.params.merchantId as string,
+      userId: req.auth!.sub,
+    });
+
+    res.status(HttpStatusCode.Success.NO_CONTENT).end();
   });
 }
