@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import GetUserMerchantsUsecase from "../application/usecase/GetUserMerchantsUsecase.js";
 
 describe("GetUserMerchantsUsecase", () => {
-  const merchantRepository = { findByUserId: vi.fn() };
+  const merchantRepository = { findByUser: vi.fn() };
   const usecase = new GetUserMerchantsUsecase(merchantRepository as never);
   const merchants = {
     userId: "user-1",
@@ -14,17 +14,17 @@ describe("GetUserMerchantsUsecase", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    merchantRepository.findByUserId.mockResolvedValue(merchants);
+    merchantRepository.findByUser.mockResolvedValue(merchants);
   });
 
   it("returns all merchants belonging to the user", async () => {
     await expect(usecase.execute("user-1")).resolves.toEqual(merchants);
-    expect(merchantRepository.findByUserId).toHaveBeenCalledWith("user-1");
+    expect(merchantRepository.findByUser).toHaveBeenCalledWith("user-1");
   });
 
   it("returns an empty merchant collection when the user has none", async () => {
     const emptyMerchants = { userId: "user-1", merchants: [] };
-    merchantRepository.findByUserId.mockResolvedValue(emptyMerchants);
+    merchantRepository.findByUser.mockResolvedValue(emptyMerchants);
 
     await expect(usecase.execute("user-1")).resolves.toEqual(emptyMerchants);
   });

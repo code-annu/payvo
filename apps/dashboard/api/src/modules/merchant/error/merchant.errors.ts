@@ -11,3 +11,15 @@ export class MerchantNotFoundError extends AppError {
     });
   }
 }
+
+export class MerchantInactiveError extends AppError {
+  constructor(
+    message: string = "Inactive merchant cannot perform api key operations",
+  ) {
+    super({
+      message,
+      code: MerchantErrorCode.MERCHANT_INACTIVE,
+      statusCode: HttpStatusCode.Error.FORBIDDEN,
+    });
+  }
+}

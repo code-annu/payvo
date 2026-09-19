@@ -11,7 +11,7 @@ export default class DeleteMerchantUsecase {
   ) {}
 
   async execute(input: { merchantId: string; userId: string }) {
-    const merchant = await this.merchantRepository.deleteMerchant(input);
+    const merchant = await this.merchantRepository.delete(input);
 
     if (!merchant) {
       throw new MerchantNotFoundError();

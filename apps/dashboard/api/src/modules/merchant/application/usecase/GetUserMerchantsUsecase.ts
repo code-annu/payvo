@@ -10,6 +10,6 @@ export default class GetUserMerchantsUsecase {
   ) {}
 
   async execute(userId: string) {
-    return this.merchantRepository.findByUserId(userId);
+    return this.merchantRepository.findByUser(userId);
   }
 }

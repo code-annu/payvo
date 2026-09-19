@@ -11,7 +11,7 @@ export default class GetMerchantDetailsUsecase {
   ) {}
 
   async execute(input: { merchantId: string; userId: string }) {
-    const merchant = await this.merchantRepository.findMerchant(input);
+    const merchant = await this.merchantRepository.findOwnedByUser(input);
 
     if (!merchant) {
       throw new MerchantNotFoundError();

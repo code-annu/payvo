@@ -3,7 +3,7 @@ import GetMerchantDetailsUsecase from "../application/usecase/GetMerchantDetails
 import { MerchantNotFoundError } from "../error/merchant.errors.js";
 
 describe("GetMerchantDetailsUsecase", () => {
-  const merchantRepository = { findMerchant: vi.fn() };
+  const merchantRepository = { findOwnedByUser: vi.fn() };
   const usecase = new GetMerchantDetailsUsecase(merchantRepository as never);
   const input = { merchantId: "merchant-1", userId: "user-1" };
   const merchant = {
@@ -15,20 +15,20 @@ describe("GetMerchantDetailsUsecase", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    merchantRepository.findMerchant.mockResolvedValue(merchant);
+    merchantRepository.findOwnedByUser.mockResolvedValue(merchant);
   });
 
   it("returns the requested merchant for its owner", async () => {
     await expect(usecase.execute(input)).resolves.toEqual(merchant);
-    expect(merchantRepository.findMerchant).toHaveBeenCalledWith(input);
+    expect(merchantRepository.findOwnedByUser).toHaveBeenCalledWith(input);
   });
 
   it("rejects when the merchant does not exist for the user", async () => {
-    merchantRepository.findMerchant.mockResolvedValue(null);
+    merchantRepository.findOwnedByUser.mockResolvedValue(null);
 
     await expect(usecase.execute(input)).rejects.toBeInstanceOf(
       MerchantNotFoundError,
     );
-    expect(merchantRepository.findMerchant).toHaveBeenCalledWith(input);
+    expect(merchantRepository.findOwnedByUser).toHaveBeenCalledWith(input);
   });
 });

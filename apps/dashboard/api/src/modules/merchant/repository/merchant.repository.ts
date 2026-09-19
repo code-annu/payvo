@@ -20,7 +20,7 @@ export default class MerchantRepository {
     return this.mapper.toMerchantEntity(merchant);
   }
 
-  async findMerchant(data: {
+  async findOwnedByUser(data: {
     merchantId: string;
     userId: string;
   }): Promise<Merchant | null> {
@@ -32,7 +32,7 @@ export default class MerchantRepository {
     return merchant ? this.mapper.toMerchantEntity(merchant) : null;
   }
 
-  async findByUserId(userId: string): Promise<UserMerchants> {
+  async findByUser(userId: string): Promise<UserMerchants> {
     const merchants = await this.db.orm.public.Merchant.where({
       userId,
     }).all();
@@ -40,7 +40,12 @@ export default class MerchantRepository {
     return this.mapper.toUserMerchantsEntity(userId, merchants);
   }
 
-  async deleteMerchant(data: {
+  async findById(id: string): Promise<Merchant | null> {
+    const merchant = await this.db.orm.public.Merchant.first({ id });
+    return merchant ? this.mapper.toMerchantEntity(merchant) : null;
+  }
+
+  async delete(data: {
     merchantId: string;
     userId: string;
   }): Promise<Merchant | null> {
