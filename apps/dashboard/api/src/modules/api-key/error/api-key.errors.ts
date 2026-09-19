@@ -2,18 +2,10 @@ import { AppError } from "@payvo/shared/error";
 import { HttpStatusCode } from "@payvo/shared/http";
 import ApiKeyErrorCode from "./ApiKeyErrorCode.js";
 
-export class ApiKeyNotFoundError extends AppError {
-  constructor(message: string = "Api key not found") {
-    super({
-      message,
-      statusCode: HttpStatusCode.Error.NOT_FOUND,
-      code: ApiKeyErrorCode.API_KEY_NOT_FOUND,
-    });
-  }
-}
-
 export class ApiKeyAlreadyExistsError extends AppError {
-  constructor(message: string = "Api key already exists") {
+  constructor(
+    message: string = "Active api key already exists for this merchant and environment",
+  ) {
     super({
       message,
       statusCode: HttpStatusCode.Error.CONFLICT,
@@ -22,12 +14,24 @@ export class ApiKeyAlreadyExistsError extends AppError {
   }
 }
 
-export class InvalidApiKeyStatusError extends AppError {
-  constructor(message: string = "Api key is not in valid status") {
+export class ApiKeyNotFoundError extends AppError {
+  constructor(
+    message: string = "No active api key found for this merchant and environment",
+  ) {
+    super({
+      message,
+      statusCode: HttpStatusCode.Error.NOT_FOUND,
+      code: ApiKeyErrorCode.API_KEY_NOT_FOUND,
+    });
+  }
+}
+
+export class RevokedApiKeyError extends AppError {
+  constructor(message: string = "Api key has already been revoked") {
     super({
       message,
       statusCode: HttpStatusCode.Error.CONFLICT,
-      code: ApiKeyErrorCode.INVALID_API_KEY_STATUS,
+      code: ApiKeyErrorCode.REVOKED_API_KEY,
     });
   }
 }
@@ -38,16 +42,6 @@ export class InvalidApiKeyCredentialsError extends AppError {
       message,
       statusCode: HttpStatusCode.Error.UNAUTHORIZED,
       code: ApiKeyErrorCode.INVALID_API_KEY_CREDENTIALS,
-    });
-  }
-}
-
-export class RevokedApiKeyError extends AppError {
-  constructor(message: string = "Api key is revoked") {
-    super({
-      message,
-      statusCode: HttpStatusCode.Error.UNAUTHORIZED,
-      code: ApiKeyErrorCode.REVOKED_API_KEY,
     });
   }
 }

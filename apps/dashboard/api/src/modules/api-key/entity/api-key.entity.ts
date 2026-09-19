@@ -1,8 +1,8 @@
 export interface ApiKey {
   readonly id: string;
+  readonly merchantId: string;
   readonly keyId: string;
   readonly secretHash: string;
-  readonly merchantId: string;
   readonly environment: ApiKeyEnvironment;
   readonly status: ApiKeyStatus;
   readonly graceEndsAt: Date | null;
@@ -12,5 +12,6 @@ export interface ApiKey {
   readonly updatedAt: Date;
 }
 
+export type ApiKeyStatus = "ACTIVE" | "GRACE_PERIOD" | "REVOKED";
+
 export type ApiKeyEnvironment = "TEST" | "LIVE";
-export type ApiKeyStatus = "ACTIVE" | "REVOKED" | "GRACE_PERIOD";

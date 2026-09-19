@@ -1,12 +1,13 @@
+import { Router } from "express";
+import { inject, injectable } from "inversify";
 import TYPES from "@/core/di/inversify.types.js";
 import authenticateUser from "@/core/middleware/authenticate.middleware.js";
 import { validateRequest } from "@/core/middleware/validate-request.middleware.js";
-import { Router } from "express";
-import { inject, injectable } from "inversify";
 import ApiKeyController from "./api-key.controller.js";
-import { CreateApiKeySchema } from "./schema/GenerateApiKeySchema.js";
+import { GenerateApiKeySchema } from "./schema/GenerateApiKeySchema.js";
 import { GetActiveApiKeySchema } from "./schema/GetActiveApiKeySchema.js";
 import { RotateApiKeySchema } from "./schema/RotateApiKeySchema.js";
+import { RevokeApiKeySchema } from "./schema/RevokeApiKeySchema.js";
 import requireActiveUser from "@/core/middleware/require-active-user.middleware.js";
 
 @injectable()
@@ -16,7 +17,7 @@ export default class ApiKeyRouter {
 
   constructor(
     @inject(TYPES.ApiKeyController)
-    private readonly controller: ApiKeyController,
+    private readonly apiKeyController: ApiKeyController,
   ) {
     this.router = Router();
     this.initRoutes();
@@ -24,24 +25,31 @@ export default class ApiKeyRouter {
 
   private initRoutes() {
     this.router.post(
-      "/merchants/:id/api-keys/generate",
+      "/merchants/:merchantId/api-keys/generate",
       this.authProtectionSuite,
-      validateRequest(CreateApiKeySchema),
-      this.controller.generateApiKey,
+      validateRequest(GenerateApiKeySchema),
+      this.apiKeyController.postGenerateApiKey,
     );
 
     this.router.get(
-      "/merchants/:id/api-keys/active-key",
+      "/merchants/:merchantId/api-keys/active",
       this.authProtectionSuite,
       validateRequest(GetActiveApiKeySchema),
-      this.controller.getActiveApiKey,
+      this.apiKeyController.getActiveApiKey,
     );
 
     this.router.post(
-      "/merchants/:id/api-keys/rotate",
+      "/merchants/:merchantId/api-keys/rotate",
       this.authProtectionSuite,
       validateRequest(RotateApiKeySchema),
-      this.controller.rotateApiKey,
+      this.apiKeyController.postRotateApiKey,
+    );
+
+    this.router.post(
+      "/api-keys/:apiKeyId/revoke",
+      this.authProtectionSuite,
+      validateRequest(RevokeApiKeySchema),
+      this.apiKeyController.postRevokeApiKey,
     );
   }
 }

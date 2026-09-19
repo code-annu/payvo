@@ -1,7 +1,7 @@
 import { MerchantIdSchema } from "@/modules/merchant/schema/MerchantIdSchema.js";
 import z from "zod";
 
-export const CreateApiKeySchema = {
+export const GenerateApiKeySchema = {
   params: MerchantIdSchema,
   body: z.object({
     environment: z.enum(["TEST", "LIVE"], {

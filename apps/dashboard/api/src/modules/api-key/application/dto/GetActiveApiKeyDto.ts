@@ -1,7 +1,7 @@
-import { ApiKeyEnvironment } from "../entity/api-key.entity.js";
+import { ApiKeyEnvironment } from "../../entity/api-key.entity.js";
 
 export interface GetActiveApiKeyDto {
   merchantId: string;
-  userId: string;
   environment: ApiKeyEnvironment;
+  userId: string;
 }

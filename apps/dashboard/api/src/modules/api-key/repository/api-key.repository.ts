@@ -1,9 +1,9 @@
+import { injectable, inject } from "inversify";
+import ApiKeyMapper from "../api-key.mapper.js";
+import TYPES from "@/core/di/inversify.types.js";
 import { client, TransactionClient } from "@payvo/database/client";
 import { ApiKeyCreateInput } from "@payvo/database/types";
-import { inject, injectable } from "inversify";
 import { ApiKey, ApiKeyEnvironment } from "../entity/api-key.entity.js";
-import TYPES from "@/core/di/inversify.types.js";
-import ApiKeyMapper from "../api-key.mapper.js";
 
 @injectable()
 export default class ApiKeyRepository {
@@ -18,32 +18,20 @@ export default class ApiKeyRepository {
     tx?: TransactionClient,
   ): Promise<ApiKey> {
     const apiKey = await (tx ?? this.db).orm.public.ApiKey.create(data);
-
     return this.mapper.toApiKeyEntity(apiKey);
   }
 
-  async findActiveKey(
-    data: { merchantId: string; environment: ApiKeyEnvironment },
-    tx?: TransactionClient,
-  ): Promise<ApiKey | null> {
-    const { merchantId, environment } = data;
-    const apiKey = await (tx ?? this.db).orm.public.ApiKey.where({
-      merchantId,
+  async findActiveKey(data: {
+    merchantId: string;
+    environment: ApiKeyEnvironment;
+  }): Promise<ApiKey | null> {
+    const apiKey = await this.db.orm.public.ApiKey.first({
+      merchantId: data.merchantId,
+      environment: data.environment,
       status: "ACTIVE",
-      environment,
-    })
-      .orderBy((k) => k.createdAt.desc())
-      .limit(1)
-      .first();
-
+    });
     return apiKey ? this.mapper.toApiKeyEntity(apiKey) : null;
   }
-
-  // async findById(id: string): Promise<ApiKey | null> {
-  //   const apiKey = await this.db.orm.public.ApiKey.where({ id }).first();
-
-  //   return apiKey ? this.mapper.toApiKeyEntity(apiKey) : null;
-  // }
 
   async revokeKeyForRotation(
     tx: TransactionClient,
@@ -65,9 +53,24 @@ export default class ApiKeyRepository {
     return apiKey ? this.mapper.toApiKeyEntity(apiKey) : null;
   }
 
-  async findByKeyId(keyId: string): Promise<ApiKey | null> {
-    const apiKey = await this.db.orm.public.ApiKey.where({ keyId }).first();
+  async findById(id: string): Promise<ApiKey | null> {
+    const apiKey = await this.db.orm.public.ApiKey.first({ id });
+    return apiKey ? this.mapper.toApiKeyEntity(apiKey) : null;
+  }
 
+  async findByKeyId(keyId: string): Promise<ApiKey | null> {
+    const apiKey = await this.db.orm.public.ApiKey.first({ keyId });
+    return apiKey ? this.mapper.toApiKeyEntity(apiKey) : null;
+  }
+
+  async revokeById(id: string): Promise<ApiKey | null> {
+    const now = new Date().toISOString();
+    const apiKey = await this.db.orm.public.ApiKey.where({ id })
+      .where((k) => k.status.neq("REVOKED"))
+      .update({
+        status: "REVOKED",
+        revokedAt: now,
+      });
     return apiKey ? this.mapper.toApiKeyEntity(apiKey) : null;
   }
 }

@@ -5,7 +5,7 @@ export const GetActiveApiKeySchema = {
   params: MerchantIdSchema,
   query: z.object({
     environment: z.enum(["TEST", "LIVE"], {
-      error: "Environment is required. Must be TEST or LIVE",
+      error: "Environment must be TEST or LIVE",
     }),
   }),
 };
