@@ -1,155 +1,158 @@
+import { randomUUID } from "node:crypto";
+import { afterEach, describe, expect, it } from "vitest";
 import request from "supertest";
-import resetDb from "../../helper/cleanup.js";
-import { MerchantFactory } from "../../factory/merchant.factory.js";
-import { ApiKeyFactory } from "../../factory/api-key.factory.js";
-import { getAuthenticatedUser } from "../../helper/auth.helper.js";
-import { beforeEach, describe, expect, it } from "vitest";
 import app from "../../../src/app.js";
+import UserFactory from "../../factory/user.factory.js";
+import MerchantFactory from "../../factory/merchant.factory.js";
+import ApiKeyFactory from "../../factory/api-key.factory.js";
+import { cleanupUser } from "../../helper/cleanup.js";
+import { loginUser } from "../../helper/auth.helper.js";
 
 const endpoint = (merchantId: string) =>
-  `/api/merchants/${merchantId}/api-keys/active-key`;
+  `/api/merchants/${merchantId}/active-api-key`;
 
-describe("GET /api/merchants/:id/api-keys/active-key", () => {
-  beforeEach(async () => {
-    await resetDb();
+afterEach(async () => {
+  await cleanupUser();
+});
+
+describe("GET /api/merchants/:merchantId/active-api-key", () => {
+  it("returns the active api key details for merchant and environment", async () => {
+    const authUser = await loginUser(await UserFactory.createUser());
+    const merchant = await MerchantFactory.createMerchant({
+      userId: authUser.user.id,
+    });
+    const { apiKey } = await ApiKeyFactory.createApiKey({
+      merchantId: merchant.id,
+      environment: "TEST",
+    });
+
+    const response = await request(app)
+      .get(endpoint(merchant.id))
+      .query({ environment: "TEST" })
+      .set("Authorization", `Bearer ${authUser.accessToken}`);
+
+    expect(response.status).toBe(200);
+    expect(response.body).toMatchObject({
+      success: true,
+      data: {
+        id: apiKey.id,
+        keyId: apiKey.keyId,
+        status: "ACTIVE",
+        environment: "TEST",
+        generatedAt: expect.any(String),
+      },
+    });
+    // secretHash should not be exposed
+    expect(response.body.data.secretHash).toBeUndefined();
+    expect(response.body.data.keySecret).toBeUndefined();
   });
 
-  it("should return the active api key", async () => {
-    const { accessToken, user } = await getAuthenticatedUser({
-      email: "getkey@example.com",
+  it("rejects request without access token", async () => {
+    const response = await request(app)
+      .get(endpoint(randomUUID()))
+      .query({ environment: "TEST" });
+
+    expect(response.status).toBe(401);
+    expect(response.body).toMatchObject({
+      success: false,
+      error: { code: "MISSING_ACCESS_TOKEN" },
     });
-    const merchant = await MerchantFactory.createMerchant({ userId: user.id });
+  });
+
+  it("rejects an invalid merchant id", async () => {
+    const authUser = await loginUser(await UserFactory.createUser());
+
+    const response = await request(app)
+      .get(endpoint("not-a-uuid"))
+      .query({ environment: "TEST" })
+      .set("Authorization", `Bearer ${authUser.accessToken}`);
+
+    expect(response.status).toBe(400);
+    expect(response.body.error.code).toBe("INVALID_REQUEST");
+  });
+
+  it("rejects an invalid or missing environment query parameter", async () => {
+    const authUser = await loginUser(await UserFactory.createUser());
+    const merchant = await MerchantFactory.createMerchant({
+      userId: authUser.user.id,
+    });
+
+    const responseNoEnv = await request(app)
+      .get(endpoint(merchant.id))
+      .set("Authorization", `Bearer ${authUser.accessToken}`);
+
+    expect(responseNoEnv.status).toBe(400);
+    expect(responseNoEnv.body.error.code).toBe("INVALID_REQUEST");
+
+    const responseBadEnv = await request(app)
+      .get(endpoint(merchant.id))
+      .query({ environment: "UNKNOWN" })
+      .set("Authorization", `Bearer ${authUser.accessToken}`);
+
+    expect(responseBadEnv.status).toBe(400);
+    expect(responseBadEnv.body.error.code).toBe("INVALID_REQUEST");
+  });
+
+  it("returns not found when merchant does not exist", async () => {
+    const authUser = await loginUser(await UserFactory.createUser());
+
+    const response = await request(app)
+      .get(endpoint(randomUUID()))
+      .query({ environment: "TEST" })
+      .set("Authorization", `Bearer ${authUser.accessToken}`);
+
+    expect(response.status).toBe(404);
+    expect(response.body.error.code).toBe("MERCHANT_NOT_FOUND");
+  });
+
+  it("does not allow access to another user's merchant active key", async () => {
+    const owner = await loginUser(await UserFactory.createUser());
+    const otherUser = await loginUser(await UserFactory.createUser());
+    const merchant = await MerchantFactory.createMerchant({
+      userId: owner.user.id,
+    });
     await ApiKeyFactory.createApiKey({
       merchantId: merchant.id,
       environment: "TEST",
     });
 
-    const res = await request(app)
+    const response = await request(app)
       .get(endpoint(merchant.id))
       .query({ environment: "TEST" })
-      .set("Authorization", `Bearer ${accessToken}`)
-      .expect(200);
+      .set("Authorization", `Bearer ${otherUser.accessToken}`);
 
-    expect(res.body).toEqual({
-      success: true,
-      data: {
-        id: expect.any(String),
-        keyId: expect.any(String),
-        status: "ACTIVE",
-        environment: "TEST",
-        lastUsedAt: null,
-        createdAt: expect.any(String),
-      },
-    });
+    expect(response.status).toBe(404);
+    expect(response.body.error.code).toBe("MERCHANT_NOT_FOUND");
   });
 
-  it("should not return secret fields", async () => {
-    const { accessToken, user } = await getAuthenticatedUser({
-      email: "nosecret@example.com",
+  it("rejects query for an inactive merchant", async () => {
+    const authUser = await loginUser(await UserFactory.createUser());
+    const merchant = await MerchantFactory.createMerchant({
+      userId: authUser.user.id,
+      isActive: false,
     });
-    const merchant = await MerchantFactory.createMerchant({ userId: user.id });
-    await ApiKeyFactory.createApiKey({ merchantId: merchant.id });
 
-    const res = await request(app)
+    const response = await request(app)
       .get(endpoint(merchant.id))
       .query({ environment: "TEST" })
-      .set("Authorization", `Bearer ${accessToken}`)
-      .expect(200);
+      .set("Authorization", `Bearer ${authUser.accessToken}`);
 
-    expect(res.body.data).not.toHaveProperty("secretHash");
-    expect(res.body.data).not.toHaveProperty("keySecret");
+    expect(response.status).toBe(403);
+    expect(response.body.error.code).toBe("MERCHANT_INACTIVE");
   });
 
-  it("should return 401 without authorization", async () => {
-    const { user } = await getAuthenticatedUser({ email: "noauth@example.com" });
-    const merchant = await MerchantFactory.createMerchant({ userId: user.id });
+  it("returns 404 when no active api key exists for merchant and environment", async () => {
+    const authUser = await loginUser(await UserFactory.createUser());
+    const merchant = await MerchantFactory.createMerchant({
+      userId: authUser.user.id,
+    });
 
-    const res = await request(app)
+    const response = await request(app)
       .get(endpoint(merchant.id))
       .query({ environment: "TEST" })
-      .expect(401);
+      .set("Authorization", `Bearer ${authUser.accessToken}`);
 
-    expect(res.body.success).toBe(false);
-  });
-
-  it("should return 404 when no active key exists", async () => {
-    const { accessToken, user } = await getAuthenticatedUser({
-      email: "nokey@example.com",
-    });
-    const merchant = await MerchantFactory.createMerchant({ userId: user.id });
-
-    const res = await request(app)
-      .get(endpoint(merchant.id))
-      .query({ environment: "TEST" })
-      .set("Authorization", `Bearer ${accessToken}`)
-      .expect(404);
-
-    expect(res.body.error.code).toBe("API_KEY_NOT_FOUND");
-  });
-
-  it("should return 404 for a revoked key", async () => {
-    const { accessToken, user } = await getAuthenticatedUser({
-      email: "revoked@example.com",
-    });
-    const merchant = await MerchantFactory.createMerchant({ userId: user.id });
-    await ApiKeyFactory.createApiKey({
-      merchantId: merchant.id,
-      status: "REVOKED",
-    });
-
-    const res = await request(app)
-      .get(endpoint(merchant.id))
-      .query({ environment: "TEST" })
-      .set("Authorization", `Bearer ${accessToken}`)
-      .expect(404);
-
-    expect(res.body.error.code).toBe("API_KEY_NOT_FOUND");
-  });
-
-  it("should return 404 for another user's merchant", async () => {
-    const { accessToken } = await getAuthenticatedUser({
-      email: "userA@example.com",
-    });
-    const { user: owner } = await getAuthenticatedUser({
-      email: "userB@example.com",
-    });
-    const merchant = await MerchantFactory.createMerchant({ userId: owner.id });
-
-    const res = await request(app)
-      .get(endpoint(merchant.id))
-      .query({ environment: "TEST" })
-      .set("Authorization", `Bearer ${accessToken}`)
-      .expect(404);
-
-    expect(res.body.error.code).toBe("MERCHANT_NOT_FOUND");
-  });
-
-  it("should return 400 when environment is missing", async () => {
-    const { accessToken, user } = await getAuthenticatedUser({
-      email: "missingenv@example.com",
-    });
-    const merchant = await MerchantFactory.createMerchant({ userId: user.id });
-
-    const res = await request(app)
-      .get(endpoint(merchant.id))
-      .set("Authorization", `Bearer ${accessToken}`)
-      .expect(400);
-
-    expect(res.body.error.code).toBe("INVALID_REQUEST");
-  });
-
-  it("should return 400 for an invalid environment", async () => {
-    const { accessToken, user } = await getAuthenticatedUser({
-      email: "invalidenv@example.com",
-    });
-    const merchant = await MerchantFactory.createMerchant({ userId: user.id });
-
-    const res = await request(app)
-      .get(endpoint(merchant.id))
-      .query({ environment: "STAGING" })
-      .set("Authorization", `Bearer ${accessToken}`)
-      .expect(400);
-
-    expect(res.body.error.code).toBe("INVALID_REQUEST");
+    expect(response.status).toBe(404);
+    expect(response.body.error.code).toBe("API_KEY_NOT_FOUND");
   });
 });

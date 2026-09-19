@@ -1,193 +1,210 @@
+import { randomUUID } from "node:crypto";
+import { afterEach, describe, expect, it } from "vitest";
 import request from "supertest";
-import resetDb from "../../helper/cleanup.js";
-import { MerchantFactory } from "../../factory/merchant.factory.js";
-import { ApiKeyFactory } from "../../factory/api-key.factory.js";
-import { getAuthenticatedUser } from "../../helper/auth.helper.js";
-import { beforeEach, describe, expect, it } from "vitest";
 import app from "../../../src/app.js";
+import UserFactory from "../../factory/user.factory.js";
+import MerchantFactory from "../../factory/merchant.factory.js";
+import ApiKeyFactory from "../../factory/api-key.factory.js";
+import { cleanupUser } from "../../helper/cleanup.js";
+import { loginUser } from "../../helper/auth.helper.js";
 
 const endpoint = (merchantId: string) =>
-  `/api/merchants/${merchantId}/api-keys/rotate`;
+  `/api/merchants/${merchantId}/rotate-api-key`;
 
-describe("POST /api/merchants/:id/api-keys/rotate", () => {
-  beforeEach(async () => {
-    await resetDb();
-  });
+afterEach(async () => {
+  await cleanupUser();
+});
 
-  it("should create a new key with IMMEDIATELY strategy", async () => {
-    const { accessToken, user } = await getAuthenticatedUser({
-      email: "rotate1@example.com",
+describe("POST /api/merchants/:merchantId/rotate-api-key", () => {
+  it("rotates api key immediately revoking old key", async () => {
+    const authUser = await loginUser(await UserFactory.createUser());
+    const merchant = await MerchantFactory.createMerchant({
+      userId: authUser.user.id,
     });
-    const merchant = await MerchantFactory.createMerchant({ userId: user.id });
     const { apiKey: oldKey } = await ApiKeyFactory.createApiKey({
       merchantId: merchant.id,
       environment: "TEST",
     });
 
-    const res = await request(app)
+    const response = await request(app)
       .post(endpoint(merchant.id))
-      .set("Authorization", `Bearer ${accessToken}`)
-      .send({ oldKeyRevokeStrategy: "IMMEDIATELY", environment: "TEST" })
-      .expect(201);
+      .set("Authorization", `Bearer ${authUser.accessToken}`)
+      .send({
+        environment: "TEST",
+        oldKeyRevokeStrategy: "IMMEDIATELY",
+      });
 
-    expect(res.body.data.status).toBe("ACTIVE");
-    expect(res.body.data.id).not.toBe(oldKey.id);
+    expect(response.status).toBe(201);
+    expect(response.body).toMatchObject({
+      success: true,
+      data: {
+        id: expect.any(String),
+        keyId: expect.stringMatching(/^pvo_test_/),
+        keySecret: expect.any(String),
+        status: "ACTIVE",
+        environment: "TEST",
+        generatedAt: expect.any(String),
+      },
+    });
+
+    // Verify old key was revoked immediately
+    const updatedOldKey = await ApiKeyFactory.findApiKeyById(oldKey.id);
+    expect(updatedOldKey?.status).toBe("REVOKED");
+    expect(updatedOldKey?.revokedAt).not.toBeNull();
   });
 
-  it("should revoke the old key immediately", async () => {
-    const { accessToken, user } = await getAuthenticatedUser({
-      email: "revokecheck@example.com",
+  it("rotates api key with 24_HOURS grace period strategy", async () => {
+    const authUser = await loginUser(await UserFactory.createUser());
+    const merchant = await MerchantFactory.createMerchant({
+      userId: authUser.user.id,
     });
-    const merchant = await MerchantFactory.createMerchant({ userId: user.id });
     const { apiKey: oldKey } = await ApiKeyFactory.createApiKey({
       merchantId: merchant.id,
-      environment: "TEST",
+      environment: "LIVE",
     });
 
-    await request(app)
+    const response = await request(app)
       .post(endpoint(merchant.id))
-      .set("Authorization", `Bearer ${accessToken}`)
-      .send({ oldKeyRevokeStrategy: "IMMEDIATELY", environment: "TEST" })
-      .expect(201);
+      .set("Authorization", `Bearer ${authUser.accessToken}`)
+      .send({
+        environment: "LIVE",
+        oldKeyRevokeStrategy: "24_HOURS",
+      });
 
-    const dbOldKey = await ApiKeyFactory.findApiKeyById(oldKey.id);
-    expect(dbOldKey!.status).toBe("REVOKED");
-    expect(dbOldKey!.revokedAt).not.toBeNull();
+    expect(response.status).toBe(201);
+    expect(response.body.data.environment).toBe("LIVE");
+
+    // Verify old key was placed into grace period
+    const updatedOldKey = await ApiKeyFactory.findApiKeyById(oldKey.id);
+    expect(updatedOldKey?.status).toBe("GRACE_PERIOD");
+    expect(updatedOldKey?.graceEndsAt).not.toBeNull();
   });
 
-  it("should set the old key to GRACE_PERIOD with 24_HOURS", async () => {
-    const { accessToken, user } = await getAuthenticatedUser({
-      email: "grace@example.com",
-    });
-    const merchant = await MerchantFactory.createMerchant({ userId: user.id });
-    const { apiKey: oldKey } = await ApiKeyFactory.createApiKey({
-      merchantId: merchant.id,
-      environment: "TEST",
+  it("rejects request without access token", async () => {
+    const response = await request(app)
+      .post(endpoint(randomUUID()))
+      .send({
+        environment: "TEST",
+        oldKeyRevokeStrategy: "IMMEDIATELY",
+      });
+
+    expect(response.status).toBe(401);
+    expect(response.body.error.code).toBe("MISSING_ACCESS_TOKEN");
+  });
+
+  it("rejects an invalid merchant id", async () => {
+    const authUser = await loginUser(await UserFactory.createUser());
+
+    const response = await request(app)
+      .post(endpoint("invalid-id"))
+      .set("Authorization", `Bearer ${authUser.accessToken}`)
+      .send({
+        environment: "TEST",
+        oldKeyRevokeStrategy: "IMMEDIATELY",
+      });
+
+    expect(response.status).toBe(400);
+    expect(response.body.error.code).toBe("INVALID_REQUEST");
+  });
+
+  it("rejects missing or invalid rotate strategy", async () => {
+    const authUser = await loginUser(await UserFactory.createUser());
+    const merchant = await MerchantFactory.createMerchant({
+      userId: authUser.user.id,
     });
 
-    await request(app)
+    const responseNoStrategy = await request(app)
       .post(endpoint(merchant.id))
-      .set("Authorization", `Bearer ${accessToken}`)
-      .send({ oldKeyRevokeStrategy: "24_HOURS", environment: "TEST" })
-      .expect(201);
+      .set("Authorization", `Bearer ${authUser.accessToken}`)
+      .send({ environment: "TEST" });
 
-    const dbOldKey = await ApiKeyFactory.findApiKeyById(oldKey.id);
-    expect(dbOldKey!.status).toBe("GRACE_PERIOD");
-    expect(dbOldKey!.graceEndsAt).not.toBeNull();
-  });
+    expect(responseNoStrategy.status).toBe(400);
+    expect(responseNoStrategy.body.error.code).toBe("INVALID_REQUEST");
 
-  it("should return an active key with 24_HOURS strategy", async () => {
-    const { accessToken, user } = await getAuthenticatedUser({
-      email: "rotate24@example.com",
-    });
-    const merchant = await MerchantFactory.createMerchant({ userId: user.id });
-    const { apiKey: oldKey } = await ApiKeyFactory.createApiKey({
-      merchantId: merchant.id,
-      environment: "TEST",
-    });
-
-    const res = await request(app)
+    const responseBadStrategy = await request(app)
       .post(endpoint(merchant.id))
-      .set("Authorization", `Bearer ${accessToken}`)
-      .send({ oldKeyRevokeStrategy: "24_HOURS", environment: "TEST" })
-      .expect(201);
+      .set("Authorization", `Bearer ${authUser.accessToken}`)
+      .send({
+        environment: "TEST",
+        oldKeyRevokeStrategy: "NEVER",
+      });
 
-    expect(res.body.data.status).toBe("ACTIVE");
-    expect(res.body.data.id).not.toBe(oldKey.id);
+    expect(responseBadStrategy.status).toBe(400);
+    expect(responseBadStrategy.body.error.code).toBe("INVALID_REQUEST");
   });
 
-  it("should return 401 without authorization", async () => {
-    const { user } = await getAuthenticatedUser({ email: "noauth@example.com" });
-    const merchant = await MerchantFactory.createMerchant({ userId: user.id });
+  it("returns not found when merchant does not exist", async () => {
+    const authUser = await loginUser(await UserFactory.createUser());
 
-    const res = await request(app)
-      .post(endpoint(merchant.id))
-      .send({ oldKeyRevokeStrategy: "IMMEDIATELY", environment: "TEST" })
-      .expect(401);
+    const response = await request(app)
+      .post(endpoint(randomUUID()))
+      .set("Authorization", `Bearer ${authUser.accessToken}`)
+      .send({
+        environment: "TEST",
+        oldKeyRevokeStrategy: "IMMEDIATELY",
+      });
 
-    expect(res.body.success).toBe(false);
+    expect(response.status).toBe(404);
+    expect(response.body.error.code).toBe("MERCHANT_NOT_FOUND");
   });
 
-  it("should return 404 when the merchant does not exist", async () => {
-    const { accessToken } = await getAuthenticatedUser({
-      email: "keynotfound@example.com",
+  it("does not allow rotating key for another user's merchant", async () => {
+    const owner = await loginUser(await UserFactory.createUser());
+    const otherUser = await loginUser(await UserFactory.createUser());
+    const merchant = await MerchantFactory.createMerchant({
+      userId: owner.user.id,
     });
-
-    const res = await request(app)
-      .post(endpoint("00000000-0000-0000-0000-000000000000"))
-      .set("Authorization", `Bearer ${accessToken}`)
-      .send({ oldKeyRevokeStrategy: "IMMEDIATELY", environment: "TEST" })
-      .expect(404);
-
-    expect(res.body.error.code).toBe("MERCHANT_NOT_FOUND");
-  });
-
-  it("should return 404 for another user's merchant", async () => {
-    const { accessToken } = await getAuthenticatedUser({
-      email: "attacker@example.com",
-    });
-    const { user: owner } = await getAuthenticatedUser({
-      email: "owner@example.com",
-    });
-    const merchant = await MerchantFactory.createMerchant({ userId: owner.id });
-    await ApiKeyFactory.createApiKey({ merchantId: merchant.id });
-
-    const res = await request(app)
-      .post(endpoint(merchant.id))
-      .set("Authorization", `Bearer ${accessToken}`)
-      .send({ oldKeyRevokeStrategy: "IMMEDIATELY", environment: "TEST" })
-      .expect(404);
-
-    expect(res.body.error.code).toBe("MERCHANT_NOT_FOUND");
-  });
-
-  it("should return 404 when the merchant has no active key to rotate", async () => {
-    const { accessToken, user } = await getAuthenticatedUser({
-      email: "rotaterevoked@example.com",
-    });
-    const merchant = await MerchantFactory.createMerchant({ userId: user.id });
     await ApiKeyFactory.createApiKey({
       merchantId: merchant.id,
       environment: "TEST",
-      status: "REVOKED",
     });
 
-    const res = await request(app)
+    const response = await request(app)
       .post(endpoint(merchant.id))
-      .set("Authorization", `Bearer ${accessToken}`)
-      .send({ oldKeyRevokeStrategy: "IMMEDIATELY", environment: "TEST" })
-      .expect(404);
+      .set("Authorization", `Bearer ${otherUser.accessToken}`)
+      .send({
+        environment: "TEST",
+        oldKeyRevokeStrategy: "IMMEDIATELY",
+      });
 
-    expect(res.body.error.code).toBe("API_KEY_NOT_FOUND");
+    expect(response.status).toBe(404);
+    expect(response.body.error.code).toBe("MERCHANT_NOT_FOUND");
   });
 
-  it("should return 400 when strategy is missing", async () => {
-    const { accessToken, user } = await getAuthenticatedUser({
-      email: "nostrategy@example.com",
+  it("rejects rotation for an inactive merchant", async () => {
+    const authUser = await loginUser(await UserFactory.createUser());
+    const merchant = await MerchantFactory.createMerchant({
+      userId: authUser.user.id,
+      isActive: false,
     });
-    const merchant = await MerchantFactory.createMerchant({ userId: user.id });
 
-    const res = await request(app)
+    const response = await request(app)
       .post(endpoint(merchant.id))
-      .set("Authorization", `Bearer ${accessToken}`)
-      .send({ environment: "TEST" })
-      .expect(400);
+      .set("Authorization", `Bearer ${authUser.accessToken}`)
+      .send({
+        environment: "TEST",
+        oldKeyRevokeStrategy: "IMMEDIATELY",
+      });
 
-    expect(res.body.error.code).toBe("INVALID_REQUEST");
+    expect(response.status).toBe(403);
+    expect(response.body.error.code).toBe("MERCHANT_INACTIVE");
   });
 
-  it("should return 400 for an invalid strategy", async () => {
-    const { accessToken, user } = await getAuthenticatedUser({
-      email: "badstrategy@example.com",
+  it("returns not found when there is no active key to rotate", async () => {
+    const authUser = await loginUser(await UserFactory.createUser());
+    const merchant = await MerchantFactory.createMerchant({
+      userId: authUser.user.id,
     });
-    const merchant = await MerchantFactory.createMerchant({ userId: user.id });
 
-    const res = await request(app)
+    const response = await request(app)
       .post(endpoint(merchant.id))
-      .set("Authorization", `Bearer ${accessToken}`)
-      .send({ oldKeyRevokeStrategy: "NEVER", environment: "TEST" })
-      .expect(400);
+      .set("Authorization", `Bearer ${authUser.accessToken}`)
+      .send({
+        environment: "TEST",
+        oldKeyRevokeStrategy: "IMMEDIATELY",
+      });
 
-    expect(res.body.error.code).toBe("INVALID_REQUEST");
+    expect(response.status).toBe(404);
+    expect(response.body.error.code).toBe("API_KEY_NOT_FOUND");
   });
 });

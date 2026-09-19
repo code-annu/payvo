@@ -1,204 +1,183 @@
+import { randomUUID } from "node:crypto";
+import { afterEach, describe, expect, it } from "vitest";
 import request from "supertest";
-import resetDb from "../../helper/cleanup.js";
-import { MerchantFactory } from "../../factory/merchant.factory.js";
-import { ApiKeyFactory } from "../../factory/api-key.factory.js";
-import { getAuthenticatedUser } from "../../helper/auth.helper.js";
-import { beforeEach, describe, expect, it } from "vitest";
 import app from "../../../src/app.js";
+import UserFactory from "../../factory/user.factory.js";
+import MerchantFactory from "../../factory/merchant.factory.js";
+import ApiKeyFactory from "../../factory/api-key.factory.js";
+import { cleanupUser } from "../../helper/cleanup.js";
+import { loginUser } from "../../helper/auth.helper.js";
 
 const endpoint = (merchantId: string) =>
-  `/api/merchants/${merchantId}/api-keys/generate`;
+  `/api/merchants/${merchantId}/generate-api-key`;
 
-describe("POST /api/merchants/:id/api-keys/generate", () => {
-  beforeEach(async () => {
-    await resetDb();
-  });
+afterEach(async () => {
+  await cleanupUser();
+});
 
-  it("should generate a TEST api key", async () => {
-    const { accessToken, user } = await getAuthenticatedUser({
-      email: "keygen@example.com",
+describe("POST /api/merchants/:merchantId/generate-api-key", () => {
+  it("generates an active api key with plain secret for owner", async () => {
+    const authUser = await loginUser(await UserFactory.createUser());
+    const merchant = await MerchantFactory.createMerchant({
+      userId: authUser.user.id,
     });
-    const merchant = await MerchantFactory.createMerchant({ userId: user.id });
 
-    const res = await request(app)
+    const response = await request(app)
       .post(endpoint(merchant.id))
-      .set("Authorization", `Bearer ${accessToken}`)
-      .send({ environment: "TEST" })
-      .expect(201);
+      .set("Authorization", `Bearer ${authUser.accessToken}`)
+      .send({ environment: "TEST" });
 
-    expect(res.body).toEqual({
+    expect(response.status).toBe(201);
+    expect(response.body).toMatchObject({
       success: true,
       data: {
         id: expect.any(String),
-        keyId: expect.any(String),
+        keyId: expect.stringMatching(/^pvo_test_/),
         keySecret: expect.any(String),
         status: "ACTIVE",
         environment: "TEST",
         generatedAt: expect.any(String),
       },
     });
+
+    const persisted = await ApiKeyFactory.findApiKeyById(response.body.data.id);
+    expect(persisted).not.toBeNull();
+    expect(persisted?.status).toBe("ACTIVE");
+    expect(persisted?.merchantId).toBe(merchant.id);
   });
 
-  it("should create the api key row", async () => {
-    const { accessToken, user } = await getAuthenticatedUser({
-      email: "keygen2@example.com",
+  it("rejects request without access token", async () => {
+    const response = await request(app)
+      .post(endpoint(randomUUID()))
+      .send({ environment: "TEST" });
+
+    expect(response.status).toBe(401);
+    expect(response.body).toMatchObject({
+      success: false,
+      error: { code: "MISSING_ACCESS_TOKEN" },
     });
-    const merchant = await MerchantFactory.createMerchant({ userId: user.id });
-
-    const res = await request(app)
-      .post(endpoint(merchant.id))
-      .set("Authorization", `Bearer ${accessToken}`)
-      .send({ environment: "TEST" })
-      .expect(201);
-
-    const dbKey = await ApiKeyFactory.findApiKeyById(res.body.data.id);
-    expect(dbKey).not.toBeNull();
-    expect(dbKey!.merchantId).toBe(merchant.id);
-    expect(dbKey!.status).toBe("ACTIVE");
   });
 
-  it("should generate keys for LIVE", async () => {
-    const { accessToken, user } = await getAuthenticatedUser({
-      email: "keylive@example.com",
+  it("rejects an invalid merchant id", async () => {
+    const authUser = await loginUser(await UserFactory.createUser());
+
+    const response = await request(app)
+      .post(endpoint("not-a-uuid"))
+      .set("Authorization", `Bearer ${authUser.accessToken}`)
+      .send({ environment: "TEST" });
+
+    expect(response.status).toBe(400);
+    expect(response.body).toMatchObject({
+      success: false,
+      error: { code: "INVALID_REQUEST" },
     });
-    const merchant = await MerchantFactory.createMerchant({ userId: user.id });
-
-    const res = await request(app)
-      .post(endpoint(merchant.id))
-      .set("Authorization", `Bearer ${accessToken}`)
-      .send({ environment: "LIVE" })
-      .expect(201);
-
-    expect(res.body.data.environment).toBe("LIVE");
   });
 
-  it("should return 401 without authorization", async () => {
-    const { user } = await getAuthenticatedUser({ email: "noauth@example.com" });
-    const merchant = await MerchantFactory.createMerchant({ userId: user.id });
-
-    const res = await request(app)
-      .post(endpoint(merchant.id))
-      .send({ environment: "TEST" })
-      .expect(401);
-
-    expect(res.body.success).toBe(false);
-  });
-
-  it("should return 404 when merchant does not exist", async () => {
-    const { accessToken } = await getAuthenticatedUser({
-      email: "notfound@example.com",
-    });
-
-    const res = await request(app)
-      .post(endpoint("00000000-0000-0000-0000-000000000000"))
-      .set("Authorization", `Bearer ${accessToken}`)
-      .send({ environment: "TEST" })
-      .expect(404);
-
-    expect(res.body.error.code).toBe("MERCHANT_NOT_FOUND");
-  });
-
-  it("should return 404 for another user's merchant", async () => {
-    const { accessToken } = await getAuthenticatedUser({
-      email: "user1@example.com",
-    });
-    const { user: owner } = await getAuthenticatedUser({
-      email: "user2@example.com",
-    });
-    const merchant = await MerchantFactory.createMerchant({ userId: owner.id });
-
-    const res = await request(app)
-      .post(endpoint(merchant.id))
-      .set("Authorization", `Bearer ${accessToken}`)
-      .send({ environment: "TEST" })
-      .expect(404);
-
-    expect(res.body.error.code).toBe("MERCHANT_NOT_FOUND");
-  });
-
-  it("should return 409 for an inactive merchant", async () => {
-    const { accessToken, user } = await getAuthenticatedUser({
-      email: "inactive@example.com",
-    });
+  it("rejects an invalid or missing environment", async () => {
+    const authUser = await loginUser(await UserFactory.createUser());
     const merchant = await MerchantFactory.createMerchant({
-      userId: user.id,
+      userId: authUser.user.id,
+    });
+
+    const responseNoEnv = await request(app)
+      .post(endpoint(merchant.id))
+      .set("Authorization", `Bearer ${authUser.accessToken}`)
+      .send({});
+
+    expect(responseNoEnv.status).toBe(400);
+    expect(responseNoEnv.body.error.code).toBe("INVALID_REQUEST");
+
+    const responseBadEnv = await request(app)
+      .post(endpoint(merchant.id))
+      .set("Authorization", `Bearer ${authUser.accessToken}`)
+      .send({ environment: "STAGING" });
+
+    expect(responseBadEnv.status).toBe(400);
+    expect(responseBadEnv.body.error.code).toBe("INVALID_REQUEST");
+  });
+
+  it("returns not found when merchant does not exist", async () => {
+    const authUser = await loginUser(await UserFactory.createUser());
+
+    const response = await request(app)
+      .post(endpoint(randomUUID()))
+      .set("Authorization", `Bearer ${authUser.accessToken}`)
+      .send({ environment: "TEST" });
+
+    expect(response.status).toBe(404);
+    expect(response.body).toMatchObject({
+      success: false,
+      error: { code: "MERCHANT_NOT_FOUND" },
+    });
+  });
+
+  it("does not allow generating key for another user's merchant", async () => {
+    const owner = await loginUser(await UserFactory.createUser());
+    const otherUser = await loginUser(await UserFactory.createUser());
+    const merchant = await MerchantFactory.createMerchant({
+      userId: owner.user.id,
+    });
+
+    const response = await request(app)
+      .post(endpoint(merchant.id))
+      .set("Authorization", `Bearer ${otherUser.accessToken}`)
+      .send({ environment: "TEST" });
+
+    expect(response.status).toBe(404);
+    expect(response.body.error.code).toBe("MERCHANT_NOT_FOUND");
+  });
+
+  it("rejects key generation for an inactive merchant", async () => {
+    const authUser = await loginUser(await UserFactory.createUser());
+    const merchant = await MerchantFactory.createMerchant({
+      userId: authUser.user.id,
       isActive: false,
     });
 
-    const res = await request(app)
+    const response = await request(app)
       .post(endpoint(merchant.id))
-      .set("Authorization", `Bearer ${accessToken}`)
-      .send({ environment: "TEST" })
-      .expect(409);
+      .set("Authorization", `Bearer ${authUser.accessToken}`)
+      .send({ environment: "TEST" });
 
-    expect(res.body.error.code).toBe("MERCHANT_INACTIVE");
+    expect(response.status).toBe(403);
+    expect(response.body.error.code).toBe("MERCHANT_INACTIVE");
   });
 
-  it("should return 409 when an active key already exists", async () => {
-    const { accessToken, user } = await getAuthenticatedUser({
-      email: "dupe@example.com",
+  it("rejects when an active key already exists for the environment", async () => {
+    const authUser = await loginUser(await UserFactory.createUser());
+    const merchant = await MerchantFactory.createMerchant({
+      userId: authUser.user.id,
     });
-    const merchant = await MerchantFactory.createMerchant({ userId: user.id });
+    await ApiKeyFactory.createApiKey({
+      merchantId: merchant.id,
+      environment: "LIVE",
+    });
+
+    const response = await request(app)
+      .post(endpoint(merchant.id))
+      .set("Authorization", `Bearer ${authUser.accessToken}`)
+      .send({ environment: "LIVE" });
+
+    expect(response.status).toBe(409);
+    expect(response.body.error.code).toBe("API_KEY_ALREADY_EXISTS");
+  });
+
+  it("allows generating a key for a different environment", async () => {
+    const authUser = await loginUser(await UserFactory.createUser());
+    const merchant = await MerchantFactory.createMerchant({
+      userId: authUser.user.id,
+    });
     await ApiKeyFactory.createApiKey({
       merchantId: merchant.id,
       environment: "TEST",
     });
 
-    const res = await request(app)
+    const response = await request(app)
       .post(endpoint(merchant.id))
-      .set("Authorization", `Bearer ${accessToken}`)
-      .send({ environment: "TEST" })
-      .expect(409);
+      .set("Authorization", `Bearer ${authUser.accessToken}`)
+      .send({ environment: "LIVE" });
 
-    expect(res.body.error.code).toBe("API_KEY_ALREADY_EXISTS");
-  });
-
-  it("should allow generating a key for a different environment", async () => {
-    const { accessToken, user } = await getAuthenticatedUser({
-      email: "diffenv@example.com",
-    });
-    const merchant = await MerchantFactory.createMerchant({ userId: user.id });
-    await ApiKeyFactory.createApiKey({
-      merchantId: merchant.id,
-      environment: "TEST",
-    });
-
-    const res = await request(app)
-      .post(endpoint(merchant.id))
-      .set("Authorization", `Bearer ${accessToken}`)
-      .send({ environment: "LIVE" })
-      .expect(201);
-
-    expect(res.body.data.environment).toBe("LIVE");
-  });
-
-  it("should return 400 when environment is missing", async () => {
-    const { accessToken, user } = await getAuthenticatedUser({
-      email: "noenv@example.com",
-    });
-    const merchant = await MerchantFactory.createMerchant({ userId: user.id });
-
-    const res = await request(app)
-      .post(endpoint(merchant.id))
-      .set("Authorization", `Bearer ${accessToken}`)
-      .send({})
-      .expect(400);
-
-    expect(res.body.error.code).toBe("INVALID_REQUEST");
-  });
-
-  it("should return 400 for an invalid environment", async () => {
-    const { accessToken, user } = await getAuthenticatedUser({
-      email: "badenv@example.com",
-    });
-    const merchant = await MerchantFactory.createMerchant({ userId: user.id });
-
-    const res = await request(app)
-      .post(endpoint(merchant.id))
-      .set("Authorization", `Bearer ${accessToken}`)
-      .send({ environment: "STAGING" })
-      .expect(400);
-
-    expect(res.body.error.code).toBe("INVALID_REQUEST");
+    expect(response.status).toBe(201);
+    expect(response.body.data.environment).toBe("LIVE");
   });
 });
