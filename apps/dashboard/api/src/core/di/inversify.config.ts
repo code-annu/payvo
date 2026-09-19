@@ -1,86 +1,103 @@
-import "reflect-metadata";
 import { Container } from "inversify";
 import TYPES from "./inversify.types.js";
 
-// Utils
-import ClientInfoUtil from "@/core/utils/client.util.js";
-
-// Repositories
+// User module
 import UserRepository from "@/modules/user/repository/user.repository.js";
+import UserMapper from "@/modules/user/user.mapper.js";
+
+// Auth module
+import AuthMapper from "@/modules/auth/auth.mapper.js";
 import SessionRepository from "@/modules/auth/repository/session.repository.js";
 import RefreshTokenRepository from "@/modules/auth/repository/refresh-token.repository.js";
-
-// User
-import UserService from "@/modules/user/user.service.js";
-import UserController from "@/modules/user/user.controller.js";
-import UserRouter from "@/modules/user/user.router.js";
-
-// Auth
-import AuthService from "@/modules/auth/auth.service.js";
+import SignupUsecase from "@/modules/auth/application/usecase/SignupUsecase.js";
+import LoginUsecase from "@/modules/auth/application/usecase/LoginUsecase.js";
+import RotateTokenUsecase from "@/modules/auth/application/usecase/RotateTokenUsecase.js";
+import LogoutUsecase from "@/modules/auth/application/usecase/LogoutUsecase.js";
 import AuthController from "@/modules/auth/auth.controller.js";
 import AuthRouter from "@/modules/auth/auth.router.js";
 
-// Merchant
+// Account module
+import GetAccountUsecase from "@/modules/account/application/usecase/GetAccountUsecase.js";
+import UpdateAccountUsecase from "@/modules/account/application/usecase/UpdateAccountUsecase.js";
+import DeleteAccountUsecase from "@/modules/account/application/usecase/DeleteAccountUsecase.js";
+import AccountController from "@/modules/account/account.controller.js";
+import AccountRouter from "@/modules/account/account.router.js";
+
+// Merchant module
+import MerchantMapper from "@/modules/merchant/merchant.mapper.js";
 import MerchantRepository from "@/modules/merchant/repository/merchant.repository.js";
-import MerchantService from "@/modules/merchant/merchant.service.js";
+import CreateMerchantUsecase from "@/modules/merchant/application/usecase/CreateMerchantUsecase.js";
+import GetMerchantDetailsUsecase from "@/modules/merchant/application/usecase/GetMerchantDetailsUsecase.js";
+import GetUserMerchantsUsecase from "@/modules/merchant/application/usecase/GetUserMerchantsUsecase.js";
+import DeleteMerchantUsecase from "@/modules/merchant/application/usecase/DeleteMerchantUsecase.js";
 import MerchantController from "@/modules/merchant/merchant.controller.js";
 import MerchantRouter from "@/modules/merchant/merchant.router.js";
-import MerchantMapper from "@/modules/merchant/merchant.mapper.js";
-import MerchantCacheService from "@/modules/merchant/merchant-cache.service.js";
 
-// ApiKey
+// Api-Key module
+import ApiKeyMapper from "@/modules/api-key/api-key.mapper.js";
 import ApiKeyRepository from "@/modules/api-key/repository/api-key.repository.js";
-import ApiKeyService from "@/modules/api-key/api-key.service.js";
+import GenerateApiKeyUsecase from "@/modules/api-key/application/usecase/GenerateApiKeyUsecase.js";
+import GetActiveApiKeyUsecase from "@/modules/api-key/application/usecase/GetActiveApiKeyUsecase.js";
+import RotateApiKeyUsecase from "@/modules/api-key/application/usecase/RotateApiKeyUsecase.js";
+import RevokeApiKeyUsecase from "@/modules/api-key/application/usecase/RevokeApiKeyUsecase.js";
 import ApiKeyController from "@/modules/api-key/api-key.controller.js";
 import ApiKeyRouter from "@/modules/api-key/api-key.router.js";
-import ApiKeyMapper from "@/modules/api-key/api-key.mapper.js";
 
-// Internal
-import InternalService from "@/internals/internal.service.js";
+// Util
+import ClientInfoUtil from "@/core/util/client.util.js";
+import ValidateApiKeyUsecase from "@/internals/application/usecase/ValidateApiKeyUsecase.js";
 import InternalController from "@/internals/internal.controller.js";
 import InternalRouter from "@/internals/internal.router.js";
-import UserCacheService from "@/modules/user/user-cache.service.js";
-import UserMapper from "@/modules/user/user.mapper.js";
 
 const container = new Container();
 
-// Utils
+// Util bindings
 container.bind(TYPES.ClientInfoUtil).to(ClientInfoUtil);
 
-// Repositories
+// User bindings
+container.bind(TYPES.UserMapper).to(UserMapper);
 container.bind(TYPES.UserRepository).to(UserRepository);
+
+// Auth bindings
+container.bind(TYPES.AuthMapper).to(AuthMapper);
 container.bind(TYPES.SessionRepository).to(SessionRepository);
 container.bind(TYPES.RefreshTokenRepository).to(RefreshTokenRepository);
-container.bind(TYPES.MerchantRepository).to(MerchantRepository);
-container.bind(TYPES.ApiKeyRepository).to(ApiKeyRepository);
-
-// User
-container.bind(TYPES.UserService).to(UserService);
-container.bind(TYPES.UserController).to(UserController);
-container.bind(TYPES.UserRouter).to(UserRouter);
-container.bind(TYPES.UserMapper).to(UserMapper);
-container.bind(TYPES.UserCacheService).to(UserCacheService);
-
-// Auth
-container.bind(TYPES.AuthService).to(AuthService);
+container.bind(TYPES.SignupUsecase).to(SignupUsecase);
+container.bind(TYPES.LoginUsecase).to(LoginUsecase);
+container.bind(TYPES.RotateTokenUsecase).to(RotateTokenUsecase);
+container.bind(TYPES.LogoutUsecase).to(LogoutUsecase);
 container.bind(TYPES.AuthController).to(AuthController);
 container.bind(TYPES.AuthRouter).to(AuthRouter);
 
-// Merchant
-container.bind(TYPES.MerchantService).to(MerchantService);
+// Account bindings
+container.bind(TYPES.GetAccountUsecase).to(GetAccountUsecase);
+container.bind(TYPES.UpdateAccountUsecase).to(UpdateAccountUsecase);
+container.bind(TYPES.DeleteAccountUsecase).to(DeleteAccountUsecase);
+container.bind(TYPES.AccountController).to(AccountController);
+container.bind(TYPES.AccountRouter).to(AccountRouter);
+
+// Merchant bindings
+container.bind(TYPES.MerchantMapper).to(MerchantMapper);
+container.bind(TYPES.MerchantRepository).to(MerchantRepository);
+container.bind(TYPES.CreateMerchantUsecase).to(CreateMerchantUsecase);
+container.bind(TYPES.GetMerchantDetailsUsecase).to(GetMerchantDetailsUsecase);
+container.bind(TYPES.GetUserMerchantsUsecase).to(GetUserMerchantsUsecase);
+container.bind(TYPES.DeleteMerchantUsecase).to(DeleteMerchantUsecase);
 container.bind(TYPES.MerchantController).to(MerchantController);
 container.bind(TYPES.MerchantRouter).to(MerchantRouter);
-container.bind(TYPES.MerchantMapper).to(MerchantMapper);
-container.bind(TYPES.MerchantCacheService).to(MerchantCacheService);
 
-// ApiKey
-container.bind(TYPES.ApiKeyService).to(ApiKeyService);
+// Api-Key bindings
+container.bind(TYPES.ApiKeyMapper).to(ApiKeyMapper);
+container.bind(TYPES.ApiKeyRepository).to(ApiKeyRepository);
+container.bind(TYPES.GenerateApiKeyUsecase).to(GenerateApiKeyUsecase);
+container.bind(TYPES.GetActiveApiKeyUsecase).to(GetActiveApiKeyUsecase);
+container.bind(TYPES.RotateApiKeyUsecase).to(RotateApiKeyUsecase);
+container.bind(TYPES.RevokeApiKeyUsecase).to(RevokeApiKeyUsecase);
 container.bind(TYPES.ApiKeyController).to(ApiKeyController);
 container.bind(TYPES.ApiKeyRouter).to(ApiKeyRouter);
-container.bind(TYPES.ApiKeyMapper).to(ApiKeyMapper);
 
-// Internal
-container.bind(TYPES.InternalService).to(InternalService);
+// Internal bindings
+container.bind(TYPES.ValidateApiKeyUsecase).to(ValidateApiKeyUsecase);
 container.bind(TYPES.InternalController).to(InternalController);
 container.bind(TYPES.InternalRouter).to(InternalRouter);
 

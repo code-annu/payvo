@@ -23,7 +23,6 @@ export abstract class ApiKeyFactory {
       environment,
     });
 
-    // Handle status override if not default ACTIVE
     if (overrides.status && overrides.status !== "ACTIVE") {
       const updated = await client.orm.public.ApiKey.where({
         id: apiKey.id,
@@ -33,7 +32,11 @@ export abstract class ApiKeyFactory {
           ? { revokedAt: new Date().toISOString() }
           : {}),
         ...(overrides.status === "GRACE_PERIOD"
-          ? { graceEndsAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() }
+          ? {
+              graceEndsAt: new Date(
+                Date.now() + 24 * 60 * 60 * 1000,
+              ).toISOString(),
+            }
           : {}),
       });
       if (!updated) throw new Error("Failed to update api key status");
@@ -62,3 +65,5 @@ export abstract class ApiKeyFactory {
     });
   }
 }
+
+export default ApiKeyFactory;

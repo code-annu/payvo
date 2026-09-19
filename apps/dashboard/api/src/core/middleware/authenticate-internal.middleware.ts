@@ -10,7 +10,7 @@ export default async function authenticateInternal(
   _res: Response,
   next: NextFunction,
 ) {
-  const internalSecret = req.header("X-Internal-Secret");
+  const internalSecret = req.header("x-internal-secret");
   if (!internalSecret) throw new MissingInternalSecretError();
   if (internalSecret !== appConfig.internalSecret) {
     throw new InvalidInternalSecretError();

@@ -1,60 +1,40 @@
-import { client } from "@payvo/database/client";
-import type { User } from "@payvo/database/types";
+import { randomUUID } from "node:crypto";
 import { hashPassword } from "@payvo/shared/crypto";
+import { client } from "@payvo/database/client";
 
-export interface UserOverrides {
-  email?: string;
-  password?: string;
-  fullname?: string;
-  companyName?: string | null;
-  deletedAt?: string | null;
+export interface TestUser {
+  id: string;
+  email: string;
+  password: string;
+  fullname: string;
+  companyName: string;
 }
 
-export interface CreateUserResult {
-  user: User;
-  plainPassword: string;
-}
+export type TestUserInput = Omit<TestUser, "id">;
 
-let userCounter = 0;
+export default abstract class UserFactory {
+  static buildUser(overrides: Partial<TestUserInput> = {}): TestUserInput {
+    return {
+      email: `auth-${randomUUID()}@example.com`,
+      password: "Password123!",
+      fullname: "Integration User",
+      companyName: "Integration Company",
+      ...overrides,
+    };
+  }
 
-export abstract class UserFactory {
   static async createUser(
-    overrides: UserOverrides = {},
-  ): Promise<CreateUserResult> {
-    userCounter++;
-    const plainPassword = overrides.password ?? "Test@1234";
-    const passwordHash = await hashPassword(plainPassword);
-
-    const user = await client.orm.public.User.create({
-      email: overrides.email ?? `testuser-${userCounter}-${Date.now()}@test.com`,
+    overrides: Partial<TestUserInput> = {},
+  ): Promise<TestUser> {
+    const user = this.buildUser(overrides);
+    const passwordHash = await hashPassword(user.password);
+    const record = await client.orm.public.User.create({
+      email: user.email,
       passwordHash,
-      fullname: overrides.fullname ?? "Test User",
-      companyName: overrides.companyName ?? null,
+      fullname: user.fullname,
+      companyName: user.companyName,
     });
 
-    // Handle optional field updates that aren't part of create
-    if (overrides.deletedAt !== undefined) {
-      const updated = await client.orm.public.User.where({ id: user.id }).update({
-        deletedAt: overrides.deletedAt,
-      });
-      if (!updated) throw new Error("Failed to update user deletedAt");
-      return { user: updated, plainPassword };
-    }
-
-    return { user, plainPassword };
-  }
-
-  static async findUser(
-    where: Parameters<typeof client.orm.public.User.first>[0],
-  ): Promise<User | null> {
-    return client.orm.public.User.first(where);
-  }
-
-  static async findUserById(id: string): Promise<User | null> {
-    return client.orm.public.User.first({ id });
-  }
-
-  static async findUserByEmail(email: string): Promise<User | null> {
-    return client.orm.public.User.first({ email });
+    return { ...user, id: record.id };
   }
 }

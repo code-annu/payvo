@@ -8,13 +8,10 @@ export interface MerchantOverrides {
   isActive?: boolean;
 }
 
-let merchantCounter = 0;
-
 export abstract class MerchantFactory {
   static async createMerchant(
     overrides: MerchantOverrides = {},
   ): Promise<Merchant> {
-    merchantCounter++;
     const mid = overrides.mid ?? generateAlphaNumericId(10);
     const merchant = await client.orm.public.Merchant.create({
       userId: overrides.userId!,
@@ -36,3 +33,5 @@ export abstract class MerchantFactory {
     return client.orm.public.Merchant.where({ userId }).all();
   }
 }
+
+export default MerchantFactory;

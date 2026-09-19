@@ -1,68 +1,42 @@
 import request from "supertest";
 import app from "../../src/app.js";
-import type { RefreshToken, Session, User } from "@payvo/database/types";
-import { RefreshTokenFactory } from "../factory/refresh-token.factory.js";
-import { SessionFactory } from "../factory/session.factory.js";
-import { UserFactory, type UserOverrides } from "../factory/user.factory.js";
+import type { TestUser } from "../factory/user.factory.js";
 
-export interface AuthUserOverrides extends UserOverrides {}
+export const authPath = "/api/auth";
 
-export interface AuthenticatedUser {
+export interface AuthUserResult {
+  user: TestUser;
+  response: request.Response;
   accessToken: string;
-  user: User;
-  plainPassword: string;
-  session: Session;
-  refreshToken: string | undefined;
-  refreshTokenRecord: RefreshToken | null;
+  refreshToken: string;
+  refreshCookie: string;
 }
 
-export async function getAuthenticatedUser(
-  overrides: AuthUserOverrides = {},
-): Promise<AuthenticatedUser> {
-  // 1. First create the user with credentials
-  const { user, plainPassword } = await UserFactory.createUser(overrides);
+function getRefreshCookie(response: request.Response): string {
+  const cookie = response.headers["set-cookie"]?.find((value) =>
+    value.startsWith("refreshToken="),
+  );
 
-  // 2. Call login endpoint with those credentials
-  const res = await request(app)
-    .post("/api/auth/login")
-    .send({
-      email: user.email,
-      password: plainPassword,
-    })
-    .expect(200);
-
-  const accessToken: string = res.body.data.accessToken;
-
-  // 3. Extract raw refresh token from set-cookie header if present
-  const cookies = res.headers["set-cookie"];
-  let rawRefreshToken: string | undefined;
-  if (cookies) {
-    const cookieList = Array.isArray(cookies) ? cookies : [cookies];
-    const refreshCookie = cookieList.find((c: string) =>
-      c.startsWith("refreshToken="),
-    );
-    if (refreshCookie) {
-      rawRefreshToken = refreshCookie
-        .split(";")[0]
-        .replace("refreshToken=", "");
-    }
+  if (!cookie) {
+    throw new Error("Login response did not include a refresh token cookie");
   }
 
-  // 4. Retrieve session and refresh token DB records
-  const session = await SessionFactory.findSessionByUserId(user.id);
-  if (!session) {
-    throw new Error("Failed to find session for authenticated user");
-  }
+  return cookie.split(";", 1)[0];
+}
 
-  const refreshTokenRecord =
-    await RefreshTokenFactory.findRefreshTokenBySessionId(session.id);
+export async function loginUser(user: TestUser): Promise<AuthUserResult> {
+  const response = await request(app).post(`${authPath}/login`).send({
+    email: user.email,
+    password: user.password,
+  });
+  const refreshCookie = getRefreshCookie(response);
+  const refreshToken = refreshCookie.slice("refreshToken=".length);
 
   return {
-    accessToken,
     user,
-    plainPassword,
-    session,
-    refreshToken: rawRefreshToken,
-    refreshTokenRecord,
+    response,
+    accessToken: response.body.data.accessToken,
+    refreshToken,
+    refreshCookie,
   };
 }
