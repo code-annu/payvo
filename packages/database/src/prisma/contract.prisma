@@ -1,0 +1,52 @@
+// use prisma-8
+
+
+model User {
+  id              Uuid      @id @default(uuid()) 
+  email           String    @unique
+  passwordHash    String    @map("password_hash")
+  fullname        String    @map("fullname")
+  companyName     String?   @map("company_name")
+  isEmailVerified Boolean   @default(false) @map("is_email_verified")
+  deletedAt       TimestamptzString? @map("deleted_at") 
+  createdAt       TimestamptzString  @default(now()) @map("created_at") 
+  updatedAt      temporal.updatedAtString()  @map("updated_at") 
+
+  sessions  Session[]
+  // merchants Merchant[]
+
+  @@index([deletedAt], map: "idx_users_deleted_at")
+  @@map("users")
+}
+
+model Session {
+  id        Uuid      @id @default(uuid()) 
+  userId    Uuid      @map("user_id") 
+  userAgent String?   @map("user_agent")
+  ipAddress String?   @map("ip_address")
+  revokedAt TimestamptzString? @map("revoked_at") 
+  expiresAt TimestamptzString  @map("expires_at") 
+  createdAt TimestamptzString  @default(now()) @map("created_at") 
+  updatedAt temporal.updatedAtString()  @map("updated_at") 
+
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  refreshTokens RefreshToken[]
+
+  @@index([userId], map: "idx_sessions_user_id")
+  @@index([expiresAt], map: "idx_sessions_expires_at")
+  @@map("sessions")
+}
+
+model RefreshToken {
+  id          Uuid               @id @default(uuid())
+  sessionId   Uuid               @map("session_id")
+  tokenHash   String             @unique @map("token_hash")
+  revokedAt   TimestamptzString? @map("revoked_at")
+  createdAt   TimestamptzString  @default(now()) @map("created_at")
+  updatedAt   temporal.updatedAtString() @map("updated_at")
+
+  session   Session       @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId], map: "idx_refresh_tokens_session_id")
+  @@map("refresh_tokens")
+}

@@ -1,0 +1,38 @@
+{
+  "name": "@payvo/database",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "cp:contract": "node -e \"const fs=require('fs');fs.mkdirSync('dist/prisma',{recursive:true});fs.cpSync('src/prisma/contract.d.ts','dist/prisma/contract.d.ts')\"",
+    "watch:contract": "chokidar \"src/prisma/contract.d.ts\" -c \"pnpm run cp:contract\"",
+    "dev": "concurrently \"tsc -w\" \"pnpm run cp:contract && pnpm run watch:contract\"",
+    "contract:emit": "prisma contract emit",
+    "build": "tsc && pnpm run cp:contract",
+    "db:migrate": "prisma db migrate --advance-ref db",
+    "plan:migration": "prisma migration plan --name",
+    "migration:status": "prisma migration status"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "exports": {
+    "./client": {
+      "types": "./dist/client/index.d.ts",
+      "import": "./dist/client/index.js"
+    },
+    "./types": {
+      "types": "./dist/types/index.d.ts",
+      "import": "./dist/types/index.js"
+    }
+  },
+  "dependencies": {
+    "@prisma/orm-postgres": "8.0.0-rc.11"
+  },
+  "devDependencies": {
+    "chokidar-cli": "^3.0.0",
+    "concurrently": "^10.0.5",
+    "dotenv": "^18.0.3",
+    "prisma": "8.0.0-rc.15"
+  }
+}
