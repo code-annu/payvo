@@ -5,12 +5,12 @@
   "scripts": {
     "cp:contract": "node -e \"const fs=require('fs');fs.mkdirSync('dist/prisma',{recursive:true});fs.cpSync('src/prisma/contract.d.ts','dist/prisma/contract.d.ts')\"",
     "watch:contract": "chokidar \"src/prisma/contract.d.ts\" -c \"pnpm run cp:contract\"",
-    "dev": "concurrently \"tsc -w\" \"pnpm run cp:contract && pnpm run watch:contract\"",
     "contract:emit": "prisma contract emit",
-    "build": "tsc && pnpm run cp:contract",
     "db:migrate": "prisma db migrate --advance-ref db",
     "plan:migration": "prisma migration plan --name",
-    "migration:status": "prisma migration status"
+    "migration:status": "prisma migration status",
+    "dev": "concurrently \"tsc -w\" \"pnpm run cp:contract && pnpm run watch:contract\"",
+    "build": "tsc && pnpm run cp:contract"
   },
   "keywords": [],
   "author": "",
