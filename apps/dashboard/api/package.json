@@ -1,0 +1,32 @@
+{
+  "name": "@payvo/dashboard-api",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "dotenv -e .env.development -- tsx --watch src/server.ts",
+    "test:unit": "vitest src/modules src/internals",
+    "test:integration": "dotenv -e .env.test -- vitest",
+    "build": "tsc && tsc-alias",
+    "start": "node dist/server.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "devDependencies": {
+    "@types/cookie-parser": "^1.4.10",
+    "@types/express": "^5.0.6"
+  },
+  "dependencies": {
+    "cookie-parser": "^1.4.7",
+    "date-fns": "^4.4.0",
+    "express": "^5.2.1",
+    "inversify": "^8.2.3",
+    "reflect-metadata": "^0.2.2",
+    "ua-parser-js": "^2.0.10",
+    "zod": "^4.6.5",
+    "@payvo/config": "workspace:*",
+    "@payvo/database": "workspace:*",
+    "@payvo/shared": "workspace:*"
+  }
+}
