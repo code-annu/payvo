@@ -1,0 +1,43 @@
+{
+  "name": "@payvo/shared",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "tsc -w",
+    "build": "tsc"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "exports": {
+    "./jwt": {
+      "types": "./dist/jwt/index.d.ts",
+      "import": "./dist/jwt/index.js"
+    },
+    "./crypto": {
+      "types": "./dist/crypto/index.d.ts",
+      "import": "./dist/crypto/index.js"
+    },
+    "./error": {
+      "types": "./dist/error/index.d.ts",
+      "import": "./dist/error/index.js"
+    },
+    "./http": {
+      "types": "./dist/http/index.d.ts",
+      "import": "./dist/http/index.js"
+    },
+    "./refresh-token": {
+      "types": "./dist/refresh-token/index.d.ts",
+      "import": "./dist/refresh-token/index.js"
+    },
+    "./api-key": {
+      "types": "./dist/api-key/index.d.ts",
+      "import": "./dist/api-key/index.js"
+    }
+  },
+  "dependencies": {
+    "argon2": "^0.45.1",
+    "jose": "^6.2.12"
+  }
+}
