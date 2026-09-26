@@ -1,0 +1,6 @@
+enum PaymentOrderErrorCode {
+  PAYMENT_ORDER_NOT_FOUND = "PAYMENT_ORDER_NOT_FOUND",
+  PAYMENT_ORDER_INVALID_STATE = "PAYMENT_ORDER_INVALID_STATE",
+}
+
+export default PaymentOrderErrorCode;
