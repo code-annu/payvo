@@ -63,7 +63,7 @@ model Merchant {
 
   user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   apiKeys      ApiKey[]
-  // paymentOrders PaymentOrder[]
+  paymentOrders PaymentOrder[]
   // transactions  Transaction[]
 
   @@index([userId], map: "idx_merchants_user_id")
@@ -128,6 +128,7 @@ model PaymentOrder {
   currency           Char(3)                   @map("currency")
   status             PaymentOrderStatus         @default(CREATED) @map("status")
   completedAt        TimestamptzString?        @map("completed_at")
+  latePayment        Boolean                   @default(false) @map("late_payment")
   expiresAt          TimestamptzString         @map("expires_at")
   createdAt          TimestamptzString         @default(now()) @map("created_at")
   updatedAt          temporal.updatedAtString()  @map("updated_at")
@@ -157,10 +158,7 @@ model PaymentMethod {
 enum PaymentAttemptStatus {
   PROCESSING
   FAILED
-  CANCELED
   SUCCEED
-  REJECTED
-
 }
 
 model PaymentAttempt {
@@ -170,6 +168,8 @@ model PaymentAttempt {
   attemptNumber     Int                   @map("attempt_number")
   status            PaymentAttemptStatus  @default(PROCESSING) @map("status")
   completedAt       TimestamptzString?    @map("completed_at")
+  failureCode       String?               @map("failure_code")
+  reason            String?               @map("reason")
   createdAt         TimestamptzString     @default(now()) @map("created_at")
   updatedAt         temporal.updatedAtString() @map("updated_at")
 
