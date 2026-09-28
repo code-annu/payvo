@@ -4,7 +4,7 @@ import TYPES from "@/core/di/inversify.types.js";
 import PaymentMethodRepository from "@/modules/payment-method/repository/payment-method.repository.js";
 import { PaymentMethodNotFoundError } from "@/modules/payment-method/error/payment-method.errors.js";
 import {
-  PaymentOrderInvalidState,
+  PaymentOrderInvalidStateError,
   PaymentOrderNotFoundError,
 } from "@/modules/payment-order/error/payment-order.errors.js";
 import type { PaymentOrderStatus } from "@/modules/payment-order/entity/payment-order.entity.js";
@@ -14,6 +14,7 @@ import type {
   AttemptPaymentInputDto,
   AttemptPaymentOutputDto,
 } from "../dto/AttemptPaymentDto.js";
+import PaymentProvider from "@/provider/payment.provider.js";
 
 @injectable()
 export default class AttemptPaymentUsecase {
@@ -24,6 +25,8 @@ export default class AttemptPaymentUsecase {
     private readonly paymentOrderRepository: PaymentOrderRepository,
     @inject(TYPES.PaymentAttemptRepository)
     private readonly paymentAttemptRepository: PaymentAttemptRepository,
+    @inject(TYPES.PaymentProvider)
+    private readonly paymentProvider: PaymentProvider,
   ) {}
 
   async execute(
@@ -56,7 +59,7 @@ export default class AttemptPaymentUsecase {
         }
 
         const message = this.getInvalidStateMessage(currentOrder.status);
-        throw new PaymentOrderInvalidState(message, {
+        throw new PaymentOrderInvalidStateError(message, {
           orderStatus: currentOrder.status,
         });
       }
@@ -72,6 +75,11 @@ export default class AttemptPaymentUsecase {
         paymentMethodId: paymentMethod.id,
         attemptNumber,
         status: "PROCESSING",
+      });
+
+      this.paymentProvider.processPayment({
+        paymentMethodId: paymentMethod.id,
+        paymentAttemptId: paymentAttempt.id,
       });
 
       return {

@@ -1,0 +1,6 @@
+enum PaymentAttemptErrorCode {
+  PAYMENT_ATTEMPT_NOT_FOUND = "PAYMENT_ATTEMPT_NOT_FOUND",
+  PAYMENT_ATTEMPT_INVALID_STATE = "PAYMENT_ATTEMPT_INVALID_STATE",
+}
+
+export default PaymentAttemptErrorCode;

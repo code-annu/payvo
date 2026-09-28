@@ -1,9 +1,4 @@
-export type PaymentAttemptStatus =
-  | "PROCESSING"
-  | "FAILED"
-  | "CANCELED"
-  | "SUCCEED"
-  | "REJECTED";
+export type PaymentAttemptStatus = "PROCESSING" | "FAILED" | "SUCCEED";
 
 export interface PaymentAttempt {
   readonly id: string;

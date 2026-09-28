@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { PaymentMethodNotFoundError } from "@/modules/payment-method/error/payment-method.errors.js";
 import {
-  PaymentOrderInvalidState,
+  PaymentOrderInvalidStateError,
   PaymentOrderNotFoundError,
 } from "@/modules/payment-order/error/payment-order.errors.js";
 import AttemptPaymentUsecase from "../application/usecase/AttemptPaymentUsecase.js";
@@ -125,7 +125,7 @@ describe("AttemptPaymentUsecase", () => {
     });
 
     await expect(usecase.execute(input)).rejects.toBeInstanceOf(
-      PaymentOrderInvalidState,
+      PaymentOrderInvalidStateError,
     );
 
     expect(paymentAttemptRepository.create).not.toHaveBeenCalled();
