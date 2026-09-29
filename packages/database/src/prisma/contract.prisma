@@ -107,16 +107,6 @@ model ApiKey {
 }
 
 
-enum PaymentOrderStatus {
-  CREATED
-  PAYMENT_PENDING
-  EXPIRED
-  FAILED
-  COMPLETED
-}
-
-
-
 model PaymentOrder {
   id                 Uuid                      @id @default(uuid())
   merchantId         Uuid                      @map("merchant_id")
@@ -126,9 +116,7 @@ model PaymentOrder {
   csi                String                    @unique @map("csi")
   amount             Decimal                   @map("amount")
   currency           Char(3)                   @map("currency")
-  status             PaymentOrderStatus         @default(CREATED) @map("status")
   completedAt        TimestamptzString?        @map("completed_at")
-  latePayment        Boolean                   @default(false) @map("late_payment")
   expiresAt          TimestamptzString         @map("expires_at")
   createdAt          TimestamptzString         @default(now()) @map("created_at")
   updatedAt          temporal.updatedAtString()  @map("updated_at")
@@ -167,7 +155,6 @@ model PaymentAttempt {
   paymentMethodId   Uuid                  @map("payment_method_id")
   attemptNumber     Int                   @map("attempt_number")
   status            PaymentAttemptStatus  @default(PROCESSING) @map("status")
-  completedAt       TimestamptzString?    @map("completed_at")
   failureCode       String?               @map("failure_code")
   reason            String?               @map("reason")
   createdAt         TimestamptzString     @default(now()) @map("created_at")
