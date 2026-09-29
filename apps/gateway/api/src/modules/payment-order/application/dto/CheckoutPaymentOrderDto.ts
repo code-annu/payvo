@@ -1,7 +1,7 @@
 export interface CheckoutPaymentOrderDto {
   readonly id: string;
   readonly csi: string;
-  readonly amount: string;
+  readonly amount: number;
   readonly currency: string;
   readonly expiresAt: Date;
 }

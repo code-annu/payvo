@@ -22,7 +22,15 @@ import PaymentAttemptRouter from "@/modules/payment-attempt/payment-attempt.rout
 import PaymentProvider from "@/provider/payment.provider.js";
 import ProcessedPaymentAttemptUsecase from "@/modules/payment-attempt/application/usecase/ProcessedPaymentAttemptUsecase.js";
 
+// Transaction module
+import TransactionMapper from "@/modules/transaction/transaction.mapper.js";
+import TransactionRepository from "@/modules/transaction/repository/transaction.repository.js";
+
 const container = new Container();
+
+// Transaction bindings
+container.bind(TYPES.TransactionMapper).to(TransactionMapper);
+container.bind(TYPES.TransactionRepository).to(TransactionRepository);
 
 // Payment Order bindings
 container.bind(TYPES.PaymentOrderMapper).to(PaymentOrderMapper);

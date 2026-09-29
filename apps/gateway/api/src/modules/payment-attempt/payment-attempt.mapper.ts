@@ -11,9 +11,8 @@ export default class PaymentAttemptMapper {
       paymentMethodId: paymentAttempt.paymentMethodId,
       attemptNumber: paymentAttempt.attemptNumber,
       status: paymentAttempt.status,
-      completedAt: paymentAttempt.completedAt
-        ? new Date(paymentAttempt.completedAt)
-        : null,
+      failureCode: paymentAttempt.failureCode ?? null,
+      reason: paymentAttempt.reason ?? null,
       createdAt: new Date(paymentAttempt.createdAt),
       updatedAt: new Date(paymentAttempt.updatedAt),
     };

@@ -12,7 +12,7 @@ export default class PaymentOrderMapper {
       merchantOrderId: paymentOrder.merchantOrderId,
       idempotencyKey: paymentOrder.idempotencyKey,
       csi: paymentOrder.csi,
-      amount: String(paymentOrder.amount),
+      amount: Number(paymentOrder.amount),
       currency: paymentOrder.currency,
       completedAt: paymentOrder.completedAt
         ? new Date(paymentOrder.completedAt)

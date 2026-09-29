@@ -25,10 +25,14 @@ describe("ProcessedPaymentAttemptUsecase", () => {
 		markCompleted: vi.fn(),
 		findById: vi.fn(),
 	};
+	const transactionRepo = {
+		create: vi.fn(),
+	};
 
 	const usecase = new ProcessedPaymentAttemptUsecase(
 		paymentAttemptRepo as never,
 		paymentOrderRepo as never,
+		transactionRepo as never,
 	);
 
 	beforeEach(() => {
@@ -43,7 +47,7 @@ describe("ProcessedPaymentAttemptUsecase", () => {
 	// ────────────────────────────────────────────
 
 	describe("when processed is true", () => {
-		it("marks the attempt as succeed and the order as completed", async () => {
+		it("marks the attempt as succeed, order as completed, and creates a transaction", async () => {
 			paymentAttemptRepo.markSucceed.mockResolvedValue({
 				id: "attempt-1",
 				paymentOrderId: "order-1",
@@ -51,7 +55,21 @@ describe("ProcessedPaymentAttemptUsecase", () => {
 			});
 			paymentOrderRepo.markCompleted.mockResolvedValue({
 				id: "order-1",
+				merchantId: "merchant-1",
+				amount: "100.00",
+				currency: "USD",
 				completedAt: new Date(),
+			});
+			transactionRepo.create.mockResolvedValue({
+				id: "tx-1",
+				merchantId: "merchant-1",
+				paymentOrderId: "order-1",
+				paymentAttemptId: "attempt-1",
+				paymentType: "PAYIN",
+				grossAmount: "100.00",
+				feeAmount: "0",
+				netAmount: "100.00",
+				currency: "USD",
 			});
 
 			await usecase.execute({
@@ -71,6 +89,19 @@ describe("ProcessedPaymentAttemptUsecase", () => {
 					completedAt: expect.any(Date),
 				},
 			);
+			expect(transactionRepo.create).toHaveBeenCalledWith(
+				transactionClient,
+				{
+					merchantId: "merchant-1",
+					paymentOrderId: "order-1",
+					paymentAttemptId: "attempt-1",
+					paymentType: "PAYIN",
+					grossAmount: "100.00",
+					feeAmount: "0",
+					netAmount: "100.00",
+					currency: "USD",
+				},
+			);
 		});
 
 		it("throws PaymentAttemptNotFoundError when attempt does not exist", async () => {
@@ -88,6 +119,7 @@ describe("ProcessedPaymentAttemptUsecase", () => {
 				transactionClient,
 				"missing-attempt",
 			);
+			expect(transactionRepo.create).not.toHaveBeenCalled();
 		});
 
 		it("throws PaymentAttemptInvalidStateError when attempt is not PROCESSING", async () => {
@@ -103,6 +135,8 @@ describe("ProcessedPaymentAttemptUsecase", () => {
 					processed: true,
 				}),
 			).rejects.toBeInstanceOf(PaymentAttemptInvalidStateError);
+
+			expect(transactionRepo.create).not.toHaveBeenCalled();
 		});
 
 		it("throws PaymentOrderNotFoundError when order cannot be marked completed", async () => {
@@ -119,6 +153,8 @@ describe("ProcessedPaymentAttemptUsecase", () => {
 					processed: true,
 				}),
 			).rejects.toBeInstanceOf(PaymentOrderNotFoundError);
+
+			expect(transactionRepo.create).not.toHaveBeenCalled();
 		});
 	});
 
@@ -127,7 +163,7 @@ describe("ProcessedPaymentAttemptUsecase", () => {
 	// ────────────────────────────────────────────
 
 	describe("when processed is false", () => {
-		it("marks the attempt as failed and verifies the order exists", async () => {
+		it("marks the attempt as failed and verifies the order exists without creating a transaction", async () => {
 			paymentAttemptRepo.markFailed.mockResolvedValue({
 				id: "attempt-1",
 				paymentOrderId: "order-1",
@@ -151,6 +187,7 @@ describe("ProcessedPaymentAttemptUsecase", () => {
 				transactionClient,
 				"order-1",
 			);
+			expect(transactionRepo.create).not.toHaveBeenCalled();
 		});
 
 		it("throws PaymentAttemptNotFoundError when attempt does not exist", async () => {
@@ -168,6 +205,7 @@ describe("ProcessedPaymentAttemptUsecase", () => {
 				transactionClient,
 				"missing-attempt",
 			);
+			expect(transactionRepo.create).not.toHaveBeenCalled();
 		});
 
 		it("throws PaymentAttemptInvalidStateError when attempt is not PROCESSING", async () => {
@@ -183,6 +221,8 @@ describe("ProcessedPaymentAttemptUsecase", () => {
 					processed: false,
 				}),
 			).rejects.toBeInstanceOf(PaymentAttemptInvalidStateError);
+
+			expect(transactionRepo.create).not.toHaveBeenCalled();
 		});
 
 		it("throws PaymentOrderNotFoundError when order does not exist", async () => {
@@ -199,6 +239,8 @@ describe("ProcessedPaymentAttemptUsecase", () => {
 					processed: false,
 				}),
 			).rejects.toBeInstanceOf(PaymentOrderNotFoundError);
+
+			expect(transactionRepo.create).not.toHaveBeenCalled();
 		});
 	});
 

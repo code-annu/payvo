@@ -47,14 +47,14 @@ export default class AttemptPaymentUsecase {
         input.paymentOrderId,
       );
       if (!order) throw new PaymentOrderNotFoundError();
-      if (isBefore(order.expiresAt, now)) {
-        throw new PaymentOrderExpiredError(
-          "Expired order cannot be attempted for payment",
-        );
-      }
       if (order.completedAt) {
         throw new PaymentOrderCompletedError(
           "Cannot attempt a payment which is already completed",
+        );
+      }
+      if (isBefore(order.expiresAt, now)) {
+        throw new PaymentOrderExpiredError(
+          "Expired order cannot be attempted for payment",
         );
       }
 

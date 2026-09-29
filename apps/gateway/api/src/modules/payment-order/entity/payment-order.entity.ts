@@ -5,7 +5,7 @@ export interface PaymentOrder {
   readonly merchantOrderId: string;
   readonly idempotencyKey: string;
   readonly csi: string;
-  readonly amount: string;
+  readonly amount: number;
   readonly currency: string;
   readonly completedAt: Date | null;
   readonly expiresAt: Date;

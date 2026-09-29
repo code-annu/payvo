@@ -6,7 +6,8 @@ export interface PaymentAttempt {
   readonly paymentMethodId: string;
   readonly attemptNumber: number;
   readonly status: PaymentAttemptStatus;
-  readonly completedAt: Date | null;
+  readonly failureCode?: string | null;
+  readonly reason?: string | null;
   readonly createdAt: Date;
   readonly updatedAt: Date;
 }

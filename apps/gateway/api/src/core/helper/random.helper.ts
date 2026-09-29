@@ -18,3 +18,4 @@ export function getRandomTimeout(): number {
 export function getRandomSuccess(): boolean {
   return Math.random() < 0.8;
 }
+

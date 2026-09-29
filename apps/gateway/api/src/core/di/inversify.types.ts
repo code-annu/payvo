@@ -19,6 +19,10 @@ const TYPES = {
   PaymentAttemptController: Symbol.for("PaymentAttemptController"),
   PaymentAttemptRouter: Symbol.for("PaymentAttemptRouter"),
 
+  // Transaction types
+  TransactionMapper: Symbol.for("TransactionMapper"),
+  TransactionRepository: Symbol.for("TransactionRepository"),
+
   // Provider types
   PaymentProvider: Symbol.for("PaymentProvider"),
 };

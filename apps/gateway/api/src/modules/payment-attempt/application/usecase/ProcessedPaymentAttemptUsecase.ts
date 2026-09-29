@@ -3,12 +3,15 @@ import { ProcessedPaymentAttemptInputDto } from "../dto/ProcessedPaymentAttemptD
 import TYPES from "@/core/di/inversify.types.js";
 import PaymentAttemptRepository from "../../repository/payment-attempt.repository.js";
 import PaymentOrderRepository from "@/modules/payment-order/repository/payment-order.repository.js";
+import TransactionRepository from "@/modules/transaction/repository/transaction.repository.js";
 import { dbTransaction, type TransactionClient } from "@payvo/database/client";
 import {
   PaymentAttemptInvalidStateError,
   PaymentAttemptNotFoundError,
 } from "../../error/payment-attempt.errors.js";
 import { PaymentOrderNotFoundError } from "@/modules/payment-order/error/payment-order.errors.js";
+
+const TRANSACTION_FEE = 0.02;
 
 @injectable()
 export default class ProcessedPaymentAttemptUsecase {
@@ -17,6 +20,8 @@ export default class ProcessedPaymentAttemptUsecase {
     private readonly paymentAttemptRepo: PaymentAttemptRepository,
     @inject(TYPES.PaymentOrderRepository)
     private readonly paymentOrderRepo: PaymentOrderRepository,
+    @inject(TYPES.TransactionRepository)
+    private readonly transactionRepo: TransactionRepository,
   ) {}
 
   async execute(input: ProcessedPaymentAttemptInputDto) {
@@ -65,6 +70,17 @@ export default class ProcessedPaymentAttemptUsecase {
     if (!completedOrder) {
       throw new PaymentOrderNotFoundError("Order not found");
     }
+
+    await this.transactionRepo.create(tx, {
+      merchantId: completedOrder.merchantId,
+      paymentOrderId: completedOrder.id,
+      paymentAttemptId: succeedAttempt.id,
+      paymentType: "PAYIN",
+      grossAmount: completedOrder.amount.toString(),
+      feeAmount: (completedOrder.amount * TRANSACTION_FEE).toString(),
+      netAmount: (completedOrder.amount * (1 - TRANSACTION_FEE)).toString(),
+      currency: completedOrder.currency as any,
+    });
   }
 
   private async handleNotProcessed(
@@ -101,4 +117,3 @@ export default class ProcessedPaymentAttemptUsecase {
     }
   }
 }
-
