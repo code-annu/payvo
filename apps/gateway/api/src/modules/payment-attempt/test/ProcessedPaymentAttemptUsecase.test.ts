@@ -56,7 +56,7 @@ describe("ProcessedPaymentAttemptUsecase", () => {
 			paymentOrderRepo.markCompleted.mockResolvedValue({
 				id: "order-1",
 				merchantId: "merchant-1",
-				amount: "100.00",
+				amount: 1000,
 				currency: "USD",
 				completedAt: new Date(),
 			});
@@ -66,9 +66,9 @@ describe("ProcessedPaymentAttemptUsecase", () => {
 				paymentOrderId: "order-1",
 				paymentAttemptId: "attempt-1",
 				paymentType: "PAYIN",
-				grossAmount: "100.00",
-				feeAmount: "0",
-				netAmount: "100.00",
+				grossAmount: "1000",
+				feeAmount: "20",
+				netAmount: "980",
 				currency: "USD",
 			});
 
@@ -96,9 +96,9 @@ describe("ProcessedPaymentAttemptUsecase", () => {
 					paymentOrderId: "order-1",
 					paymentAttemptId: "attempt-1",
 					paymentType: "PAYIN",
-					grossAmount: "100.00",
-					feeAmount: "0",
-					netAmount: "100.00",
+					grossAmount: "1000",
+					feeAmount: "20",
+					netAmount: "980",
 					currency: "USD",
 				},
 			);

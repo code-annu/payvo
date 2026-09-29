@@ -22,7 +22,6 @@ describe("GET /api/payment-orders/:csi", () => {
 		return PaymentOrderFactory.createPaymentOrder(merchant.id, {
 			amount: "1250",
 			currency: "USD" as PaymentOrderCreateInput["currency"],
-			status: "CREATED",
 		});
 	}
 
@@ -40,9 +39,8 @@ describe("GET /api/payment-orders/:csi", () => {
 				paymentOrder: {
 					id: paymentOrder.id,
 					csi: paymentOrder.csi,
-					amount: "1250",
+					amount: 1250,
 					currency: "USD",
-					status: "CREATED",
 					expiresAt: expect.any(String),
 				},
 				paymentMethods: [

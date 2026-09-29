@@ -12,6 +12,6 @@ export const AttemptPaymentSchema = {
       .string("Payment method code is required")
       .trim()
       .nonempty("Payment method code cannot be empty")
-      .transform((pm) => pm.toUpperCase()),
+      .transform((pm) => pm.toLowerCase()),
   }),
 };

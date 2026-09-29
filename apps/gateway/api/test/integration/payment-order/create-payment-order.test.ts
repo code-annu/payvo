@@ -110,4 +110,29 @@ describe("POST /api/payment-orders", () => {
       error: { message: "Missing or invalid request body" },
     });
   });
+
+  it("creates two different payment orders for the same merchant with different idempotency keys", async () => {
+    const { keyId, keySecret } = await createCredentials();
+    const payload1 = validPayload();
+    const payload2 = validPayload();
+
+    const [res1, res2] = await Promise.all([
+      request
+        .post("/api/payment-orders")
+        .set("x-api-key-id", keyId)
+        .set("x-api-key-secret", keySecret)
+        .send(payload1),
+      request
+        .post("/api/payment-orders")
+        .set("x-api-key-id", keyId)
+        .set("x-api-key-secret", keySecret)
+        .send(payload2),
+    ]);
+
+    expect(res1.status, JSON.stringify(res1.body)).toBe(201);
+    expect(res2.status, JSON.stringify(res2.body)).toBe(201);
+
+    // Both should return different checkout URLs
+    expect(res1.body.data.checkoutUrl).not.toBe(res2.body.data.checkoutUrl);
+  });
 });
