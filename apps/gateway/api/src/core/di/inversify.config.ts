@@ -19,6 +19,8 @@ import PaymentAttemptRepository from "@/modules/payment-attempt/repository/payme
 import AttemptPaymentUsecase from "@/modules/payment-attempt/application/usecase/AttemptPaymentUsecase.js";
 import PaymentAttemptController from "@/modules/payment-attempt/payment-attempt.controller.js";
 import PaymentAttemptRouter from "@/modules/payment-attempt/payment-attempt.router.js";
+import PaymentProvider from "@/provider/payment.provider.js";
+import ProcessedPaymentAttemptUsecase from "@/modules/payment-attempt/application/usecase/ProcessedPaymentAttemptUsecase.js";
 
 const container = new Container();
 
@@ -26,7 +28,9 @@ const container = new Container();
 container.bind(TYPES.PaymentOrderMapper).to(PaymentOrderMapper);
 container.bind(TYPES.PaymentOrderRepository).to(PaymentOrderRepository);
 container.bind(TYPES.CreatePaymentOrderUsecase).to(CreatePaymentOrderUsecase);
-container.bind(TYPES.CheckoutPaymentOrderUsecase).to(CheckoutPaymentOrderUsecase);
+container
+  .bind(TYPES.CheckoutPaymentOrderUsecase)
+  .to(CheckoutPaymentOrderUsecase);
 container.bind(TYPES.PaymentOrderController).to(PaymentOrderController);
 container.bind(TYPES.PaymentOrderRouter).to(PaymentOrderRouter);
 
@@ -40,5 +44,11 @@ container.bind(TYPES.PaymentAttemptRepository).to(PaymentAttemptRepository);
 container.bind(TYPES.AttemptPaymentUsecase).to(AttemptPaymentUsecase);
 container.bind(TYPES.PaymentAttemptController).to(PaymentAttemptController);
 container.bind(TYPES.PaymentAttemptRouter).to(PaymentAttemptRouter);
+container
+  .bind(TYPES.ProcessedPaymentAttemptUsecase)
+  .to(ProcessedPaymentAttemptUsecase);
+
+// Provider bindings
+container.bind(TYPES.PaymentProvider).to(PaymentProvider);
 
 export default container;

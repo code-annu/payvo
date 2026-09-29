@@ -29,7 +29,6 @@ describe("CheckoutPaymentOrderUsecase", () => {
 			csi: "csi-1",
 			amount: "100.00",
 			currency: "USD",
-			status: "CREATED" as const,
 			completedAt: null,
 			expiresAt,
 			createdAt: new Date("2026-09-25T00:00:00.000Z"),
@@ -54,7 +53,6 @@ describe("CheckoutPaymentOrderUsecase", () => {
 				csi: "csi-1",
 				amount: "100.00",
 				currency: "USD",
-				status: "CREATED",
 				expiresAt,
 			},
 			paymentMethods: [

@@ -48,16 +48,31 @@ export default class PaymentAttemptRepository {
       : null;
   }
 
-  async markAttemptSucceed(
+  async markSucceed(
     tx: TransactionClient,
-    data: { id: string; completedAt: Date },
+    data: { id: string },
   ): Promise<PaymentAttempt | null> {
     const paymentAttempt = await tx.orm.public.PaymentAttempt.where({
       id: data.id,
       status: "PROCESSING",
     }).update({
       status: "SUCCEED",
-      completedAt: data.completedAt.toISOString(),
+    });
+    return paymentAttempt
+      ? this.mapper.toPaymentAttemptEntity(paymentAttempt)
+      : null;
+  }
+
+  async markFailed(
+    tx: TransactionClient,
+    data: { id: string; reason: string },
+  ): Promise<PaymentAttempt | null> {
+    const paymentAttempt = await tx.orm.public.PaymentAttempt.where({
+      id: data.id,
+      status: "PROCESSING",
+    }).update({
+      status: "FAILED",
+      reason: data.reason,
     });
     return paymentAttempt
       ? this.mapper.toPaymentAttemptEntity(paymentAttempt)

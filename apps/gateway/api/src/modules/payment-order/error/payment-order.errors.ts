@@ -1,7 +1,6 @@
 import { AppError } from "@payvo/shared/error";
 import { HttpStatusCode } from "@payvo/shared/http";
 import PaymentOrderErrorCode from "./PaymentOrderErrorCode.js";
-import { PaymentOrderStatus } from "../entity/payment-order.entity.js";
 
 export class PaymentOrderNotFoundError extends AppError {
   constructor(message: string = "Payment order not found") {
@@ -13,13 +12,34 @@ export class PaymentOrderNotFoundError extends AppError {
   }
 }
 
-export class PaymentOrderInvalidState extends AppError {
-  constructor(message: string, details: { orderStatus: PaymentOrderStatus }) {
+export class PaymentOrderPaymentPendingError extends AppError {
+  constructor(
+    message: string = "Payment order already has a payment attempt in progress",
+  ) {
     super({
       message,
-      code: PaymentOrderErrorCode.PAYMENT_ORDER_INVALID_STATE,
+      statusCode: HttpStatusCode.Error.BAD_REQUEST,
+      code: PaymentOrderErrorCode.PAYMENT_ORDER_PAYMENT_PENDING,
+    });
+  }
+}
+
+export class PaymentOrderExpiredError extends AppError {
+  constructor(message: string = "Payment order has expired") {
+    super({
+      message,
+      statusCode: HttpStatusCode.Error.BAD_REQUEST,
+      code: PaymentOrderErrorCode.PAYMENT_ORDER_EXPIRED,
+    });
+  }
+}
+
+export class PaymentOrderCompletedError extends AppError {
+  constructor(message: string = "Payment order already completed") {
+    super({
+      message,
       statusCode: HttpStatusCode.Error.CONFLICT,
-      details,
+      code: PaymentOrderErrorCode.PAYMENT_ORDER_COMPLETED,
     });
   }
 }

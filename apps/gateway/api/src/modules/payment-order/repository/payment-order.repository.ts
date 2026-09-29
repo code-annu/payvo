@@ -14,6 +14,11 @@ export default class PaymentOrderRepository {
     private readonly mapper: PaymentOrderMapper,
   ) {}
 
+  async create(data: PaymentOrderCreateInput): Promise<PaymentOrder> {
+    const paymentOrder = await this.db.orm.public.PaymentOrder.create(data);
+    return this.mapper.toPaymentOrderEntity(paymentOrder);
+  }
+
   async findByIdempotencyKey(
     idempotencyKey: string,
   ): Promise<PaymentOrder | null> {
@@ -38,20 +43,17 @@ export default class PaymentOrderRepository {
     return paymentOrder ? this.mapper.toPaymentOrderEntity(paymentOrder) : null;
   }
 
-  async markPaymentPending(
+  async markCompleted(
     tx: TransactionClient,
-    data: { id: string; now: Date },
+    data: { id: string; completedAt: Date },
   ): Promise<PaymentOrder | null> {
-    const paymentOrder = await tx.orm.public.PaymentOrder.where({ id: data.id })
-      .where((order) => order.status.in(["CREATED", "FAILED"]))
-      .where((po) => po.expiresAt.gte(data.now.toISOString()))
-      .update({ status: "PAYMENT_PENDING" });
+    const { id, completedAt } = data;
+    const order = await tx.orm.public.PaymentOrder.where({ id })
+      .where((po) => po.completedAt.isNull())
+      .update({
+        completedAt: completedAt.toISOString(),
+      });
 
-    return paymentOrder ? this.mapper.toPaymentOrderEntity(paymentOrder) : null;
-  }
-
-  async create(data: PaymentOrderCreateInput): Promise<PaymentOrder> {
-    const paymentOrder = await this.db.orm.public.PaymentOrder.create(data);
-    return this.mapper.toPaymentOrderEntity(paymentOrder);
+    return order ? this.mapper.toPaymentOrderEntity(order) : null;
   }
 }

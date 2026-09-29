@@ -15,8 +15,12 @@ const TYPES = {
   PaymentAttemptMapper: Symbol.for("PaymentAttemptMapper"),
   PaymentAttemptRepository: Symbol.for("PaymentAttemptRepository"),
   AttemptPaymentUsecase: Symbol.for("AttemptPaymentUsecase"),
+  ProcessedPaymentAttemptUsecase: Symbol.for("ProcessedPaymentAttemptUsecase"),
   PaymentAttemptController: Symbol.for("PaymentAttemptController"),
   PaymentAttemptRouter: Symbol.for("PaymentAttemptRouter"),
+
+  // Provider types
+  PaymentProvider: Symbol.for("PaymentProvider"),
 };
 
 export default TYPES;

@@ -74,10 +74,10 @@ describe("CreatePaymentOrderUsecase", () => {
 				csi: "csi-1",
 				amount: "1250",
 				currency: "USD",
-				status: "CREATED",
 				expiresAt: expect.any(String),
 			}),
 		);
+
 	});
 
 	it("propagates repository failures", async () => {

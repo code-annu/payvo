@@ -14,7 +14,6 @@ export default class PaymentOrderMapper {
       csi: paymentOrder.csi,
       amount: String(paymentOrder.amount),
       currency: paymentOrder.currency,
-      status: paymentOrder.status,
       completedAt: paymentOrder.completedAt
         ? new Date(paymentOrder.completedAt)
         : null,

@@ -4,10 +4,11 @@ import TYPES from "@/core/di/inversify.types.js";
 import PaymentMethodRepository from "@/modules/payment-method/repository/payment-method.repository.js";
 import { PaymentMethodNotFoundError } from "@/modules/payment-method/error/payment-method.errors.js";
 import {
-  PaymentOrderInvalidStateError,
+  PaymentOrderCompletedError,
+  PaymentOrderExpiredError,
   PaymentOrderNotFoundError,
+  PaymentOrderPaymentPendingError,
 } from "@/modules/payment-order/error/payment-order.errors.js";
-import type { PaymentOrderStatus } from "@/modules/payment-order/entity/payment-order.entity.js";
 import PaymentOrderRepository from "@/modules/payment-order/repository/payment-order.repository.js";
 import PaymentAttemptRepository from "../../repository/payment-attempt.repository.js";
 import type {
@@ -15,6 +16,7 @@ import type {
   AttemptPaymentOutputDto,
 } from "../dto/AttemptPaymentDto.js";
 import PaymentProvider from "@/provider/payment.provider.js";
+import { isBefore } from "date-fns";
 
 @injectable()
 export default class AttemptPaymentUsecase {
@@ -38,40 +40,29 @@ export default class AttemptPaymentUsecase {
         tx,
         input.paymentMethodCode,
       );
+      if (!paymentMethod) throw new PaymentMethodNotFoundError();
 
-      if (!paymentMethod) {
-        throw new PaymentMethodNotFoundError();
-      }
-
-      const paymentOrder = await this.paymentOrderRepository.markPaymentPending(
+      const order = await this.paymentOrderRepository.findById(
         tx,
-        { id: input.paymentOrderId, now },
+        input.paymentOrderId,
       );
-
-      if (!paymentOrder) {
-        const currentOrder = await this.paymentOrderRepository.findById(
-          tx,
-          input.paymentOrderId,
+      if (!order) throw new PaymentOrderNotFoundError();
+      if (isBefore(order.expiresAt, now)) {
+        throw new PaymentOrderExpiredError(
+          "Expired order cannot be attempted for payment",
         );
-
-        if (!currentOrder) {
-          throw new PaymentOrderNotFoundError();
-        }
-
-        const message = this.getInvalidStateMessage(currentOrder.status);
-        throw new PaymentOrderInvalidStateError(message, {
-          orderStatus: currentOrder.status,
-        });
+      }
+      if (order.completedAt) {
+        throw new PaymentOrderCompletedError(
+          "Cannot attempt a payment which is already completed",
+        );
       }
 
       const attemptNumber =
-        await this.paymentAttemptRepository.getNextAttemptNumber(
-          tx,
-          paymentOrder.id,
-        );
+        await this.paymentAttemptRepository.getNextAttemptNumber(tx, order.id);
 
       const paymentAttempt = await this.paymentAttemptRepository.create(tx, {
-        paymentOrderId: paymentOrder.id,
+        paymentOrderId: order.id,
         paymentMethodId: paymentMethod.id,
         attemptNumber,
         status: "PROCESSING",
@@ -83,22 +74,14 @@ export default class AttemptPaymentUsecase {
       });
 
       return {
-        paymentOrderId: paymentAttempt.paymentOrderId,
-        paymentMethodCode: paymentMethod.code,
+        paymentAttemptId: paymentAttempt.id,
+        paymentMethod: {
+          id: paymentMethod.id,
+          code: paymentMethod.code,
+          name: paymentMethod.name,
+        },
+        status: paymentAttempt.status,
       };
     });
-  }
-
-  private getInvalidStateMessage(status: PaymentOrderStatus): string {
-    switch (status) {
-      case "PAYMENT_PENDING":
-        return "Payment order already has a payment attempt in progress";
-      case "EXPIRED":
-        return "Payment order has expired";
-      case "COMPLETED":
-        return "Payment order has already been completed";
-      default:
-        return `Payment order cannot be attempted in its current state (${status})`;
-    }
   }
 }

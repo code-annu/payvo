@@ -29,7 +29,6 @@ export default class CheckoutPaymentOrderUsecase {
         csi: paymentOrder.csi,
         amount: paymentOrder.amount,
         currency: paymentOrder.currency,
-        status: paymentOrder.status,
         expiresAt: paymentOrder.expiresAt,
       },
       paymentMethods: paymentMethods.map((paymentMethod) => ({

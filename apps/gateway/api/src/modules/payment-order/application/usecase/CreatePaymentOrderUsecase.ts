@@ -37,7 +37,6 @@ export default class CreatePaymentOrderUsecase {
       csi: generateId(16),
       amount: input.amount.toString(),
       currency: input.currency as any,
-      status: "CREATED",
       expiresAt: addMinutes(
         now,
         paymentConfig.order.expiryMinutes,

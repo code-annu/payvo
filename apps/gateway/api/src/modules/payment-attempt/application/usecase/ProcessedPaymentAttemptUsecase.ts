@@ -3,16 +3,12 @@ import { ProcessedPaymentAttemptInputDto } from "../dto/ProcessedPaymentAttemptD
 import TYPES from "@/core/di/inversify.types.js";
 import PaymentAttemptRepository from "../../repository/payment-attempt.repository.js";
 import PaymentOrderRepository from "@/modules/payment-order/repository/payment-order.repository.js";
-import { dbTransaction } from "@payvo/database/client";
+import { dbTransaction, type TransactionClient } from "@payvo/database/client";
 import {
   PaymentAttemptInvalidStateError,
   PaymentAttemptNotFoundError,
 } from "../../error/payment-attempt.errors.js";
-import { isAfter } from "date-fns";
-import {
-  PaymentOrderInvalidStateError,
-  PaymentOrderNotFoundError,
-} from "@/modules/payment-order/error/payment-order.errors.js";
+import { PaymentOrderNotFoundError } from "@/modules/payment-order/error/payment-order.errors.js";
 
 @injectable()
 export default class ProcessedPaymentAttemptUsecase {
@@ -25,56 +21,84 @@ export default class ProcessedPaymentAttemptUsecase {
 
   async execute(input: ProcessedPaymentAttemptInputDto) {
     const { processed, paymentAttemptId } = input;
+
+    await dbTransaction(async (tx) => {
+      if (processed) {
+        await this.handleProcessed(tx, paymentAttemptId);
+      } else {
+        await this.handleNotProcessed(tx, paymentAttemptId);
+      }
+    });
+
+    console.log("Payment is processed!!!");
+  }
+
+  private async handleProcessed(
+    tx: TransactionClient,
+    paymentAttemptId: string,
+  ) {
     const now = new Date();
-    if (processed) {
-      dbTransaction(async (tx) => {
-        const attempt = await this.paymentAttemptRepo.findById(
-          tx,
-          paymentAttemptId,
+    const succeedAttempt = await this.paymentAttemptRepo.markSucceed(tx, {
+      id: paymentAttemptId,
+    });
+
+    if (!succeedAttempt) {
+      const attempt = await this.paymentAttemptRepo.findById(
+        tx,
+        paymentAttemptId,
+      );
+      if (attempt && attempt.status !== "PROCESSING") {
+        throw new PaymentAttemptInvalidStateError(
+          "Only processing attempt can be succeed",
+          {
+            attemptStatus: attempt.status,
+          },
         );
-        if (!attempt) throw new PaymentAttemptNotFoundError();
-        if (attempt.status !== "PROCESSING") {
-          throw new PaymentAttemptInvalidStateError(
-            "Only PROCESSING payment attempts can be processed",
-            { attemptStatus: attempt.status },
-          );
-        }
+      }
+      throw new PaymentAttemptNotFoundError("Attempt not found");
+    }
 
-        const order = await this.paymentOrderRepo.findById(
-          tx,
-          attempt.paymentOrderId,
+    const completedOrder = await this.paymentOrderRepo.markCompleted(tx, {
+      id: succeedAttempt.paymentOrderId,
+      completedAt: now,
+    });
+    if (!completedOrder) {
+      throw new PaymentOrderNotFoundError("Order not found");
+    }
+  }
+
+  private async handleNotProcessed(
+    tx: TransactionClient,
+    paymentAttemptId: string,
+  ) {
+    const failedAttempt = await this.paymentAttemptRepo.markFailed(tx, {
+      id: paymentAttemptId,
+      reason: "Payment failed",
+    });
+
+    if (!failedAttempt) {
+      const attempt = await this.paymentAttemptRepo.findById(
+        tx,
+        paymentAttemptId,
+      );
+      if (attempt && attempt.status !== "PROCESSING") {
+        throw new PaymentAttemptInvalidStateError(
+          "Only processing attempt can be failed",
+          {
+            attemptStatus: attempt.status,
+          },
         );
-        if (!order) throw new PaymentOrderNotFoundError();
+      }
+      throw new PaymentAttemptNotFoundError("Attempt not found");
+    }
 
-        const succeedAttempt = await this.paymentAttemptRepo.markAttemptSucceed(
-          tx,
-          { id: paymentAttemptId, completedAt: now },
-        );
-        if (!succeedAttempt) {
-          throw new PaymentAttemptInvalidStateError(
-            "Failed to update payment attempt",
-            { attemptStatus: attempt.status },
-          );
-        }
-
-        const completedOrder = await this.paymentOrderRepo.markCompleted(tx, {
-          id: attempt.paymentOrderId,
-          completedAt: now,
-          isLatePayment: isAfter(now, order.expiresAt),
-        });
-
-        if (!completedOrder) {
-          throw new PaymentOrderInvalidStateError(
-            "Failed to update payment order",
-            { orderStatus: order.status },
-          );
-        }
-
-        // Call webhook
-        console.log("Webhook called");
-
-        return completedOrder;
-      });
+    const order = await this.paymentOrderRepo.findById(
+      tx,
+      failedAttempt.paymentOrderId,
+    );
+    if (!order) {
+      throw new PaymentOrderNotFoundError("Order not found");
     }
   }
 }
+
