@@ -8,11 +8,21 @@ import handleError from "./core/middleware/error-handler.middleware.js";
 import ApiKeyRouter from "./modules/api-key/api-key.router.js";
 import MerchantRouter from "./modules/merchant/merchant.router.js";
 import InternalRouter from "./internals/internal.router.js";
+import cors from "cors";
+import { serverConfig } from "@payvo/config/server";
 
 const app: Express = express();
 
+const corsOptions = {
+  origin: serverConfig.frontendUrl,
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+  credentials: true, // if you're sending cookies or auth headers
+};
+
 app.use(express.json());
 app.use(cookieParser());
+app.use(cors(corsOptions));
 
 // Auth routes
 const authRouter = container.get<AuthRouter>(TYPES.AuthRouter);
