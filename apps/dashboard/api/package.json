@@ -15,18 +15,19 @@
   "type": "module",
   "devDependencies": {
     "@types/cookie-parser": "^1.4.10",
+    "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6"
   },
   "dependencies": {
+    "@payvo/config": "workspace:*",
+    "@payvo/database": "workspace:*",
+    "@payvo/shared": "workspace:*",
     "cookie-parser": "^1.4.7",
     "date-fns": "^4.4.0",
     "express": "^5.2.1",
     "inversify": "^8.2.3",
     "reflect-metadata": "^0.2.2",
     "ua-parser-js": "^2.0.10",
-    "zod": "^4.6.5",
-    "@payvo/config": "workspace:*",
-    "@payvo/database": "workspace:*",
-    "@payvo/shared": "workspace:*"
+    "zod": "^4.6.5"
   }
 }
