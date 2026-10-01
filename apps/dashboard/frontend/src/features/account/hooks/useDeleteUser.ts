@@ -5,16 +5,19 @@ import UserApi from "../api/user.api";
 import { authToken } from "@/features/auth/auth.store";
 import { ApiError } from "@/core/api/api.error";
 import AppRoutes from "@/router/app.routes";
+import { useMerchantStore } from "@/app/store/merchant.store";
 
 export function useDeleteUser() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { setSelectedMerchantId } = useMerchantStore();
 
   return useMutation({
     mutationFn: UserApi.deleteMe,
     onSuccess: () => {
       authToken.clear();
       queryClient.clear();
+      setSelectedMerchantId(null);
       toast.success("Account deleted successfully", {
         description: "Your account and data have been removed.",
       });
