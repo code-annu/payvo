@@ -8,6 +8,7 @@ import handleError from "./core/middleware/error-handler.middleware.js";
 import ApiKeyRouter from "./modules/api-key/api-key.router.js";
 import MerchantRouter from "./modules/merchant/merchant.router.js";
 import InternalRouter from "./internals/internal.router.js";
+import WebhookRouter from "./modules/webhook/webhook.router.js";
 import cors from "cors";
 import { serverConfig } from "@payvo/config/server";
 
@@ -38,11 +39,11 @@ app.use("/api/merchants", merchantRouter.router);
 
 // Api-Key routes
 const apiKeyRouter = container.get<ApiKeyRouter>(TYPES.ApiKeyRouter);
-app.use(
-  "/api/merchants/:merchantId/api-keys",
-  apiKeyRouter.merchantApiKeyRouter,
-);
-app.use("/api/api-keys", apiKeyRouter.router);
+app.use("/api/merchants/:merchantId/api-keys", apiKeyRouter.router);
+
+// Webhook routes
+const webhookRouter = container.get<WebhookRouter>(TYPES.WebhookRouter);
+app.use("/api/merchants/:merchantId/webhooks", webhookRouter.router);
 
 // Internal routes
 const internalRouter = container.get<InternalRouter>(TYPES.InternalRouter);

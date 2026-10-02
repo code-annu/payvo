@@ -32,16 +32,29 @@ import GetUserMerchantsUsecase from "@/modules/merchant/application/usecase/GetU
 import DeleteMerchantUsecase from "@/modules/merchant/application/usecase/DeleteMerchantUsecase.js";
 import MerchantController from "@/modules/merchant/merchant.controller.js";
 import MerchantRouter from "@/modules/merchant/merchant.router.js";
+import MerchantAuthorizationService from "@/modules/merchant/application/merchant-authorization.service.js";
 
 // Api-Key module
 import ApiKeyMapper from "@/modules/api-key/api-key.mapper.js";
 import ApiKeyRepository from "@/modules/api-key/repository/api-key.repository.js";
 import GenerateApiKeyUsecase from "@/modules/api-key/application/usecase/GenerateApiKeyUsecase.js";
 import GetActiveApiKeyUsecase from "@/modules/api-key/application/usecase/GetActiveApiKeyUsecase.js";
+import ListMerchantApiKeysUsecase from "@/modules/api-key/application/usecase/ListMerchantApiKeysUsecase.js";
 import RotateApiKeyUsecase from "@/modules/api-key/application/usecase/RotateApiKeyUsecase.js";
 import RevokeApiKeyUsecase from "@/modules/api-key/application/usecase/RevokeApiKeyUsecase.js";
 import ApiKeyController from "@/modules/api-key/api-key.controller.js";
 import ApiKeyRouter from "@/modules/api-key/api-key.router.js";
+
+// Webhook module
+import WebhookMapper from "@/modules/webhook/webhook.mapper.js";
+import WebhookRepository from "@/modules/webhook/repository/webhook.repository.js";
+import CreateWebhookUsecase from "@/modules/webhook/application/usecase/CreateWebhookUsecase.js";
+import GetMerchantWebhooksUsecase from "@/modules/webhook/application/usecase/GetMerchantWebhooksUsecase.js";
+import GetWebhookDetailsUsecase from "@/modules/webhook/application/usecase/GetWebhookDetailsUsecase.js";
+import DeleteWebhookUsecase from "@/modules/webhook/application/usecase/DeleteWebhookUsecase.js";
+import UpdateWebhookUsecase from "@/modules/webhook/application/usecase/UpdateWebhookUsecase.js";
+import WebhookController from "@/modules/webhook/webhook.controller.js";
+import WebhookRouter from "@/modules/webhook/webhook.router.js";
 
 // Util
 import ClientInfoUtil from "@/core/util/client.util.js";
@@ -85,16 +98,32 @@ container.bind(TYPES.GetUserMerchantsUsecase).to(GetUserMerchantsUsecase);
 container.bind(TYPES.DeleteMerchantUsecase).to(DeleteMerchantUsecase);
 container.bind(TYPES.MerchantController).to(MerchantController);
 container.bind(TYPES.MerchantRouter).to(MerchantRouter);
-
+container
+  .bind(TYPES.MerchantAuthorizationService)
+  .to(MerchantAuthorizationService);
 // Api-Key bindings
 container.bind(TYPES.ApiKeyMapper).to(ApiKeyMapper);
 container.bind(TYPES.ApiKeyRepository).to(ApiKeyRepository);
 container.bind(TYPES.GenerateApiKeyUsecase).to(GenerateApiKeyUsecase);
 container.bind(TYPES.GetActiveApiKeyUsecase).to(GetActiveApiKeyUsecase);
+container
+  .bind(TYPES.ListMerchantApiKeysUsecase)
+  .to(ListMerchantApiKeysUsecase);
 container.bind(TYPES.RotateApiKeyUsecase).to(RotateApiKeyUsecase);
 container.bind(TYPES.RevokeApiKeyUsecase).to(RevokeApiKeyUsecase);
 container.bind(TYPES.ApiKeyController).to(ApiKeyController);
 container.bind(TYPES.ApiKeyRouter).to(ApiKeyRouter);
+
+// Webhook bindings
+container.bind(TYPES.WebhookMapper).to(WebhookMapper);
+container.bind(TYPES.WebhookRepository).to(WebhookRepository);
+container.bind(TYPES.CreateWebhookUsecase).to(CreateWebhookUsecase);
+container.bind(TYPES.GetMerchantWebhooksUsecase).to(GetMerchantWebhooksUsecase);
+container.bind(TYPES.GetWebhookDetailsUsecase).to(GetWebhookDetailsUsecase);
+container.bind(TYPES.DeleteWebhookUsecase).to(DeleteWebhookUsecase);
+container.bind(TYPES.UpdateWebhookUsecase).to(UpdateWebhookUsecase);
+container.bind(TYPES.WebhookController).to(WebhookController);
+container.bind(TYPES.WebhookRouter).to(WebhookRouter);
 
 // Internal bindings
 container.bind(TYPES.ValidateApiKeyUsecase).to(ValidateApiKeyUsecase);

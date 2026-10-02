@@ -1,7 +1,7 @@
 import { injectable, inject } from "inversify";
 import UserMapper from "../user.mapper.js";
 import TYPES from "@/core/di/inversify.types.js";
-import { client } from "@payvo/database/client";
+import { client, TransactionClient } from "@payvo/database/client";
 import { UserCreateInput, UserUpdateInput } from "@payvo/database/types";
 import { User } from "../entity/user.entity.js";
 
@@ -44,11 +44,12 @@ export default class UserRepository {
     return user ? this.mapper.toUserEntity(user) : null;
   }
 
-  async softDelete(id: string): Promise<User | null> {
-    const user = await this.db.orm.public.User.where({
+  async softDelete(id: string, tx?: TransactionClient): Promise<User | null> {
+    const user = await (tx ?? this.db).orm.public.User.where({
       id,
       deletedAt: null,
     }).update({ deletedAt: new Date().toISOString() });
     return user ? this.mapper.toUserEntity(user) : null;
   }
 }
+

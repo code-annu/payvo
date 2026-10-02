@@ -39,6 +39,7 @@ const TYPES = {
   MerchantRouter: Symbol.for("MerchantRouter"),
   MerchantMapper: Symbol.for("MerchantMapper"),
   MerchantCacheService: Symbol.for("MerchantCacheService"),
+  MerchantAuthorizationService: Symbol.for("MerchantAuthorizationService"),
 
   // ApiKey types
   ApiKeyRepository: Symbol.for("ApiKeyRepository"),
@@ -48,8 +49,20 @@ const TYPES = {
   ApiKeyMapper: Symbol.for("ApiKeyMapper"),
   GenerateApiKeyUsecase: Symbol.for("GenerateApiKeyUsecase"),
   GetActiveApiKeyUsecase: Symbol.for("GetActiveApiKeyUsecase"),
+  ListMerchantApiKeysUsecase: Symbol.for("ListMerchantApiKeysUsecase"),
   RotateApiKeyUsecase: Symbol.for("RotateApiKeyUsecase"),
   RevokeApiKeyUsecase: Symbol.for("RevokeApiKeyUsecase"),
+
+  // Webhook types
+  WebhookRepository: Symbol.for("WebhookRepository"),
+  WebhookMapper: Symbol.for("WebhookMapper"),
+  WebhookController: Symbol.for("WebhookController"),
+  WebhookRouter: Symbol.for("WebhookRouter"),
+  CreateWebhookUsecase: Symbol.for("CreateWebhookUsecase"),
+  GetMerchantWebhooksUsecase: Symbol.for("GetMerchantWebhooksUsecase"),
+  GetWebhookDetailsUsecase: Symbol.for("GetWebhookDetailsUsecase"),
+  DeleteWebhookUsecase: Symbol.for("DeleteWebhookUsecase"),
+  UpdateWebhookUsecase: Symbol.for("UpdateWebhookUsecase"),
 
   // Internal types
   ValidateApiKeyUsecase: Symbol.for("ValidateApiKeyUsecase"),
