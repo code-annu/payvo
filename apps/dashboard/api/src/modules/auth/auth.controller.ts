@@ -69,7 +69,6 @@ export default class AuthController {
 
   postRotateToken = catchAsync(async (req: Request, res: Response) => {
     const { refreshToken: token } = req.cookies;
-
     const { accessToken, refreshToken } =
       await this.rotateTokenUsecase.execute(token);
 

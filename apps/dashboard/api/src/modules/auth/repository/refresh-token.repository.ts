@@ -35,9 +35,14 @@ export default class RefreshTokenRepository {
       )
       .first();
 
-    return refreshToken
-      ? this.mapper.toRefreshTokenRotationEntity(refreshToken)
-      : null;
+    if (!refreshToken || !refreshToken.session || !refreshToken.session.user) {
+      return null;
+    }
+
+    return this.mapper.toRefreshTokenRotationEntity({
+      ...refreshToken,
+      session: { ...refreshToken.session, user: refreshToken.session.user },
+    });
   }
 
   async revoke(
@@ -60,5 +65,14 @@ export default class RefreshTokenRepository {
       sessionId: data.sessionId,
       revokedAt: null,
     }).update({ revokedAt: data.now.toISOString() });
+  }
+
+  async revokeAllByUserId(
+    tx: TransactionClient,
+    data: { userId: string; now: Date },
+  ): Promise<void> {
+    await tx.orm.public.RefreshToken.where((rt) => rt.revokedAt.isNull())
+      .where((rt) => rt.session.some((s) => s.userId.eq(data.userId)))
+      .updateAll({ revokedAt: data.now.toISOString() });
   }
 }

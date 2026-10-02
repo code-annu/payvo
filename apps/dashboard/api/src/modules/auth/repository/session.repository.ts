@@ -39,4 +39,14 @@ export default class SessionRepository {
       revokedAt: null,
     }).update({ revokedAt: data.now.toISOString() });
   }
+
+  async revokeAllByUserId(
+    tx: TransactionClient,
+    data: { userId: string; now: Date },
+  ): Promise<void> {
+    await tx.orm.public.Session.where({
+      userId: data.userId,
+      revokedAt: null,
+    }).update({ revokedAt: data.now.toISOString() });
+  }
 }
