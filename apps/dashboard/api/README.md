@@ -20,12 +20,12 @@
   - [3. Run database migrations](#3-run-database-migrations)
   - [4. Start the development server](#4-start-the-development-server)
 - [API Reference](#api-reference)
-  - [Authentication](#authentication----apiauth)
-  - [Account](#account----apiaccount)
-  - [Merchants](#merchants----apimerchants)
-  - [API Keys (Merchant-scoped)](#api-keys-merchant-scoped----apimerchantsmerchantidapi-keys)
-  - [API Keys (Top-level)](#api-keys-top-level----apiapi-keys)
-  - [Internal](#internal----internal)
+  - [Authentication](#authentication)
+  - [Account](#account)
+  - [Merchants](#merchants)
+  - [API Keys (Merchant-scoped)](#api-keys-merchant-scoped)
+  - [Webhooks (Merchant-scoped)](#webhooks-merchant-scoped)
+  - [Internal](#internal)
 - [Authentication Flow](#authentication-flow)
   - [Token Strategy](#token-strategy)
   - [Session Management](#session-management)
@@ -48,8 +48,9 @@
 
 - **Secure authentication** with JWT access tokens (short-lived, configurable) and rotating HTTP-only refresh tokens (configurable session expiry).
 - **Account management** — retrieve, update, and soft-delete the authenticated user's account.
-- **Merchant lifecycle management** — create, view, and delete merchants with active-user enforcement.
-- **API key management** — generate, fetch, rotate, and revoke `TEST` / `LIVE` environment API keys per merchant with configurable revocation strategies.
+- **Merchant lifecycle management** — create, view, list, and delete merchants with active-user enforcement.
+- **API key management** — generate, list, fetch, rotate, and revoke `TEST` / `LIVE` environment API keys per merchant with configurable revocation strategies.
+- **Webhook management** — create, list, view, update, and delete webhook endpoints for active merchants.
 - **Internal service-to-service API** — validate API key credentials from other Payvo services via a shared secret.
 - **CORS configuration** — origin-restricted cross-origin support for the frontend dashboard.
 - **Structured error handling** with machine-readable error codes for frontend consumption.
@@ -69,7 +70,7 @@ apps/dashboard/api/
 │   ├── server.ts               # Server bootstrap — binds to port from @payvo/config
 │   ├── core/
 │   │   ├── di/
-│   │   │   ├── inversify.config.ts   # IoC container — all singleton bindings
+│   │   │   ├── inversify.config.ts   # IoC container — dependency bindings
 │   │   │   └── inversify.types.ts    # Symbol registry for DI tokens
 │   │   ├── handlers/
 │   │   │   └── async.catch.ts        # Async error wrapper for Express handlers
@@ -85,8 +86,9 @@ apps/dashboard/api/
 │   │   ├── auth/               # Authentication & session domain
 │   │   ├── account/            # Account management domain (get, update, delete)
 │   │   ├── user/               # User data-access layer (repository, mapper, entity)
-│   │   ├── merchant/           # Merchant management domain
-│   │   └── api-key/            # API key lifecycle domain
+│   │   ├── merchant/           # Merchant management and authorization
+│   │   ├── api-key/            # Merchant-scoped API key lifecycle
+│   │   └── webhook/            # Merchant-scoped webhook management
 │   └── internals/
 │       ├── internal.router.ts        # Internal service routes
 │       ├── internal.controller.ts    # Internal endpoint handlers
@@ -106,7 +108,7 @@ apps/dashboard/api/
 
 The API uses **[Inversify](https://inversify.io/)** v8 for IoC/DI. Every class is decorated with `@injectable()`, and constructor dependencies are injected with `@inject(TYPES.<Token>)`.
 
-All bindings are registered in `src/core/di/inversify.config.ts` and all token symbols live in `src/core/di/inversify.types.ts`. Every dependency is bound in **singleton scope** — one instance per application lifecycle.
+All bindings are registered in `src/core/di/inversify.config.ts` and all token symbols live in `src/core/di/inversify.types.ts`. Bindings use the container's default scope; the registrations do not explicitly request singleton scope.
 
 ```
 Container
@@ -144,10 +146,21 @@ Container
   ├── ApiKeyMapper
   ├── GenerateApiKeyUsecase
   ├── GetActiveApiKeyUsecase
+  ├── ListMerchantApiKeysUsecase
   ├── RotateApiKeyUsecase
   ├── RevokeApiKeyUsecase
   ├── ApiKeyController
   ├── ApiKeyRouter
+  │
+  ├── WebhookRepository          (Webhook)
+  ├── WebhookMapper
+  ├── CreateWebhookUsecase
+  ├── GetMerchantWebhooksUsecase
+  ├── GetWebhookDetailsUsecase
+  ├── UpdateWebhookUsecase
+  ├── DeleteWebhookUsecase
+  ├── WebhookController
+  ├── WebhookRouter
   │
   ├── ValidateApiKeyUsecase       (Internal)
   ├── InternalController
@@ -213,12 +226,17 @@ Create a `.env.development` file in `apps/dashboard/api/`. These variables are r
 | Variable | Description | Example |
 |---|---|---|
 | `PORT` | Port the server listens on | `3000` |
-| `ACCESS_TOKEN_SECRET` | Base64-encoded secret for signing JWTs | `V422XYsLS1u1...` |
-| `ACCESS_TOKEN_EXPIRY_MIN` | Access token lifespan in minutes | `15` |
-| `SESSION_EXPIRY_DAYS` | Session (refresh token) lifespan in days | `30` |
-| `FRONTEND_URL` | Frontend dashboard URL (CORS origin) | `http://localhost:5173` |
-| `DATABASE_URL` | PostgreSQL connection string | `postgresql://admin:pass@localhost:5432/payvo_development` |
-| `INTERNAL_SECRET` | Shared secret for service-to-service authentication | `QRjaejRh8+oX...` |
+| `ACCESS_TOKEN_SECRET` | Secret used to sign access tokens | `<random-secret>` |
+| `ACCESS_TOKEN_EXPIRY_MIN` | Access-token lifespan in minutes | `15` |
+| `SESSION_EXPIRY_DAYS` | Session (refresh-token) lifespan in days | `30` |
+| `FRONTEND_URL` | Frontend dashboard URL used as the CORS origin | `http://localhost:5173` |
+| `DATABASE_URL` | PostgreSQL connection string | `postgresql://<user>:<password>@localhost:5432/<database>` |
+| `INTERNAL_SECRET` | Shared secret for service-to-service authentication | `<random-secret>` |
+| `REDIS_URL` | Redis connection string from shared configuration | `redis://localhost:6379` |
+| `DASHBOARD_INTERNAL_URL` | Dashboard API URL from shared application configuration | `http://localhost:3000` |
+| `PAYMENT_ORDER_EXPIRY_MINUTES` | Payment-order expiry duration in minutes | `30` |
+| `CHECKOUT_BASE_URL` | Base URL used to build checkout links | `http://localhost:5173/checkout` |
+| `PAYMENT_CHECKOUT_SESSION_EXPIRY_MINUTES` | Payment checkout-session expiry duration in minutes | `30` |
 
 > **Security note:** Never commit real secrets. The `ACCESS_TOKEN_SECRET` and `INTERNAL_SECRET` should be cryptographically random base64-encoded values of at least 32 bytes.
 
@@ -283,19 +301,17 @@ Server is running on port: 3000
 
 ## API Reference
 
-All endpoints are prefixed with the base URL (e.g. `http://localhost:3000`).
+All routes are relative to the API base URL (for example, `http://localhost:3000`). JSON successes use `{ "success": true, "data": ... }`, except routes returning `204 No Content`, which have no body.
 
-### Authentication — `/api/auth`
+### Authentication
 
-Authentication endpoints use a **dual-token** strategy. The access token is returned in the JSON body; the refresh token is set as an **HTTP-only cookie** (`refreshToken`).
+Base path: `/api/auth`.
 
----
+Signup and login return a short-lived access token in JSON and set a refresh token in an HTTP-only, secure, `SameSite=Strict` cookie scoped to `/api/auth/rotate-token`.
 
 #### `POST /api/auth/signup`
 
-Register a new user account.
-
-**Request body:**
+Creates an account, session, and refresh-token record.
 
 ```json
 {
@@ -306,436 +322,273 @@ Register a new user account.
 }
 ```
 
-| Field | Type | Required | Constraints |
-|---|---|---|---|
-| `email` | string | Yes | Valid email format |
-| `password` | string | Yes | Min 8 chars, 1 uppercase, 1 lowercase, 1 digit, 1 special char (`@$!%*?&`) |
-| `fullname` | string | Yes | 3 to 50 characters |
-| `companyName` | string | No | Max 100 characters; `null` if not provided |
+| Field | Type | Required | Validation |
+|---|---|---:|---|
+| `email` | string | Yes | Trimmed valid email |
+| `password` | string | Yes | Trimmed, at least 8 characters; includes lowercase, uppercase, number, and one of `@$!%*?&` |
+| `fullname` | string | Yes | Trimmed, 3–50 characters |
+| `companyName` | string \| null | No | Trimmed, at most 100 characters; omitted/null becomes `null` |
 
-**Success response — `201 Created`:**
+**`201 Created` response:**
 
 ```json
-{
-  "success": true,
-  "data": {
-    "accessToken": "<jwt>"
-  }
-}
+{ "success": true, "data": { "accessToken": "<jwt>" } }
 ```
 
-Sets `refreshToken` HTTP-only cookie (scoped to `/api/auth/rotate-token`).
-
-**Error responses:**
-- `400 Bad Request` — validation failure
-- `409 Conflict` — email already registered (`EMAIL_ALREADY_EXISTS`)
-
----
+Sets the refresh-token cookie. Errors: `400 INVALID_REQUEST` for invalid input; `409 EMAIL_ALREADY_EXISTS` if the email is already registered.
 
 #### `POST /api/auth/login`
 
-Authenticate an existing user.
+Body: `{ "email": "user@example.com", "password": "MyPass@123" }`. Both fields are required; email must be valid.
 
-**Request body:**
+**`200 OK` response:** `{ "success": true, "data": { "accessToken": "<jwt>" } }`. Sets the refresh-token cookie.
 
-```json
-{
-  "email": "user@example.com",
-  "password": "MyPass@123"
-}
-```
-
-**Success response — `200 OK`:**
-
-```json
-{
-  "success": true,
-  "data": {
-    "accessToken": "<jwt>"
-  }
-}
-```
-
-Sets `refreshToken` HTTP-only cookie.
-
-**Error responses:**
-- `400 Bad Request` — validation failure
-- `401 Unauthorized` — wrong credentials (`INVALID_CREDENTIALS`)
-
----
+Errors: `400 INVALID_REQUEST` for invalid input; `401 INVALID_CREDENTIALS` for incorrect credentials.
 
 #### `POST /api/auth/rotate-token`
 
-Exchange the current refresh token (read from the `refreshToken` cookie) for a fresh pair of tokens. Implements **refresh token rotation** — the old refresh token is immediately invalidated.
+Requires a non-empty `refreshToken` cookie. Revokes the presented refresh token and returns a replacement pair.
 
-**Cookie required:** `refreshToken`
+**`200 OK` response:** `{ "success": true, "data": { "accessToken": "<jwt>" } }`. Replaces the refresh-token cookie.
 
-**Success response — `200 OK`:**
-
-```json
-{
-  "success": true,
-  "data": {
-    "accessToken": "<new-jwt>"
-  }
-}
-```
-
-Sets a new `refreshToken` cookie.
-
-**Error responses:**
-- `401 Unauthorized` — invalid (`INVALID_REFRESH_TOKEN`), expired (`EXPIRED_SESSION`), or revoked (`REVOKED_REFRESH_TOKEN`) token
-
----
+Errors: `400 INVALID_REQUEST` when the cookie is missing/empty; `401` for `INVALID_REFRESH_TOKEN`, `REVOKED_REFRESH_TOKEN`, `EXPIRED_SESSION`, `REVOKED_SESSION`, or `INVALID_CREDENTIALS` when the session or user is no longer valid.
 
 #### `POST /api/auth/logout`
 
-Revoke the current session (based on the access token's `sid` claim). Clears the `refreshToken` cookie.
+Requires `Authorization: Bearer <access-token>`. Revokes the current session and clears the refresh-token cookie.
 
-**Authorization:** `Bearer <accessToken>`
+**`200 OK` response:** `{ "success": true, "data": { "message": "Logged out successfully" } }`.
 
-**Success response — `200 OK`:**
+### Account
 
-```json
-{
-  "success": true,
-  "data": {
-    "message": "Logged out successfully"
-  }
-}
-```
+Base path: `/api/account`.
 
----
-
-### Account — `/api/account`
-
-All account endpoints require a valid `Bearer` access token. These endpoints manage the authenticated user's own profile.
-
----
+All account routes require a valid access token and operate on the authenticated user. They do not use the `requireActiveUser` middleware. `passwordHash` is removed from account responses.
 
 #### `GET /api/account`
 
-Retrieve the authenticated user's account details.
+Returns the account fields `id`, `email`, `fullname`, `companyName`, `isEmailVerified`, `deletedAt`, `createdAt`, and `updatedAt`.
 
-**Authorization:** `Bearer <accessToken>`
+**`200 OK` response:** `{ "success": true, "data": { "id": "<uuid>", "email": "user@example.com", "fullname": "Jane Doe", "companyName": null, "isEmailVerified": false, "deletedAt": null, "createdAt": "<timestamp>", "updatedAt": "<timestamp>" } }`.
 
-**Success response — `200 OK`:**
-
-```json
-{
-  "success": true,
-  "data": {
-    "id": "uuid",
-    "email": "user@example.com",
-    "fullname": "Jane Doe",
-    "companyName": "Acme Corp",
-    "isEmailVerified": false,
-    "deletedAt": null,
-    "createdAt": "2026-09-02T15:00:00.000Z",
-    "updatedAt": "2026-09-02T15:00:00.000Z"
-  }
-}
-```
-
-> The `passwordHash` field is always stripped from the response.
-
-**Error responses:**
-- `404 Not Found` — account not found (`ACCOUNT_NOT_FOUND`)
-
----
+Error: `404 ACCOUNT_NOT_FOUND`.
 
 #### `PATCH /api/account`
 
-Update the authenticated user's profile fields.
-
-**Authorization:** `Bearer <accessToken>`
-
-**Request body** (all fields optional):
+Updates the profile. Body fields are optional:
 
 ```json
-{
-  "fullname": "Jane Smith",
-  "companyName": "New Corp"
-}
+{ "fullname": "Jane Smith", "companyName": "New Corp" }
 ```
 
-| Field | Type | Required | Constraints |
-|---|---|---|---|
-| `fullname` | string | No | 3 to 50 characters |
-| `companyName` | string \| null | No | Max 100 characters; can be set to `null` |
+`fullname`, when provided, must be 3–50 trimmed characters. `companyName` may be a string of up to 100 trimmed characters or `null`. Returns the updated account using the same shape as `GET`.
 
-**Success response — `200 OK`:** Updated account object.
-
-**Error responses:**
-- `400 Bad Request` — validation failure
-- `404 Not Found` — account not found (`ACCOUNT_NOT_FOUND`)
-
----
+Errors: `400 INVALID_REQUEST`; `404 ACCOUNT_NOT_FOUND`.
 
 #### `DELETE /api/account`
 
-Soft-delete the authenticated user's account. Sets `deletedAt` timestamp; the user can no longer access protected resources.
+Soft-deletes the authenticated account. Returns **`204 No Content`**. Error: `404 ACCOUNT_NOT_FOUND`.
 
-**Authorization:** `Bearer <accessToken>`
+### Merchants
 
-**Success response — `204 No Content`**
+Base path: `/api/merchants`.
 
-**Error responses:**
-- `404 Not Found` — account not found (`ACCOUNT_NOT_FOUND`)
-
----
-
-### Merchants — `/api/merchants`
-
-All merchant endpoints require a valid `Bearer` access token **and** an active (non-deleted) user. The `requireActiveUser` middleware is applied as part of the auth protection suite.
-
----
+All merchant routes require a valid access token and an active user. Merchant IDs in path parameters must be UUIDs.
 
 #### `GET /api/merchants`
 
-List all merchants belonging to the authenticated user.
+Lists the authenticated user's merchants.
 
-**Authorization:** `Bearer <accessToken>`
-
-**Success response — `200 OK`:**
+**`200 OK` response:**
 
 ```json
 {
   "success": true,
-  "data": [
-    {
-      "id": "uuid",
-      "userId": "uuid",
-      "isActive": true,
-      "createdAt": "...",
-      "updatedAt": "..."
-    }
-  ]
+  "data": {
+    "userId": "<user-uuid>",
+    "merchants": [
+      { "id": "<merchant-uuid>", "isActive": true, "mid": "<merchant-number>" }
+    ]
+  }
 }
 ```
-
----
 
 #### `POST /api/merchants`
 
-Create a new merchant for the authenticated user.
+Creates a merchant for the authenticated user. No request body is required.
 
-**Authorization:** `Bearer <accessToken>`
-
-**Success response — `201 Created`:** The created merchant object.
-
----
+**`201 Created` response:** `{ "success": true, "data": { "id": "<uuid>", "mid": "<merchant-number>", "isActive": true, "userId": "<user-uuid>", "createdAt": "<timestamp>", "updatedAt": "<timestamp>" } }`.
 
 #### `GET /api/merchants/:merchantId`
 
-Get details for a specific merchant.
+Returns the merchant only when it belongs to the authenticated user.
 
-**Authorization:** `Bearer <accessToken>`
+**`200 OK` response:** `{ "success": true, "data": { "id": "<uuid>", "mid": "<merchant-number>", "isActive": true, "userId": "<user-uuid>", "createdAt": "<timestamp>", "updatedAt": "<timestamp>" } }`.
 
-**Path param:** `merchantId` — UUID of the merchant.
-
-**Success response — `200 OK`:** Merchant object.
-
-**Error responses:**
-- `404 Not Found` — merchant not found (`MERCHANT_NOT_FOUND`)
-
----
+Errors: `400 INVALID_REQUEST` for an invalid UUID; `404 MERCHANT_NOT_FOUND` if it does not exist or is not owned by the user.
 
 #### `DELETE /api/merchants/:merchantId`
 
-Delete a merchant by ID.
+Deletes the specified merchant only when owned by the authenticated user. Returns **`204 No Content`**.
 
-**Authorization:** `Bearer <accessToken>`
+Errors: `400 INVALID_REQUEST`; `404 MERCHANT_NOT_FOUND`.
 
-**Path param:** `merchantId` — UUID of the merchant.
+### API Keys (Merchant-scoped)
 
-**Success response — `204 No Content`**
+Base path: `/api/merchants/:merchantId/api-keys`.
 
----
+Every API-key route requires a valid access token, an active user, and an owned, active merchant. `merchantId` is a UUID. Key environments are `TEST` and `LIVE`; statuses are `ACTIVE`, `GRACE_PERIOD`, and `REVOKED`.
 
-### API Keys (Merchant-scoped) — `/api/merchants/:merchantId/api-keys`
+#### `GET /api/merchants/:merchantId/api-keys`
 
-All API key endpoints require a valid `Bearer` access token and an active user. The `:merchantId` is the **merchant UUID**.
+Lists merchant key metadata without returning `keyId` or `secretHash`.
 
-Environment values are `TEST` or `LIVE`.
+**`200 OK` response:**
 
----
+```json
+{
+  "success": true,
+  "data": {
+    "merchantId": "<merchant-uuid>",
+    "apiKeys": [
+      {
+        "id": "<api-key-uuid>",
+        "status": "ACTIVE",
+        "environment": "TEST",
+        "graceEndsAt": null,
+        "revokedAt": null,
+        "lastUsedAt": null
+      }
+    ]
+  }
+}
+```
+
+Returns an empty `apiKeys` array when there are no keys. Errors: `400 INVALID_REQUEST`; `404 MERCHANT_NOT_FOUND`; `403 MERCHANT_INACTIVE`.
 
 #### `POST /api/merchants/:merchantId/api-keys/generate`
 
-Generate a new API key for the merchant in the specified environment.
+Body: `{ "environment": "TEST" }`. `environment` is required and must be `TEST` or `LIVE`.
 
-**Authorization:** `Bearer <accessToken>`
-
-**Request body:**
-
-```json
-{
-  "environment": "TEST"
-}
-```
-
-**Success response — `201 Created`:**
+**`201 Created` response:**
 
 ```json
 {
   "success": true,
   "data": {
-    "apiKey": {
-      "id": "uuid",
-      "keyId": "test_key_...",
-      "merchantId": "uuid",
-      "environment": "TEST",
-      "createdAt": "..."
-    },
-    "keySecret": "sk_test_..."
+    "id": "<api-key-uuid>",
+    "keyId": "<generated-key-id>",
+    "keySecret": "<generated-secret>",
+    "status": "ACTIVE",
+    "environment": "TEST",
+    "generatedAt": "<timestamp>"
   }
 }
 ```
 
-> **The `keySecret` is only returned once.** Store it securely — it cannot be retrieved again.
+The plaintext `keySecret` is returned at generation and rotation; store it securely. The database stores its hash.
 
-**Error responses:**
-- `404 Not Found` — merchant not found (`MERCHANT_NOT_FOUND`)
-- `403 Forbidden` — merchant is inactive (`MERCHANT_INACTIVE`)
-- `409 Conflict` — active key already exists (`API_KEY_ALREADY_EXISTS`)
-
----
+Errors: `400 INVALID_REQUEST`; `404 MERCHANT_NOT_FOUND`; `403 MERCHANT_INACTIVE`; `409 API_KEY_ALREADY_EXISTS` if an active key already exists for the environment.
 
 #### `GET /api/merchants/:merchantId/api-keys/active`
 
-Retrieve the active API key metadata for the specified environment.
+Requires query parameter `environment=TEST` or `environment=LIVE`.
 
-**Authorization:** `Bearer <accessToken>`
+**`200 OK` response:** `{ "success": true, "data": { "id": "<api-key-uuid>", "keyId": "<key-id>", "status": "ACTIVE", "environment": "TEST", "lastUsedAt": null, "generatedAt": "<timestamp>" } }`.
 
-**Query params:**
-
-| Param | Type | Required | Values |
-|---|---|---|---|
-| `environment` | string | Yes | `TEST` or `LIVE` |
-
-**Success response — `200 OK`:**
-
-```json
-{
-  "success": true,
-  "data": {
-    "apiKey": {
-      "id": "uuid",
-      "keyId": "test_key_...",
-      "merchantId": "uuid",
-      "environment": "TEST",
-      "createdAt": "..."
-    }
-  }
-}
-```
-
-> `keySecret` is **never** returned after initial creation.
-
----
+Does not return the plaintext secret or stored secret hash. Errors: `400 INVALID_REQUEST`; `404 MERCHANT_NOT_FOUND` or `API_KEY_NOT_FOUND`; `403 MERCHANT_INACTIVE`.
 
 #### `POST /api/merchants/:merchantId/api-keys/rotate`
 
-Rotate the active API key. Generates a new key and schedules the old key for revocation.
-
-**Authorization:** `Bearer <accessToken>`
-
-**Request body:**
+Both request fields are required:
 
 ```json
-{
-  "environment": "TEST",
-  "oldKeyRevokeStrategy": "IMMEDIATELY"
-}
+{ "environment": "TEST", "oldKeyRevokeStrategy": "IMMEDIATELY" }
 ```
 
-| Field | Type | Required | Values |
-|---|---|---|---|
-| `environment` | string | Yes | `TEST` or `LIVE` |
-| `oldKeyRevokeStrategy` | string | Yes | `IMMEDIATELY` or `24_HOURS` |
+`environment` must be `TEST` or `LIVE`; `oldKeyRevokeStrategy` must be `IMMEDIATELY` or `24_HOURS`. Rotation is transactional. `IMMEDIATELY` revokes the old key; `24_HOURS` moves it to `GRACE_PERIOD` until its grace deadline.
 
-- `IMMEDIATELY` — old key is revoked at the time of rotation.
-- `24_HOURS` — old key remains valid for 24 hours, allowing zero-downtime key migrations.
+**`201 Created` response:** Same shape as generate, including the newly generated `keySecret`.
 
-**Success response — `201 Created`:** New API key object + `keySecret` (store immediately).
+Errors: `400 INVALID_REQUEST`; `404 MERCHANT_NOT_FOUND` or `API_KEY_NOT_FOUND` if no active key can be rotated; `403 MERCHANT_INACTIVE`.
 
----
+#### `POST /api/merchants/:merchantId/api-keys/:apiKeyId/revoke`
 
-### API Keys (Top-level) — `/api/api-keys`
+Both path parameters must be UUIDs. Requires ownership of an active merchant.
 
-Top-level API key operations that are not scoped to a specific merchant.
+**`200 OK` response:** `{ "success": true, "data": { "id": "<api-key-uuid>", "keyId": "<key-id>", "status": "REVOKED", "environment": "TEST", "revokedAt": "<timestamp>" } }`.
 
----
+Errors: `400 INVALID_REQUEST`; `404 MERCHANT_NOT_FOUND` or `API_KEY_NOT_FOUND`; `403 MERCHANT_INACTIVE`; `409 REVOKED_API_KEY` if the key was already revoked.
 
-#### `POST /api/api-keys/:apiKeyId/revoke`
+> The application does not mount a top-level `/api/api-keys` router. API-key operations, including revocation, are merchant-scoped.
 
-Revoke a specific API key by its ID.
+### Webhooks (Merchant-scoped)
 
-**Authorization:** `Bearer <accessToken>`
+Base path: `/api/merchants/:merchantId/webhooks`.
 
-**Path param:** `apiKeyId` — UUID of the API key.
+Every webhook route requires a valid access token, an active user, and an owned, active merchant. `merchantId` and (where present) `webhookId` must be UUIDs.
 
-**Success response — `200 OK`:** Revoked API key object.
+#### `POST /api/merchants/:merchantId/webhooks`
 
-**Error responses:**
-- `404 Not Found` — API key not found (`API_KEY_NOT_FOUND`)
-- `409 Conflict` — API key already revoked (`REVOKED_API_KEY`)
+Body: `{ "url": "https://example.com/webhooks" }`. `url` is required and must be a valid URL.
 
----
+**`201 Created` response:** `{ "success": true, "data": { "id": "<webhook-uuid>", "merchantId": "<merchant-uuid>", "secretKey": "<generated-secret>", "url": "https://example.com/webhooks" } }`.
 
-### Internal — `/internal`
+The response includes the webhook secret; store it securely.
 
-Internal service-to-service endpoints, **not** intended for public use. Authenticated via the `x-internal-secret` header instead of JWT tokens.
+Errors: `400 INVALID_REQUEST`; `404 MERCHANT_NOT_FOUND`; `403 MERCHANT_INACTIVE`.
 
----
+#### `GET /api/merchants/:merchantId/webhooks`
+
+Lists webhook IDs and URLs. Webhook secrets are omitted.
+
+**`200 OK` response:** `{ "success": true, "data": { "merchantId": "<merchant-uuid>", "webhooks": [{ "id": "<webhook-uuid>", "url": "https://example.com/webhooks" }] } }`.
+
+Returns an empty list when there are no webhooks. Errors: `400 INVALID_REQUEST`; `404 MERCHANT_NOT_FOUND`; `403 MERCHANT_INACTIVE`.
+
+#### `GET /api/merchants/:merchantId/webhooks/:webhookId`
+
+Returns a webhook belonging to the specified merchant.
+
+**`200 OK` response:** `{ "success": true, "data": { "id": "<webhook-uuid>", "merchantId": "<merchant-uuid>", "secretKey": "<webhook-secret>", "url": "https://example.com/webhooks" } }`.
+
+Errors: `400 INVALID_REQUEST`; `404 MERCHANT_NOT_FOUND` or `WEBHOOK_NOT_FOUND`; `403 MERCHANT_INACTIVE`.
+
+#### `PATCH /api/merchants/:merchantId/webhooks/:webhookId`
+
+Body: `{ "url": "https://example.com/new-webhook-url" }`. `url` is optional; when supplied, it must be a valid URL.
+
+**`200 OK` response:** The updated webhook using the same shape as the details response, including `secretKey`.
+
+Errors: `400 INVALID_REQUEST`; `404 MERCHANT_NOT_FOUND` or `WEBHOOK_NOT_FOUND`; `403 MERCHANT_INACTIVE`.
+
+#### `DELETE /api/merchants/:merchantId/webhooks/:webhookId`
+
+Deletes the webhook belonging to the specified merchant. Returns **`204 No Content`**.
+
+Errors: `400 INVALID_REQUEST`; `404 MERCHANT_NOT_FOUND` or `WEBHOOK_NOT_FOUND`; `403 MERCHANT_INACTIVE`.
+
+### Internal
+
+Base path: `/internal`.
+
+Internal service-to-service routes use `x-internal-secret` authentication instead of a user access token. Do not expose this interface publicly.
 
 #### `POST /internal/validate-api-key`
 
-Validate a merchant API key. Used by other Payvo services (e.g., the payment gateway) to verify API key credentials before processing requests.
+Header: `x-internal-secret: <INTERNAL_SECRET>`.
 
-**Header required:** `x-internal-secret: <INTERNAL_SECRET>`
-
-**Request body:**
+Body:
 
 ```json
-{
-  "keyId": "test_key_...",
-  "keySecret": "sk_test_..."
-}
+{ "keyId": "<key-id>", "keySecret": "<plaintext-secret>" }
 ```
 
-| Field | Type | Required | Constraints |
-|---|---|---|---|
-| `keyId` | string | Yes | Non-empty |
-| `keySecret` | string | Yes | Non-empty |
+Both fields are required non-empty strings. The API checks the key ID and secret hash, rejects revoked keys, and verifies that the associated merchant is active and its user exists.
 
-**Validation flow:**
-1. Looks up the API key by `keyId`.
-2. Hashes the provided `keySecret` and compares against the stored hash.
-3. Checks the key is not revoked.
-4. Verifies the associated merchant is active.
-5. Verifies the associated user exists.
+**`200 OK` response:** `{ "success": true, "data": { "valid": true, "merchantId": "<merchant-uuid>", "environment": "TEST" } }`.
 
-**Success response — `200 OK`:**
-
-```json
-{
-  "success": true,
-  "data": {
-    "valid": true,
-    "merchantId": "uuid",
-    "environment": "TEST"
-  }
-}
-```
-
-**Error responses:**
-- `401 Unauthorized` — missing (`MISSING_INTERNAL_SECRET`) or invalid (`INVALID_INTERNAL_SECRET`) internal secret
-- `401 Unauthorized` — invalid API key credentials (`INVALID_API_KEY_CREDENTIALS`)
-- `409 Conflict` — API key is revoked (`REVOKED_API_KEY`)
-
----
+Errors: `400 INVALID_REQUEST`; `401 MISSING_INTERNAL_SECRET`, `INVALID_INTERNAL_SECRET`, or `INVALID_API_KEY_CREDENTIALS`; `409 REVOKED_API_KEY`.
 
 ## Authentication Flow
 
@@ -754,10 +607,10 @@ Client                              Server
   |     cookie: refreshToken          |
 ```
 
-**Access Token** — Short-lived JWT (default: 15 minutes) signed with `ACCESS_TOKEN_SECRET`.
+**Access Token** — Short-lived JWT signed with `ACCESS_TOKEN_SECRET`; its lifetime is configured by `ACCESS_TOKEN_EXPIRY_MIN`.
 Payload: `{ sid: sessionId, sub: userId, iat, exp }`
 
-**Refresh Token** — Long-lived opaque token (default: 30 days). Stored as a cryptographic hash in the `refresh_tokens` table, linked to a session. Delivered as an `httpOnly; secure; sameSite=strict` cookie, scoped to the `/api/auth/rotate-token` path.
+**Refresh Token** — Long-lived opaque token. Its session lifetime is configured by `SESSION_EXPIRY_DAYS`. The token is stored as a cryptographic hash in the `refresh_tokens` table, linked to a session, and delivered as an `httpOnly; secure; sameSite=strict` cookie scoped to `/api/auth/rotate-token`.
 
 ### Session Management
 
@@ -798,13 +651,13 @@ The API uses a layered middleware pipeline. Endpoints apply middleware in the fo
 | `express.json()` | Parse JSON request bodies | All routes |
 | `cookieParser()` | Parse cookies | All routes |
 | `cors(corsOptions)` | CORS with origin restricted to `FRONTEND_URL` | All routes |
-| `authenticateUser` | Verify JWT `Bearer` token, populate `req.auth` | Protected `/api/*` routes |
-| `requireActiveUser` | Verify user is not soft-deleted (checks DB) | Merchant & API key routes |
+| `authenticateUser` | Verify JWT `Bearer` token, populate `req.auth` | Protected account and resource routes; applied per auth endpoint |
+| `requireActiveUser` | Verify user is not soft-deleted (checks DB) | Merchant, API key, and webhook routes |
 | `authenticateInternal` | Verify `x-internal-secret` header | `/internal/*` routes |
 | `validateRequest(schema)` | Zod validation of body/params/query/cookies | Routes with input |
 | `handleError` | Global error handler (catches `AppError` and unhandled errors) | All routes (terminal) |
 
-**Auth Protection Suite:** Merchant and API key routes use a combined `[authenticateUser, requireActiveUser]` middleware array to ensure both valid authentication and an active user account.
+**Auth Protection Suite:** Merchant, API key, and webhook routes use a combined `[authenticateUser, requireActiveUser]` middleware array to ensure both valid authentication and an active user account. Account routes require authentication but do not use `requireActiveUser`; resource-level use cases also check ownership and, where required, that the merchant is active.
 
 ---
 
@@ -844,7 +697,7 @@ All errors flow through the global `handleError` Express middleware. Domain-spec
 }
 ```
 
-`details` is only present for `400` validation errors.
+When an `AppError` includes `details`, the handler includes them in the response. Request-validation errors provide per-field details; errors without details omit the field.
 
 ### Error Codes Reference
 
@@ -884,6 +737,12 @@ All errors flow through the global `handleError` Express middleware. Domain-spec
 | `REVOKED_API_KEY` | 409 | API key has already been revoked |
 | `INVALID_API_KEY_CREDENTIALS` | 401 | API key ID or secret is incorrect |
 
+#### Webhook Errors
+
+| Code | HTTP Status | Description |
+|---|---|---|
+| `WEBHOOK_NOT_FOUND` | 404 | Webhook does not exist for the specified merchant |
+
 #### Internal Errors
 
 | Code | HTTP Status | Description |
@@ -895,7 +754,8 @@ All errors flow through the global `handleError` Express middleware. Domain-spec
 
 | Code | HTTP Status | Description |
 |---|---|---|
-| `BAD_REQUEST` | 400 | Zod validation failure |
+| `INVALID_REQUEST` | 400 | Request validation failure |
+| `RATE_LIMIT_EXCEEDED` | 429 | Request rate limit was exceeded |
 | `INTERNAL_SERVER` | 500 | Unhandled server error |
 
 ---
@@ -921,6 +781,8 @@ src/modules/auth/test/         # Auth use case tests
 src/modules/account/test/      # Account use case tests
 src/modules/merchant/test/     # Merchant use case tests
 src/modules/api-key/test/      # API key use case tests
+src/modules/webhook/test/      # Webhook use case tests
+test/integration/              # HTTP integration tests using Vitest + Supertest
 ```
 
 Tests run with **Vitest** + **Supertest**.
@@ -941,7 +803,7 @@ pnpm --filter @payvo/dashboard-api test:unit
 ### Coverage
 
 ```bash
-pnpm vitest run --coverage
+pnpm --filter @payvo/dashboard-api exec vitest run src/modules src/internals --coverage
 ```
 
 ### Test Suites
@@ -951,7 +813,18 @@ pnpm vitest run --coverage
 | Auth | `SignupUsecase`, `LoginUsecase`, `LogoutUsecase`, `RotateTokenUsecase` |
 | Account | `GetAccountUsecase`, `UpdateAccountUsecase`, `DeleteAccountUsecase` |
 | Merchants | `CreateMerchantUsecase`, `GetMerchantDetailsUsecase`, `GetUserMerchantsUsecase`, `DeleteMerchantUsecase` |
-| API Keys | `GenerateApiKeyUsecase`, `GetActiveApiKeyUsecase`, `RotateApiKeyUsecase`, `RevokeApiKeyUsecase` |
+| API Keys | `GenerateApiKeyUsecase`, `GetActiveApiKeyUsecase`, `ListMerchantApiKeysUsecase`, `RotateApiKeyUsecase`, `RevokeApiKeyUsecase` |
+| Webhooks | Create, list, details, update, and delete webhook use cases |
+
+Integration suites live under `test/integration/` and exercise the HTTP routes with Supertest:
+
+| Area | Suites |
+|---|---|
+| Auth | Signup, login, logout, and refresh-token rotation |
+| Account | Get, update, and delete account |
+| Merchants | Create, list, get details, and delete merchant |
+| API Keys | Generate, get active, list merchant keys, rotate, and revoke |
+| Webhooks | Create, list, get details, update, and delete |
 
 > `fileParallelism: false` is set in `vitest.config.ts` to prevent database race conditions during integration testing.
 
@@ -987,8 +860,8 @@ pnpm vitest run --coverage
 - **Async error handling** — All controller methods are wrapped with the `catchAsync` utility to forward async exceptions to the Express error middleware automatically.
 - **Cookie path scoping** — The `refreshToken` cookie is scoped to `/api/auth/rotate-token`, limiting its exposure across unrelated requests.
 - **CORS** — The server is configured with `cors` middleware, restricting the `origin` to `FRONTEND_URL` and allowing credentials (cookies/auth headers).
-- **Active user enforcement** — The `requireActiveUser` middleware checks the database to ensure the authenticated user has not been soft-deleted before allowing access to merchant and API key routes.
-- **Dual router pattern** — The `ApiKeyRouter` exposes two Express routers: `merchantApiKeyRouter` (mounted at `/api/merchants/:merchantId/api-keys` with `mergeParams`) for merchant-scoped operations, and `router` (mounted at `/api/api-keys`) for top-level operations like revocation.
+- **Active user enforcement** — The `requireActiveUser` middleware checks the database to ensure the authenticated user has not been soft-deleted before allowing access to merchant, API-key, and webhook routes.
+- **Merchant-scoped resources** — API-key and webhook routers are mounted by `src/app.ts` under `/api/merchants/:merchantId/api-keys` and `/api/merchants/:merchantId/webhooks`, respectively. API-key revocation is merchant-scoped; the application does not mount a top-level `/api/api-keys` route.
 - **Internal API** — The `/internal` prefix hosts service-to-service endpoints authenticated via a shared `INTERNAL_SECRET` header, not JWT tokens. These are used by other Payvo microservices.
 - **Environment-specific dotenv** — The `dev` and `test:integration` scripts use `dotenv-cli` to load `.env.development` and `.env.test` respectively, instead of relying on a generic `.env` file.
  
