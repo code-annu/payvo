@@ -4,38 +4,30 @@ import { dbTransaction } from "@payvo/database/client";
 import { addHours } from "date-fns";
 import TYPES from "@/core/di/inversify.types.js";
 import { RotateApiKeyDto } from "../dto/RotateApiKeyDto.js";
-import MerchantRepository from "@/modules/merchant/repository/merchant.repository.js";
 import ApiKeyRepository from "../../repository/api-key.repository.js";
 import { ApiKeyNotFoundError } from "../../error/api-key.errors.js";
-import {
-  MerchantInactiveError,
-  MerchantNotFoundError,
-} from "@/modules/merchant/error/merchant.errors.js";
+import MerchantAuthorizationService from "@/modules/merchant/application/merchant-authorization.service.js";
 
 @injectable()
 export default class RotateApiKeyUsecase {
   constructor(
-    @inject(TYPES.MerchantRepository)
-    private readonly merchantRepository: MerchantRepository,
     @inject(TYPES.ApiKeyRepository)
     private readonly apiKeyRepo: ApiKeyRepository,
+    @inject(TYPES.MerchantAuthorizationService)
+    private readonly merchantAuthorizationService: MerchantAuthorizationService,
   ) {}
 
   async execute(input: RotateApiKeyDto) {
     const { userId, merchantId, oldKeyRevokeStrategy, environment } = input;
 
-    const merchant = await this.merchantRepository.findOwnedByUser({
+    await this.merchantAuthorizationService.requireOwnedActiveMerchant(
       merchantId,
       userId,
-    });
-    if (!merchant) {
-      throw new MerchantNotFoundError();
-    }
-    if (!merchant.isActive) {
-      throw new MerchantInactiveError(
-        "Inactive merchant cannot perform api key operations",
-      );
-    }
+      {
+        inactiveMessage: "Inactive merchant cannot perform api key operations",
+        notFoundMessage: "Merchant not found",
+      },
+    );
 
     const revokeAt =
       oldKeyRevokeStrategy === "IMMEDIATELY"

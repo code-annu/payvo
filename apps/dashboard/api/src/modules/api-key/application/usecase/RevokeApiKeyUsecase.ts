@@ -1,54 +1,41 @@
 import { injectable, inject } from "inversify";
 import TYPES from "@/core/di/inversify.types.js";
-import { RevokeApiKeyDto } from "../dto/RevokeApiKeyDto.js";
-import MerchantRepository from "@/modules/merchant/repository/merchant.repository.js";
+import { RevokeApiKeyInputDto } from "../dto/RevokeApiKeyDto.js";
 import ApiKeyRepository from "../../repository/api-key.repository.js";
 import {
   ApiKeyNotFoundError,
   RevokedApiKeyError,
 } from "../../error/api-key.errors.js";
-import {
-  MerchantInactiveError,
-  MerchantNotFoundError,
-} from "@/modules/merchant/error/merchant.errors.js";
+import MerchantAuthorizationService from "@/modules/merchant/application/merchant-authorization.service.js";
 
 @injectable()
 export default class RevokeApiKeyUsecase {
   constructor(
-    @inject(TYPES.MerchantRepository)
-    private readonly merchantRepository: MerchantRepository,
     @inject(TYPES.ApiKeyRepository)
     private readonly apiKeyRepo: ApiKeyRepository,
+    @inject(TYPES.MerchantAuthorizationService)
+    private readonly merchantAuthorizationService: MerchantAuthorizationService,
   ) {}
 
-  async execute(input: RevokeApiKeyDto) {
-    const { apiKeyId, userId } = input;
+  async execute(input: RevokeApiKeyInputDto) {
+    const { apiKeyId, userId, merchantId } = input;
 
-    const apiKey = await this.apiKeyRepo.findById(apiKeyId);
-    if (!apiKey) {
-      throw new ApiKeyNotFoundError("Api key not found");
-    }
-
-    if (apiKey.status === "REVOKED") {
-      throw new RevokedApiKeyError();
-    }
-
-    const merchant = await this.merchantRepository.findOwnedByUser({
-      merchantId: apiKey.merchantId,
+    await this.merchantAuthorizationService.requireOwnedActiveMerchant(
+      merchantId,
       userId,
-    });
-    if (!merchant) {
-      throw new MerchantNotFoundError();
-    }
-    if (!merchant.isActive) {
-      throw new MerchantInactiveError(
-        "Inactive merchant cannot perform api key operations",
-      );
-    }
+      {
+        inactiveMessage: "Inactive merchant cannot perform api key operations",
+        notFoundMessage: "Merchant not found",
+      },
+    );
 
     const revokedKey = await this.apiKeyRepo.revokeById(apiKeyId);
     if (!revokedKey) {
-      throw new RevokedApiKeyError();
+      const apiKey = await this.apiKeyRepo.findById(apiKeyId);
+      if (apiKey?.status === "REVOKED") {
+        throw new RevokedApiKeyError("This api key has already been revoked");
+      }
+      throw new ApiKeyNotFoundError("Api key not found");
     }
 
     return {

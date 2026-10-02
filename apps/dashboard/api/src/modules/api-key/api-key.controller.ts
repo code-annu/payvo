@@ -6,6 +6,7 @@ import catchAsync from "@/core/handlers/async.catch.js";
 import { AuthRequest } from "@/core/middleware/authenticate.middleware.js";
 import GenerateApiKeyUsecase from "./application/usecase/GenerateApiKeyUsecase.js";
 import GetActiveApiKeyUsecase from "./application/usecase/GetActiveApiKeyUsecase.js";
+import ListMerchantApiKeysUsecase from "./application/usecase/ListMerchantApiKeysUsecase.js";
 import RotateApiKeyUsecase from "./application/usecase/RotateApiKeyUsecase.js";
 import RevokeApiKeyUsecase from "./application/usecase/RevokeApiKeyUsecase.js";
 
@@ -16,6 +17,8 @@ export default class ApiKeyController {
     private readonly generateApiKeyUsecase: GenerateApiKeyUsecase,
     @inject(TYPES.GetActiveApiKeyUsecase)
     private readonly getActiveApiKeyUsecase: GetActiveApiKeyUsecase,
+    @inject(TYPES.ListMerchantApiKeysUsecase)
+    private readonly listMerchantApiKeysUsecase: ListMerchantApiKeysUsecase,
     @inject(TYPES.RotateApiKeyUsecase)
     private readonly rotateApiKeyUsecase: RotateApiKeyUsecase,
     @inject(TYPES.RevokeApiKeyUsecase)
@@ -41,9 +44,16 @@ export default class ApiKeyController {
       userId: req.auth!.sub,
     });
 
-    res
-      .status(HttpStatusCode.Success.OK)
-      .json(buildSuccessResponse(result));
+    res.status(HttpStatusCode.Success.OK).json(buildSuccessResponse(result));
+  });
+
+  getMerchantApiKeys = catchAsync(async (req: AuthRequest, res: Response) => {
+    const result = await this.listMerchantApiKeysUsecase.execute({
+      merchantId: req.params.merchantId as string,
+      userId: req.auth!.sub,
+    });
+
+    res.status(HttpStatusCode.Success.OK).json(buildSuccessResponse(result));
   });
 
   postRotateApiKey = catchAsync(async (req: AuthRequest, res: Response) => {
@@ -62,11 +72,10 @@ export default class ApiKeyController {
   postRevokeApiKey = catchAsync(async (req: AuthRequest, res: Response) => {
     const result = await this.revokeApiKeyUsecase.execute({
       apiKeyId: req.params.apiKeyId as string,
+      merchantId: req.params.merchantId as string,
       userId: req.auth!.sub,
     });
 
-    res
-      .status(HttpStatusCode.Success.OK)
-      .json(buildSuccessResponse(result));
+    res.status(HttpStatusCode.Success.OK).json(buildSuccessResponse(result));
   });
 }

@@ -1,4 +1,5 @@
-export interface RevokeApiKeyDto {
-  apiKeyId: string;
+export interface RevokeApiKeyInputDto {
   userId: string;
+  merchantId: string;
+  apiKeyId: string;
 }

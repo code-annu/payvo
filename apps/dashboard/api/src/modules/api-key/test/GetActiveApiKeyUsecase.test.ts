@@ -7,26 +7,19 @@ import {
 } from "@/modules/merchant/error/merchant.errors.js";
 
 describe("GetActiveApiKeyUsecase", () => {
-  const merchantRepository = { findOwnedByUser: vi.fn() };
-  const apiKeyRepo = { findActiveKey: vi.fn() };
+  const apiKeyRepository = { findActiveKey: vi.fn() };
+  const merchantAuthorizationService = {
+    requireOwnedActiveMerchant: vi.fn(),
+  };
   const usecase = new GetActiveApiKeyUsecase(
-    merchantRepository as never,
-    apiKeyRepo as never,
+    apiKeyRepository as never,
+    merchantAuthorizationService as never,
   );
 
   const input = {
     userId: "user-1",
     merchantId: "merchant-1",
     environment: "TEST" as const,
-  };
-
-  const merchant = {
-    id: "merchant-1",
-    mid: "mid-1",
-    userId: "user-1",
-    isActive: true,
-    createdAt: new Date(),
-    updatedAt: new Date(),
   };
 
   const activeApiKey = {
@@ -45,18 +38,22 @@ describe("GetActiveApiKeyUsecase", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    merchantRepository.findOwnedByUser.mockResolvedValue(merchant);
-    apiKeyRepo.findActiveKey.mockResolvedValue(activeApiKey);
+    merchantAuthorizationService.requireOwnedActiveMerchant.mockResolvedValue(
+      undefined,
+    );
+    apiKeyRepository.findActiveKey.mockResolvedValue(activeApiKey);
   });
 
-  it("returns active api key details for merchant and environment", async () => {
+  it("returns active key details for the merchant and environment", async () => {
     const result = await usecase.execute(input);
 
-    expect(merchantRepository.findOwnedByUser).toHaveBeenCalledWith({
-      merchantId: "merchant-1",
-      userId: "user-1",
+    expect(
+      merchantAuthorizationService.requireOwnedActiveMerchant,
+    ).toHaveBeenCalledWith("merchant-1", "user-1", {
+      inactiveMessage: "Inactive merchant cannot perform api key operations",
+      notFoundMessage: "Merchant not found",
     });
-    expect(apiKeyRepo.findActiveKey).toHaveBeenCalledWith({
+    expect(apiKeyRepository.findActiveKey).toHaveBeenCalledWith({
       merchantId: "merchant-1",
       environment: "TEST",
     });
@@ -70,29 +67,30 @@ describe("GetActiveApiKeyUsecase", () => {
     });
   });
 
-  it("throws MerchantNotFoundError when merchant does not exist for the user", async () => {
-    merchantRepository.findOwnedByUser.mockResolvedValue(null);
+  it("does not query keys when the merchant is not found or owned", async () => {
+    merchantAuthorizationService.requireOwnedActiveMerchant.mockRejectedValue(
+      new MerchantNotFoundError(),
+    );
 
     await expect(usecase.execute(input)).rejects.toBeInstanceOf(
       MerchantNotFoundError,
     );
-    expect(apiKeyRepo.findActiveKey).not.toHaveBeenCalled();
+    expect(apiKeyRepository.findActiveKey).not.toHaveBeenCalled();
   });
 
-  it("throws MerchantInactiveError when merchant is inactive", async () => {
-    merchantRepository.findOwnedByUser.mockResolvedValue({
-      ...merchant,
-      isActive: false,
-    });
+  it("does not query keys when the merchant is inactive", async () => {
+    merchantAuthorizationService.requireOwnedActiveMerchant.mockRejectedValue(
+      new MerchantInactiveError(),
+    );
 
     await expect(usecase.execute(input)).rejects.toBeInstanceOf(
       MerchantInactiveError,
     );
-    expect(apiKeyRepo.findActiveKey).not.toHaveBeenCalled();
+    expect(apiKeyRepository.findActiveKey).not.toHaveBeenCalled();
   });
 
-  it("throws ApiKeyNotFoundError when active api key is not found", async () => {
-    apiKeyRepo.findActiveKey.mockResolvedValue(null);
+  it("throws when no active key exists for the environment", async () => {
+    apiKeyRepository.findActiveKey.mockResolvedValue(null);
 
     await expect(usecase.execute(input)).rejects.toBeInstanceOf(
       ApiKeyNotFoundError,

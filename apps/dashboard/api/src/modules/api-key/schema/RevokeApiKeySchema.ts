@@ -1,5 +1,6 @@
+import { MerchantIdSchema } from "@/modules/merchant/schema/MerchantIdSchema.js";
 import { ApiKeyIdSchema } from "./ApiKeyIdSchema.js";
 
 export const RevokeApiKeySchema = {
-  params: ApiKeyIdSchema,
+  params: MerchantIdSchema.extend(ApiKeyIdSchema.shape),
 };

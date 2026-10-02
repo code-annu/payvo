@@ -6,6 +6,7 @@ import { validateRequest } from "@/core/middleware/validate-request.middleware.j
 import ApiKeyController from "./api-key.controller.js";
 import { GenerateApiKeySchema } from "./schema/GenerateApiKeySchema.js";
 import { GetActiveApiKeySchema } from "./schema/GetActiveApiKeySchema.js";
+import { ListMerchantApiKeysSchema } from "./schema/ListMerchantApiKeysSchema.js";
 import { RotateApiKeySchema } from "./schema/RotateApiKeySchema.js";
 import { RevokeApiKeySchema } from "./schema/RevokeApiKeySchema.js";
 import requireActiveUser from "@/core/middleware/require-active-user.middleware.js";
@@ -13,51 +14,49 @@ import requireActiveUser from "@/core/middleware/require-active-user.middleware.
 @injectable()
 export default class ApiKeyRouter {
   readonly router: Router;
-  readonly merchantApiKeyRouter: Router;
   private readonly authProtectionSuite = [authenticateUser, requireActiveUser];
 
   constructor(
     @inject(TYPES.ApiKeyController)
     private readonly apiKeyController: ApiKeyController,
   ) {
-    // main router
-    this.router = Router();
+    this.router = Router({ mergeParams: true });
     this.initRoutes();
-
-    // merchant api key router
-    this.merchantApiKeyRouter = Router({ mergeParams: true });
-    this.initMerchantApiKeyRouter();
   }
 
   private initRoutes() {
-    this.router.post(
-      "/:apiKeyId/revoke",
+    this.router.get(
+      "/",
       this.authProtectionSuite,
-      validateRequest(RevokeApiKeySchema),
-      this.apiKeyController.postRevokeApiKey,
+      validateRequest(ListMerchantApiKeysSchema),
+      this.apiKeyController.getMerchantApiKeys,
     );
-  }
 
-  private initMerchantApiKeyRouter() {
-    this.merchantApiKeyRouter.post(
+    this.router.post(
       "/generate",
       this.authProtectionSuite,
       validateRequest(GenerateApiKeySchema),
       this.apiKeyController.postGenerateApiKey,
     );
 
-    this.merchantApiKeyRouter.get(
+    this.router.get(
       "/active",
       this.authProtectionSuite,
       validateRequest(GetActiveApiKeySchema),
       this.apiKeyController.getActiveApiKey,
     );
 
-    this.merchantApiKeyRouter.post(
+    this.router.post(
       "/rotate",
       this.authProtectionSuite,
       validateRequest(RotateApiKeySchema),
       this.apiKeyController.postRotateApiKey,
+    );
+    this.router.post(
+      "/:apiKeyId/revoke",
+      this.authProtectionSuite,
+      validateRequest(RevokeApiKeySchema),
+      this.apiKeyController.postRevokeApiKey,
     );
   }
 }

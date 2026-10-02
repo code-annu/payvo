@@ -22,20 +22,20 @@ vi.mock("@payvo/database/client", () => ({
 }));
 
 describe("RotateApiKeyUsecase", () => {
-  const merchantRepository = { findOwnedByUser: vi.fn() };
-  const apiKeyRepo = { revokeKeyForRotation: vi.fn(), create: vi.fn() };
+  const merchantAuthorizationService = {
+    requireOwnedActiveMerchant: vi.fn(),
+  };
+  const apiKeyRepository = { revokeKeyForRotation: vi.fn(), create: vi.fn() };
   const usecase = new RotateApiKeyUsecase(
-    merchantRepository as never,
-    apiKeyRepo as never,
+    apiKeyRepository as never,
+    merchantAuthorizationService as never,
   );
 
-  const merchant = {
-    id: "merchant-1",
-    mid: "mid-1",
+  const input = {
     userId: "user-1",
-    isActive: true,
-    createdAt: new Date(),
-    updatedAt: new Date(),
+    merchantId: "merchant-1",
+    oldKeyRevokeStrategy: "IMMEDIATELY" as const,
+    environment: "LIVE" as const,
   };
 
   const oldApiKey = {
@@ -68,7 +68,9 @@ describe("RotateApiKeyUsecase", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    merchantRepository.findOwnedByUser.mockResolvedValue(merchant);
+    merchantAuthorizationService.requireOwnedActiveMerchant.mockResolvedValue(
+      undefined,
+    );
     mocks.generateApiKey.mockReturnValue({
       keyId: "payvo_live_newkey",
       keySecret: "new-secret-plain",
@@ -77,32 +79,29 @@ describe("RotateApiKeyUsecase", () => {
     mocks.dbTransaction.mockImplementation(async (callback: any) =>
       callback({}),
     );
-    apiKeyRepo.revokeKeyForRotation.mockResolvedValue(oldApiKey);
-    apiKeyRepo.create.mockResolvedValue(newApiKey);
+    apiKeyRepository.revokeKeyForRotation.mockResolvedValue(oldApiKey);
+    apiKeyRepository.create.mockResolvedValue(newApiKey);
   });
 
-  it("rotates api key with IMMEDIATELY strategy", async () => {
-    const result = await usecase.execute({
-      userId: "user-1",
-      merchantId: "merchant-1",
-      oldKeyRevokeStrategy: "IMMEDIATELY",
-      environment: "LIVE",
-    });
+  it("rotates an API key immediately within a transaction", async () => {
+    const result = await usecase.execute(input);
 
-    expect(merchantRepository.findOwnedByUser).toHaveBeenCalledWith({
-      merchantId: "merchant-1",
-      userId: "user-1",
+    expect(
+      merchantAuthorizationService.requireOwnedActiveMerchant,
+    ).toHaveBeenCalledWith("merchant-1", "user-1", {
+      inactiveMessage: "Inactive merchant cannot perform api key operations",
+      notFoundMessage: "Merchant not found",
     });
     expect(mocks.generateApiKey).toHaveBeenCalledWith("LIVE");
     expect(mocks.hashKeySecret).toHaveBeenCalledWith("new-secret-plain");
-    expect(apiKeyRepo.revokeKeyForRotation).toHaveBeenCalledWith(
+    expect(apiKeyRepository.revokeKeyForRotation).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({
         merchantId: "merchant-1",
         revokeAt: expect.any(Date),
       }),
     );
-    expect(apiKeyRepo.create).toHaveBeenCalledWith(
+    expect(apiKeyRepository.create).toHaveBeenCalledWith(
       {
         merchantId: "merchant-1",
         keyId: "payvo_live_newkey",
@@ -121,69 +120,52 @@ describe("RotateApiKeyUsecase", () => {
     });
   });
 
-  it("rotates api key with 24_HOURS strategy", async () => {
-    const result = await usecase.execute({
-      userId: "user-1",
-      merchantId: "merchant-1",
+  it("sets the old key revocation time 24 hours ahead", async () => {
+    const beforeRotation = Date.now();
+    await usecase.execute({
+      ...input,
       oldKeyRevokeStrategy: "24_HOURS",
-      environment: "LIVE",
     });
+    const afterRotation = Date.now();
+    const revokeAt = apiKeyRepository.revokeKeyForRotation.mock.calls[0]![1]
+      .revokeAt as Date;
 
-    expect(apiKeyRepo.revokeKeyForRotation).toHaveBeenCalledWith(
-      expect.anything(),
-      expect.objectContaining({
-        merchantId: "merchant-1",
-        revokeAt: expect.any(Date),
-      }),
+    expect(revokeAt.getTime()).toBeGreaterThanOrEqual(
+      beforeRotation + 24 * 60 * 60 * 1000,
     );
-    expect(result.keyId).toBe("payvo_live_newkey");
+    expect(revokeAt.getTime()).toBeLessThanOrEqual(
+      afterRotation + 24 * 60 * 60 * 1000,
+    );
   });
 
-  it("throws MerchantNotFoundError when merchant does not exist for the user", async () => {
-    merchantRepository.findOwnedByUser.mockResolvedValue(null);
+  it("does not rotate when the merchant is not found or owned", async () => {
+    merchantAuthorizationService.requireOwnedActiveMerchant.mockRejectedValue(
+      new MerchantNotFoundError(),
+    );
 
-    await expect(
-      usecase.execute({
-        userId: "user-1",
-        merchantId: "merchant-1",
-        oldKeyRevokeStrategy: "IMMEDIATELY",
-        environment: "LIVE",
-      }),
-    ).rejects.toBeInstanceOf(MerchantNotFoundError);
-
+    await expect(usecase.execute(input)).rejects.toBeInstanceOf(
+      MerchantNotFoundError,
+    );
     expect(mocks.dbTransaction).not.toHaveBeenCalled();
   });
 
-  it("throws MerchantInactiveError when merchant is inactive", async () => {
-    merchantRepository.findOwnedByUser.mockResolvedValue({
-      ...merchant,
-      isActive: false,
-    });
+  it("does not rotate when the merchant is inactive", async () => {
+    merchantAuthorizationService.requireOwnedActiveMerchant.mockRejectedValue(
+      new MerchantInactiveError(),
+    );
 
-    await expect(
-      usecase.execute({
-        userId: "user-1",
-        merchantId: "merchant-1",
-        oldKeyRevokeStrategy: "IMMEDIATELY",
-        environment: "LIVE",
-      }),
-    ).rejects.toBeInstanceOf(MerchantInactiveError);
-
+    await expect(usecase.execute(input)).rejects.toBeInstanceOf(
+      MerchantInactiveError,
+    );
     expect(mocks.dbTransaction).not.toHaveBeenCalled();
   });
 
-  it("throws ApiKeyNotFoundError when no active key exists to rotate", async () => {
-    apiKeyRepo.revokeKeyForRotation.mockResolvedValue(null);
+  it("throws ApiKeyNotFoundError when no active key can be rotated", async () => {
+    apiKeyRepository.revokeKeyForRotation.mockResolvedValue(null);
 
-    await expect(
-      usecase.execute({
-        userId: "user-1",
-        merchantId: "merchant-1",
-        oldKeyRevokeStrategy: "IMMEDIATELY",
-        environment: "LIVE",
-      }),
-    ).rejects.toBeInstanceOf(ApiKeyNotFoundError);
-
-    expect(apiKeyRepo.create).not.toHaveBeenCalled();
+    await expect(usecase.execute(input)).rejects.toBeInstanceOf(
+      ApiKeyNotFoundError,
+    );
+    expect(apiKeyRepository.create).not.toHaveBeenCalled();
   });
 });

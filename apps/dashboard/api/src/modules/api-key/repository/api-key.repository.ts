@@ -33,6 +33,13 @@ export default class ApiKeyRepository {
     return apiKey ? this.mapper.toApiKeyEntity(apiKey) : null;
   }
 
+  async findByMerchantId(merchantId: string): Promise<ApiKey[]> {
+    const apiKeys = await this.db.orm.public.ApiKey.where({
+      merchantId,
+    }).all();
+    return apiKeys.map((apiKey) => this.mapper.toApiKeyEntity(apiKey));
+  }
+
   async revokeKeyForRotation(
     tx: TransactionClient,
     data: { merchantId: string; revokeAt: Date },
@@ -72,5 +79,22 @@ export default class ApiKeyRepository {
         revokedAt: now,
       });
     return apiKey ? this.mapper.toApiKeyEntity(apiKey) : null;
+  }
+
+  async revokeAllByUserId(
+    tx: TransactionClient,
+    data: { userId: string; now: Date },
+  ): Promise<void> {
+    const result = await tx.orm.public.ApiKey.where({ revokedAt: null })
+      .where((key) => key.status.neq("REVOKED"))
+      .where((key) =>
+        key.merchant.some((m) => m.user.some((u) => u.id.eq(data.userId))),
+      )
+      .updateAll({
+        status: "REVOKED",
+        revokedAt: data.now.toISOString(),
+      });
+
+    console.log(result);
   }
 }

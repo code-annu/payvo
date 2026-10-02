@@ -10,15 +10,18 @@ import {
 } from "@/modules/merchant/error/merchant.errors.js";
 
 describe("RevokeApiKeyUsecase", () => {
-  const merchantRepository = { findOwnedByUser: vi.fn() };
-  const apiKeyRepo = { findById: vi.fn(), revokeById: vi.fn() };
+  const apiKeyRepository = { findById: vi.fn(), revokeById: vi.fn() };
+  const merchantAuthorizationService = {
+    requireOwnedActiveMerchant: vi.fn(),
+  };
   const usecase = new RevokeApiKeyUsecase(
-    merchantRepository as never,
-    apiKeyRepo as never,
+    apiKeyRepository as never,
+    merchantAuthorizationService as never,
   );
 
   const input = {
     apiKeyId: "key-uuid-1",
+    merchantId: "merchant-1",
     userId: "user-1",
   };
 
@@ -42,31 +45,25 @@ describe("RevokeApiKeyUsecase", () => {
     revokedAt: new Date(),
   };
 
-  const activeMerchant = {
-    id: "merchant-1",
-    mid: "mid-1",
-    userId: "user-1",
-    isActive: true,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  };
-
   beforeEach(() => {
     vi.clearAllMocks();
-    apiKeyRepo.findById.mockResolvedValue(activeApiKey);
-    merchantRepository.findOwnedByUser.mockResolvedValue(activeMerchant);
-    apiKeyRepo.revokeById.mockResolvedValue(revokedApiKey);
+    merchantAuthorizationService.requireOwnedActiveMerchant.mockResolvedValue(
+      undefined,
+    );
+    apiKeyRepository.revokeById.mockResolvedValue(revokedApiKey);
+    apiKeyRepository.findById.mockResolvedValue(null);
   });
 
-  it("successfully revokes an active api key and returns its details", async () => {
+  it("revokes the key and returns the revocation details", async () => {
     const result = await usecase.execute(input);
 
-    expect(apiKeyRepo.findById).toHaveBeenCalledWith("key-uuid-1");
-    expect(merchantRepository.findOwnedByUser).toHaveBeenCalledWith({
-      merchantId: "merchant-1",
-      userId: "user-1",
+    expect(
+      merchantAuthorizationService.requireOwnedActiveMerchant,
+    ).toHaveBeenCalledWith("merchant-1", "user-1", {
+      inactiveMessage: "Inactive merchant cannot perform api key operations",
+      notFoundMessage: "Merchant not found",
     });
-    expect(apiKeyRepo.revokeById).toHaveBeenCalledWith("key-uuid-1");
+    expect(apiKeyRepository.revokeById).toHaveBeenCalledWith("key-uuid-1");
     expect(result).toEqual({
       id: revokedApiKey.id,
       keyId: revokedApiKey.keyId,
@@ -76,61 +73,44 @@ describe("RevokeApiKeyUsecase", () => {
     });
   });
 
-  it("throws ApiKeyNotFoundError when api key does not exist", async () => {
-    apiKeyRepo.findById.mockResolvedValue(null);
+  it("throws ApiKeyNotFoundError when the key does not exist", async () => {
+    apiKeyRepository.revokeById.mockResolvedValue(null);
 
     await expect(usecase.execute(input)).rejects.toBeInstanceOf(
       ApiKeyNotFoundError,
     );
-    expect(apiKeyRepo.findById).toHaveBeenCalledWith("key-uuid-1");
-    expect(merchantRepository.findOwnedByUser).not.toHaveBeenCalled();
-    expect(apiKeyRepo.revokeById).not.toHaveBeenCalled();
+    expect(apiKeyRepository.findById).toHaveBeenCalledWith("key-uuid-1");
   });
 
-  it("throws ApiKeyAlreadyRevokedError when api key is already revoked", async () => {
-    apiKeyRepo.findById.mockResolvedValue({
-      ...activeApiKey,
-      status: "REVOKED",
-      revokedAt: new Date(),
-    });
+  it("throws RevokedApiKeyError when the key was already revoked", async () => {
+    apiKeyRepository.revokeById.mockResolvedValue(null);
+    apiKeyRepository.findById.mockResolvedValue(revokedApiKey);
 
     await expect(usecase.execute(input)).rejects.toBeInstanceOf(
       RevokedApiKeyError,
     );
-    expect(merchantRepository.findOwnedByUser).not.toHaveBeenCalled();
-    expect(apiKeyRepo.revokeById).not.toHaveBeenCalled();
+    expect(apiKeyRepository.findById).toHaveBeenCalledWith("key-uuid-1");
   });
 
-  it("throws MerchantNotFoundError when user does not own the merchant", async () => {
-    merchantRepository.findOwnedByUser.mockResolvedValue(null);
+  it("does not revoke keys when the merchant is not found or owned", async () => {
+    merchantAuthorizationService.requireOwnedActiveMerchant.mockRejectedValue(
+      new MerchantNotFoundError(),
+    );
 
     await expect(usecase.execute(input)).rejects.toBeInstanceOf(
       MerchantNotFoundError,
     );
-    expect(merchantRepository.findOwnedByUser).toHaveBeenCalledWith({
-      merchantId: "merchant-1",
-      userId: "user-1",
-    });
-    expect(apiKeyRepo.revokeById).not.toHaveBeenCalled();
+    expect(apiKeyRepository.revokeById).not.toHaveBeenCalled();
   });
 
-  it("throws MerchantInactiveError when merchant is not active", async () => {
-    merchantRepository.findOwnedByUser.mockResolvedValue({
-      ...activeMerchant,
-      isActive: false,
-    });
+  it("does not revoke keys when the merchant is inactive", async () => {
+    merchantAuthorizationService.requireOwnedActiveMerchant.mockRejectedValue(
+      new MerchantInactiveError(),
+    );
 
     await expect(usecase.execute(input)).rejects.toBeInstanceOf(
       MerchantInactiveError,
     );
-    expect(apiKeyRepo.revokeById).not.toHaveBeenCalled();
-  });
-
-  it("throws ApiKeyAlreadyRevokedError when concurrent revoke occurs and revokeById returns null", async () => {
-    apiKeyRepo.revokeById.mockResolvedValue(null);
-
-    await expect(usecase.execute(input)).rejects.toBeInstanceOf(
-      RevokedApiKeyError,
-    );
+    expect(apiKeyRepository.revokeById).not.toHaveBeenCalled();
   });
 });
