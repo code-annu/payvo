@@ -20,25 +20,32 @@ export default class WebhookRepository {
   }
 
   async findByMerchantId(merchantId: string): Promise<MerchantWebhooks> {
-    const webhooks = await this.db.orm.public.Webhook.where({ merchantId }).all();
+    const webhooks = await this.db.orm.public.Webhook.where({
+      merchantId,
+    }).all();
     return this.mapper.toMerchantWebhooksEntity(merchantId, webhooks);
   }
 
-  async findById(id: string): Promise<Webhook | null> {
-    const webhook = await this.db.orm.public.Webhook.first({ id });
+  async find(data: {
+    id: string;
+    merchantId: string;
+  }): Promise<Webhook | null> {
+    const webhook = await this.db.orm.public.Webhook.first({
+      id: data.id,
+      merchantId: data.merchantId,
+    });
     return webhook ? this.mapper.toWebhookEntity(webhook) : null;
   }
 
   async update(data: {
     id: string;
     merchantId: string;
-    url: string;
+    updates: WebhookUpdateInput;
   }): Promise<Webhook | null> {
-    const update: WebhookUpdateInput = { url: data.url };
     const webhook = await this.db.orm.public.Webhook.where({
       id: data.id,
       merchantId: data.merchantId,
-    }).update(update);
+    }).update(data.updates);
     return webhook ? this.mapper.toWebhookEntity(webhook) : null;
   }
 

@@ -49,6 +49,7 @@ export default class WebhookController {
   getWebhookDetails = catchAsync(async (req: AuthRequest, res: Response) => {
     const result = await this.getWebhookDetailsUsecase.execute({
       webhookId: req.params.webhookId as string,
+      merchantId: req.params.merchantId as string,
       userId: req.auth!.sub,
     });
 
@@ -58,6 +59,7 @@ export default class WebhookController {
   patchWebhook = catchAsync(async (req: AuthRequest, res: Response) => {
     const result = await this.updateWebhookUsecase.execute({
       webhookId: req.params.webhookId as string,
+      merchantId: req.params.merchantId as string,
       url: req.body.url,
       userId: req.auth!.sub,
     });
@@ -66,11 +68,12 @@ export default class WebhookController {
   });
 
   deleteWebhook = catchAsync(async (req: AuthRequest, res: Response) => {
-    const result = await this.deleteWebhookUsecase.execute({
+    await this.deleteWebhookUsecase.execute({
       webhookId: req.params.webhookId as string,
+      merchantId: req.params.merchantId as string,
       userId: req.auth!.sub,
     });
 
-    res.status(HttpStatusCode.Success.OK).json(buildSuccessResponse(result));
+    return res.status(HttpStatusCode.Success.NO_CONTENT).end();
   });
 }

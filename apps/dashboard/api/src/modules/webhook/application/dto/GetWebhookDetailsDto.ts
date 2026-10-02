@@ -1,4 +1,5 @@
 export interface GetWebhookDetailsInputDto {
-  webhookId: string;
   userId: string;
+  merchantId: string;
+  webhookId: string;
 }

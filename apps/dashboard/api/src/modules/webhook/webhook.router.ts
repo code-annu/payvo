@@ -14,21 +14,31 @@ import { UpdateWebhookSchema } from "./schema/UpdateWebhookSchema.js";
 @injectable()
 export default class WebhookRouter {
   readonly router: Router;
-  readonly merchantWebhookRouter: Router;
   private readonly authProtectionSuite = [authenticateUser, requireActiveUser];
 
   constructor(
     @inject(TYPES.WebhookController)
     private readonly webhookController: WebhookController,
   ) {
-    this.router = Router();
+    this.router = Router({ mergeParams: true });
     this.initRoutes();
-
-    this.merchantWebhookRouter = Router({ mergeParams: true });
-    this.initMerchantWebhookRoutes();
   }
 
   private initRoutes() {
+    this.router.post(
+      "/",
+      this.authProtectionSuite,
+      validateRequest(CreateWebhookSchema),
+      this.webhookController.postCreateWebhook,
+    );
+
+    this.router.get(
+      "/",
+      this.authProtectionSuite,
+      validateRequest(GetMerchantWebhooksSchema),
+      this.webhookController.getMerchantWebhooks,
+    );
+
     this.router.get(
       "/:webhookId",
       this.authProtectionSuite,
@@ -48,22 +58,6 @@ export default class WebhookRouter {
       this.authProtectionSuite,
       validateRequest(DeleteWebhookSchema),
       this.webhookController.deleteWebhook,
-    );
-  }
-
-  private initMerchantWebhookRoutes() {
-    this.merchantWebhookRouter.post(
-      "/",
-      this.authProtectionSuite,
-      validateRequest(CreateWebhookSchema),
-      this.webhookController.postCreateWebhook,
-    );
-
-    this.merchantWebhookRouter.get(
-      "/",
-      this.authProtectionSuite,
-      validateRequest(GetMerchantWebhooksSchema),
-      this.webhookController.getMerchantWebhooks,
     );
   }
 }

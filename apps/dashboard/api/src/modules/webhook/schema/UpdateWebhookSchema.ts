@@ -1,12 +1,9 @@
+import { MerchantIdSchema } from "@/modules/merchant/schema/MerchantIdSchema.js";
 import { WebhookIdSchema } from "./WebhookIdSchema.js";
 import z from "zod";
 
-const webhookUrlSchema = z.url().refine((value) => {
-  const protocol = new URL(value).protocol;
-  return protocol === "http:" || protocol === "https:";
-}, "Webhook URL must use HTTP or HTTPS");
-
 export const UpdateWebhookSchema = {
-  params: WebhookIdSchema,
-  body: z.object({ url: webhookUrlSchema }),
+  params: MerchantIdSchema.extend({ ...WebhookIdSchema.shape }),
+
+  body: z.object({ url: z.url("Not a valid url").optional() }),
 };

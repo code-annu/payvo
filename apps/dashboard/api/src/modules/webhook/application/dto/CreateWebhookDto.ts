@@ -3,10 +3,3 @@ export interface CreateWebhookInputDto {
   userId: string;
   url: string;
 }
-
-export interface CreatedWebhookOutputDto {
-  id: string;
-  merchantId: string;
-  url: string;
-  secretKey: string;
-}

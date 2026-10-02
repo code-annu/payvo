@@ -1,5 +1,6 @@
 export interface UpdateWebhookInputDto {
-  webhookId: string;
   userId: string;
+  merchantId: string;
+  webhookId: string;
   url?: string;
 }
