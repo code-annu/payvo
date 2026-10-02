@@ -31,4 +31,15 @@ describe("DeleteMerchantUsecase", () => {
     );
     expect(merchantRepository.delete).toHaveBeenCalledWith(input);
   });
+
+  it("deletes an inactive merchant because deletion does not check active state", async () => {
+    const inactiveMerchant = {
+      ...merchant,
+      isActive: false,
+    };
+    merchantRepository.delete.mockResolvedValue(inactiveMerchant);
+
+    await expect(usecase.execute(input)).resolves.toEqual(inactiveMerchant);
+    expect(merchantRepository.delete).toHaveBeenCalledWith(input);
+  });
 });
