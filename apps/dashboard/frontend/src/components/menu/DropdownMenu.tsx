@@ -1,5 +1,6 @@
 import type React from "react";
 import { useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 
 export interface DropdownMenuProps {
@@ -55,7 +56,7 @@ export const DropdownMenu: React.FC<DropdownMenuProps> = ({
 
   if (!isOpen) return null;
 
-  return (
+  return createPortal(
     <div
       className="fixed inset-0 z-50 flex items-start justify-end"
       role="presentation"
@@ -108,7 +109,8 @@ export const DropdownMenu: React.FC<DropdownMenuProps> = ({
           <div className="border-t border-border px-4 py-3">{footer}</div>
         )}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 };
 
