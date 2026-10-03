@@ -8,10 +8,12 @@
     "db:plan:migration": "pnpm --filter @payvo/database plan:migration",
     "db:migrate": "pnpm --filter @payvo/database db:migrate",
     "db:setup": "pnpm db:contract:emit && pnpm db:plan:migration && pnpm db:migrate",
-    "build:package:database": "pnpm --filter @payvo/database build",
-    "build:package:config": "pnpm --filter @payvo/config build",
-    "build:package:shared": "pnpm --filter @payvo/shared build",
-    "build:packages": "pnpm build:package:database && pnpm build:package:config && pnpm build:package:shared"
+    "package:build:database": "pnpm --filter @payvo/database build",
+    "package:build:config": "pnpm --filter @payvo/config build",
+    "package:build:shared": "pnpm --filter @payvo/shared build",
+    "packages:build": "pnpm package:build:database && pnpm package:build:config && pnpm package:build:shared",
+    "dashboard:api:build": "pnpm packages:build && pnpm --filter @payvo/dashboard-api build",
+    "dashboard:api:start": "pnpm --filter @payvo/dashboard-api start"
   },
   "keywords": [],
   "author": "",

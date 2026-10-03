@@ -25,6 +25,12 @@ app.use(express.json());
 app.use(cookieParser());
 app.use(cors(corsOptions));
 
+app.get("/health", (_req, res) => {
+  res.json({
+    status: "ok",
+  });
+});
+
 // Auth routes
 const authRouter = container.get<AuthRouter>(TYPES.AuthRouter);
 app.use("/api/auth", authRouter.router);
