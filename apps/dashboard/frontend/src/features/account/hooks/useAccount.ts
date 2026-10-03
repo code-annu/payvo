@@ -4,7 +4,7 @@ import UserApi from "../api/user.api";
 
 export function useAccount(retry: boolean = false) {
   return useQuery({
-    queryKey: userQueryKey.me,
+    queryKey: userQueryKey.account,
     queryFn: UserApi.getMe,
     retry,
   });

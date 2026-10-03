@@ -11,8 +11,8 @@ export function useUpdateUser() {
   return useMutation({
     mutationFn: (data: UserUpdateRequest) => UserApi.updateMe(data),
     onSuccess: (updatedUser) => {
-      queryClient.setQueryData(userQueryKey.me, updatedUser);
-      queryClient.invalidateQueries({ queryKey: userQueryKey.me });
+      queryClient.setQueryData(userQueryKey.account, updatedUser);
+      queryClient.invalidateQueries({ queryKey: userQueryKey.account });
       toast.success("Profile updated successfully", {
         description: "Your changes have been saved.",
       });
