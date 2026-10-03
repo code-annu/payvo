@@ -3,7 +3,15 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "db:contract:emit": "pnpm --filter @payvo/database contract:emit",
+    "db:plan:migration": "pnpm --filter @payvo/database plan:migration",
+    "db:migrate": "pnpm --filter @payvo/database db:migrate",
+    "db:setup": "pnpm db:contract:emit && pnpm db:plan:migration && pnpm db:migrate",
+    "build:package:database": "pnpm --filter @payvo/database build",
+    "build:package:config": "pnpm --filter @payvo/config build",
+    "build:package:shared": "pnpm --filter @payvo/shared build",
+    "build:packages": "pnpm build:package:database && pnpm build:package:config && pnpm build:package:shared"
   },
   "keywords": [],
   "author": "",

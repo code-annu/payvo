@@ -4,6 +4,12 @@ dist
 .vscode
 **/contract.d.ts
 **/contract.json
+**/migrations
+.agents
+.claude
+.cursor
+.devin
+
 
 
 
