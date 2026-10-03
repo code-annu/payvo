@@ -5,7 +5,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "db:contract:emit": "pnpm --filter @payvo/database contract:emit",
-    "db:plan:migration": "pnpm --filter @payvo/database plan:migration",
+    "db:plan:migration": "pnpm --filter @payvo/database plan:migration add_initial_models",
     "db:migrate": "pnpm --filter @payvo/database db:migrate",
     "db:setup": "pnpm db:contract:emit && pnpm db:plan:migration && pnpm db:migrate",
     "package:build:database": "pnpm --filter @payvo/database build",
