@@ -1,13 +1,16 @@
 export const userQueryKey = {
-  me: ["user"] as const,
+  account: ["account"] as const,
 };
 
 export const merchantQueryKey = {
   all: ["merchants"] as const,
-  detail: (id: string) => ["merchants", id] as const,
+  // list: () => [...merchantQueryKey.all, "list"] as const,
 };
 
 export const apiKeyQueryKey = {
-  active: (merchantId: string, environment: string = "LIVE") =>
-    ["merchants", merchantId, "api-keys", environment] as const,
+  merchantApiKeys: (merchantId: string) =>
+    ["merchant", merchantId, "api-keys"] as const,
+  activeApiKey: (merchantId: string) =>
+    ["merchant", merchantId, "active-api-key"] as const,
 };
+
