@@ -9,7 +9,7 @@ import type {
 export default abstract class MerchantApi {
   static async createMerchant(): Promise<MerchantDetails> {
     const response = await axiosClient.post<MerchantResponse>("/merchants");
-    return response.data.data.merchant;
+    return response.data.data;
   }
 
   static async deleteMerchant(merchantId: string): Promise<void> {
@@ -20,7 +20,7 @@ export default abstract class MerchantApi {
     const response = await axiosClient.put<MerchantResponse>(
       `/merchants/${merchantId}`,
     );
-    return response.data.data.merchant;
+    return response.data.data;
   }
 
   static async getUserMerchants(): Promise<UserMerchants> {

@@ -1,15 +1,14 @@
 import type React from "react";
 import { useMerchantStore } from "@/app/store/merchant.store";
-import { useMerchants } from "../hooks/useMerchants";
 import { useCreateMerchant } from "../hooks/useCreateMerchant";
 import { Button } from "@/components/buttons/CustomButton";
 import DropdownMenu from "@/components/menu/DropdownMenu";
 import MerchantItem from "./MerchantItem";
 import CircularLoadingBar from "@/components/progress/CircularLoadingBar";
-import { useNavigate } from "react-router-dom";
-import AppRoutes from "@/router/app.routes";
+import ErrorText from "@/components/text/ErrorText";
+import { useGetMerchants } from "../hooks/useGetMerchants";
 
-export interface MerchantSwitcherProps {
+export interface MerchantSwitcherMenuProps {
   isOpen: boolean;
   onClose: () => void;
 }
@@ -18,16 +17,15 @@ export interface MerchantSwitcherProps {
  * Dropdown to list, switch, and create merchants.
  * Uses the generic DropdownMenu shell with merchant-specific content.
  */
-export const MerchantSwitcher: React.FC<MerchantSwitcherProps> = ({
+export const MerchantSwitcherMenu: React.FC<MerchantSwitcherMenuProps> = ({
   isOpen,
   onClose,
 }) => {
   const { selectedMerchantId, setSelectedMerchantId } = useMerchantStore(
     (state) => state,
   );
-  const { data, isLoading } = useMerchants();
-  const createMerchant = useCreateMerchant();
-  const navigate = useNavigate();
+  const { data, isLoading, error, isError } = useGetMerchants();
+  const createMerchant = useCreateMerchant(() => onClose());
 
   const handleSwitch = (merchantId: string) => {
     setSelectedMerchantId(merchantId);
@@ -35,12 +33,7 @@ export const MerchantSwitcher: React.FC<MerchantSwitcherProps> = ({
   };
 
   const handleCreate = () => {
-    createMerchant.mutate(undefined, {
-      onSuccess: () => {
-        onClose();
-        navigate(AppRoutes.HOME);
-      },
-    });
+    createMerchant.mutate();
   };
 
   // ── Build the merchant list body ─────────────────────────
@@ -50,6 +43,18 @@ export const MerchantSwitcher: React.FC<MerchantSwitcherProps> = ({
     body = (
       <div className="flex items-center justify-center py-8">
         <CircularLoadingBar size={32} strokeWidth={3} />
+      </div>
+    );
+  } else if (isError) {
+    body = (
+      <div className="py-3 px-1">
+        <ErrorText
+          message={
+            error instanceof Error
+              ? error.message
+              : "Failed to load merchants. Please try again."
+          }
+        />
       </div>
     );
   } else if (!data || data.merchants.length === 0) {
@@ -82,13 +87,15 @@ export const MerchantSwitcher: React.FC<MerchantSwitcherProps> = ({
       title="Switch Merchant"
       ariaLabel="Switch merchant"
       footer={
-        <Button
-          text="Create New Merchant"
-          color="primary"
-          onClick={handleCreate}
-          isLoading={createMerchant.isPending}
-          className="w-full h-9 text-sm gap-2"
-        />
+        !isError ? (
+          <Button
+            text="Create New Merchant"
+            color="primary"
+            onClick={handleCreate}
+            isLoading={createMerchant.isPending}
+            className="w-full h-9 text-sm gap-2"
+          />
+        ) : undefined
       }
     >
       {body}
@@ -96,4 +103,4 @@ export const MerchantSwitcher: React.FC<MerchantSwitcherProps> = ({
   );
 };
 
-export default MerchantSwitcher;
+export default MerchantSwitcherMenu;

@@ -3,13 +3,9 @@ import { Check, Store } from "lucide-react";
 import type { Merchant } from "../api/merchant.types";
 
 export interface MerchantItemProps {
-  /** The merchant data to display */
   merchant: Merchant;
-  /** Display index (1-based) used as the merchant label */
   index: number;
-  /** Whether this merchant is currently selected */
   isSelected: boolean;
-  /** Callback when this merchant is clicked */
   onSelect: (merchantId: string) => void;
 }
 

@@ -12,10 +12,12 @@ export type Merchant = Pick<MerchantDetails, "id" | "isActive" | "mid">;
 
 export interface UserMerchants {
   readonly userId: string;
-  readonly merchants: Merchant[];
+  readonly merchants: {
+    readonly id: string;
+    readonly isActive: boolean;
+    readonly mid: string;
+  }[];
 }
 
 export type UserMerchantsResponse = SuccessResponse<UserMerchants>;
-export type MerchantResponse = SuccessResponse<{
-  merchant: MerchantDetails;
-}>;
+export type MerchantResponse = SuccessResponse<MerchantDetails>;
