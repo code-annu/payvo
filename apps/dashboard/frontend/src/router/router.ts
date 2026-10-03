@@ -2,10 +2,11 @@ import { createBrowserRouter, redirect } from "react-router-dom";
 import AppRoutes from "./app.routes";
 import LoginPage from "@/features/auth/pages/LoginPage";
 import SignupPage from "@/features/auth/pages/SignupPage";
-import HomePage from "@/features/dashboard/pages/HomePage";
 import ProtectedRoute from "./ProtectedRoute";
 import DashboardLayout from "@/features/dashboard/components/DashboardLayout";
+import { HomePage } from "@/features/dashboard/HomePage";
 import AccountPage from "@/features/account/pages/AccountPage";
+import ApiKeyPage from "@/features/api-key/pages/ApiKeyPage";
 
 export const appRouter = createBrowserRouter([
   // Redirect "/" → "/dashboard"
@@ -26,7 +27,7 @@ export const appRouter = createBrowserRouter([
           { path: AppRoutes.HOME, Component: HomePage },
           { path: AppRoutes.ACCOUNT_SETTINGS, Component: AccountPage },
           // { path: AppRoutes.TRANSACTIONS, Component: TransactionsPage },
-          // { path: AppRoutes.API_KEYS, Component: ApiKeysPage },
+          { path: AppRoutes.API_KEYS, Component: ApiKeyPage },
         ],
       },
     ],
