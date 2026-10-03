@@ -332,16 +332,41 @@ Creates an account, session, and refresh-token record.
 **`201 Created` response:**
 
 ```json
-{ "success": true, "data": { "accessToken": "<jwt>" } }
+{
+  "success": true,
+  "data": {
+    "accessToken": "<jwt>"
+  }
+}
 ```
 
 Sets the refresh-token cookie. Errors: `400 INVALID_REQUEST` for invalid input; `409 EMAIL_ALREADY_EXISTS` if the email is already registered.
 
 #### `POST /api/auth/login`
 
-Body: `{ "email": "user@example.com", "password": "MyPass@123" }`. Both fields are required; email must be valid.
+Body:
 
-**`200 OK` response:** `{ "success": true, "data": { "accessToken": "<jwt>" } }`. Sets the refresh-token cookie.
+```json
+{
+  "email": "user@example.com",
+  "password": "MyPass@123"
+}
+```
+
+Both fields are required; email must be valid.
+
+**`200 OK` response:**
+
+```json
+{
+  "success": true,
+  "data": {
+    "accessToken": "<jwt>"
+  }
+}
+```
+
+Sets the refresh-token cookie.
 
 Errors: `400 INVALID_REQUEST` for invalid input; `401 INVALID_CREDENTIALS` for incorrect credentials.
 
@@ -349,7 +374,18 @@ Errors: `400 INVALID_REQUEST` for invalid input; `401 INVALID_CREDENTIALS` for i
 
 Requires a non-empty `refreshToken` cookie. Revokes the presented refresh token and returns a replacement pair.
 
-**`200 OK` response:** `{ "success": true, "data": { "accessToken": "<jwt>" } }`. Replaces the refresh-token cookie.
+**`200 OK` response:**
+
+```json
+{
+  "success": true,
+  "data": {
+    "accessToken": "<jwt>"
+  }
+}
+```
+
+Replaces the refresh-token cookie.
 
 Errors: `400 INVALID_REQUEST` when the cookie is missing/empty; `401` for `INVALID_REFRESH_TOKEN`, `REVOKED_REFRESH_TOKEN`, `EXPIRED_SESSION`, `REVOKED_SESSION`, or `INVALID_CREDENTIALS` when the session or user is no longer valid.
 
@@ -357,7 +393,16 @@ Errors: `400 INVALID_REQUEST` when the cookie is missing/empty; `401` for `INVAL
 
 Requires `Authorization: Bearer <access-token>`. Revokes the current session and clears the refresh-token cookie.
 
-**`200 OK` response:** `{ "success": true, "data": { "message": "Logged out successfully" } }`.
+**`200 OK` response:**
+
+```json
+{
+  "success": true,
+  "data": {
+    "message": "Logged out successfully"
+  }
+}
+```
 
 ### Account
 
@@ -369,7 +414,23 @@ All account routes require a valid access token and operate on the authenticated
 
 Returns the account fields `id`, `email`, `fullname`, `companyName`, `isEmailVerified`, `deletedAt`, `createdAt`, and `updatedAt`.
 
-**`200 OK` response:** `{ "success": true, "data": { "id": "<uuid>", "email": "user@example.com", "fullname": "Jane Doe", "companyName": null, "isEmailVerified": false, "deletedAt": null, "createdAt": "<timestamp>", "updatedAt": "<timestamp>" } }`.
+**`200 OK` response:**
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": "<uuid>",
+    "email": "user@example.com",
+    "fullname": "Jane Doe",
+    "companyName": null,
+    "isEmailVerified": false,
+    "deletedAt": null,
+    "createdAt": "<timestamp>",
+    "updatedAt": "<timestamp>"
+  }
+}
+```
 
 Error: `404 ACCOUNT_NOT_FOUND`.
 
@@ -378,7 +439,10 @@ Error: `404 ACCOUNT_NOT_FOUND`.
 Updates the profile. Body fields are optional:
 
 ```json
-{ "fullname": "Jane Smith", "companyName": "New Corp" }
+{
+  "fullname": "Jane Smith",
+  "companyName": "New Corp"
+}
 ```
 
 `fullname`, when provided, must be 3–50 trimmed characters. `companyName` may be a string of up to 100 trimmed characters or `null`. Returns the updated account using the same shape as `GET`.
@@ -407,7 +471,11 @@ Lists the authenticated user's merchants.
   "data": {
     "userId": "<user-uuid>",
     "merchants": [
-      { "id": "<merchant-uuid>", "isActive": true, "mid": "<merchant-number>" }
+      {
+        "id": "<merchant-uuid>",
+        "isActive": true,
+        "mid": "<merchant-number>"
+      }
     ]
   }
 }
@@ -417,13 +485,41 @@ Lists the authenticated user's merchants.
 
 Creates a merchant for the authenticated user. No request body is required.
 
-**`201 Created` response:** `{ "success": true, "data": { "id": "<uuid>", "mid": "<merchant-number>", "isActive": true, "userId": "<user-uuid>", "createdAt": "<timestamp>", "updatedAt": "<timestamp>" } }`.
+**`201 Created` response:**
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": "<uuid>",
+    "mid": "<merchant-number>",
+    "isActive": true,
+    "userId": "<user-uuid>",
+    "createdAt": "<timestamp>",
+    "updatedAt": "<timestamp>"
+  }
+}
+```
 
 #### `GET /api/merchants/:merchantId`
 
 Returns the merchant only when it belongs to the authenticated user.
 
-**`200 OK` response:** `{ "success": true, "data": { "id": "<uuid>", "mid": "<merchant-number>", "isActive": true, "userId": "<user-uuid>", "createdAt": "<timestamp>", "updatedAt": "<timestamp>" } }`.
+**`200 OK` response:**
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": "<uuid>",
+    "mid": "<merchant-number>",
+    "isActive": true,
+    "userId": "<user-uuid>",
+    "createdAt": "<timestamp>",
+    "updatedAt": "<timestamp>"
+  }
+}
+```
 
 Errors: `400 INVALID_REQUEST` for an invalid UUID; `404 MERCHANT_NOT_FOUND` if it does not exist or is not owned by the user.
 
@@ -494,21 +590,56 @@ Errors: `400 INVALID_REQUEST`; `404 MERCHANT_NOT_FOUND`; `403 MERCHANT_INACTIVE`
 
 Requires query parameter `environment=TEST` or `environment=LIVE`.
 
-**`200 OK` response:** `{ "success": true, "data": { "id": "<api-key-uuid>", "keyId": "<key-id>", "status": "ACTIVE", "environment": "TEST", "lastUsedAt": null, "generatedAt": "<timestamp>" } }`.
+**`200 OK` response:**
 
-Does not return the plaintext secret or stored secret hash. Errors: `400 INVALID_REQUEST`; `404 MERCHANT_NOT_FOUND` or `API_KEY_NOT_FOUND`; `403 MERCHANT_INACTIVE`.
+```json
+{
+  "success": true,
+  "data": {
+    "id": "<api-key-uuid>",
+    "keyId": "<key-id>",
+    "status": "ACTIVE",
+    "environment": "TEST",
+    "lastUsedAt": null,
+    "generatedAt": "<timestamp>"
+  }
+}
+```
+
+Does not return the plaintext secret or stored secret hash.
+
+Errors: `400 INVALID_REQUEST`; `404 MERCHANT_NOT_FOUND` or `API_KEY_NOT_FOUND`; `403 MERCHANT_INACTIVE`.
 
 #### `POST /api/merchants/:merchantId/api-keys/rotate`
 
 Both request fields are required:
 
 ```json
-{ "environment": "TEST", "oldKeyRevokeStrategy": "IMMEDIATELY" }
+{
+  "environment": "TEST",
+  "oldKeyRevokeStrategy": "IMMEDIATELY"
+}
 ```
 
 `environment` must be `TEST` or `LIVE`; `oldKeyRevokeStrategy` must be `IMMEDIATELY` or `24_HOURS`. Rotation is transactional. `IMMEDIATELY` revokes the old key; `24_HOURS` moves it to `GRACE_PERIOD` until its grace deadline.
 
-**`201 Created` response:** Same shape as generate, including the newly generated `keySecret`.
+**`201 Created` response:**
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": "<api-key-uuid>",
+    "keyId": "<generated-key-id>",
+    "keySecret": "<generated-secret>",
+    "status": "ACTIVE",
+    "environment": "TEST",
+    "generatedAt": "<timestamp>"
+  }
+}
+```
+
+The plaintext `keySecret` is returned for the newly generated active key; store it securely.
 
 Errors: `400 INVALID_REQUEST`; `404 MERCHANT_NOT_FOUND` or `API_KEY_NOT_FOUND` if no active key can be rotated; `403 MERCHANT_INACTIVE`.
 
@@ -516,7 +647,20 @@ Errors: `400 INVALID_REQUEST`; `404 MERCHANT_NOT_FOUND` or `API_KEY_NOT_FOUND` i
 
 Both path parameters must be UUIDs. Requires ownership of an active merchant.
 
-**`200 OK` response:** `{ "success": true, "data": { "id": "<api-key-uuid>", "keyId": "<key-id>", "status": "REVOKED", "environment": "TEST", "revokedAt": "<timestamp>" } }`.
+**`200 OK` response:**
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": "<api-key-uuid>",
+    "keyId": "<key-id>",
+    "status": "REVOKED",
+    "environment": "TEST",
+    "revokedAt": "<timestamp>"
+  }
+}
+```
 
 Errors: `400 INVALID_REQUEST`; `404 MERCHANT_NOT_FOUND` or `API_KEY_NOT_FOUND`; `403 MERCHANT_INACTIVE`; `409 REVOKED_API_KEY` if the key was already revoked.
 
@@ -530,9 +674,29 @@ Every webhook route requires a valid access token, an active user, and an owned,
 
 #### `POST /api/merchants/:merchantId/webhooks`
 
-Body: `{ "url": "https://example.com/webhooks" }`. `url` is required and must be a valid URL.
+Body:
 
-**`201 Created` response:** `{ "success": true, "data": { "id": "<webhook-uuid>", "merchantId": "<merchant-uuid>", "secretKey": "<generated-secret>", "url": "https://example.com/webhooks" } }`.
+```json
+{
+  "url": "https://example.com/webhooks"
+}
+```
+
+`url` is required and must be a valid URL.
+
+**`201 Created` response:**
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": "<webhook-uuid>",
+    "merchantId": "<merchant-uuid>",
+    "secretKey": "<generated-secret>",
+    "url": "https://example.com/webhooks"
+  }
+}
+```
 
 The response includes the webhook secret; store it securely.
 
@@ -542,7 +706,22 @@ Errors: `400 INVALID_REQUEST`; `404 MERCHANT_NOT_FOUND`; `403 MERCHANT_INACTIVE`
 
 Lists webhook IDs and URLs. Webhook secrets are omitted.
 
-**`200 OK` response:** `{ "success": true, "data": { "merchantId": "<merchant-uuid>", "webhooks": [{ "id": "<webhook-uuid>", "url": "https://example.com/webhooks" }] } }`.
+**`200 OK` response:**
+
+```json
+{
+  "success": true,
+  "data": {
+    "merchantId": "<merchant-uuid>",
+    "webhooks": [
+      {
+        "id": "<webhook-uuid>",
+        "url": "https://example.com/webhooks"
+      }
+    ]
+  }
+}
+```
 
 Returns an empty list when there are no webhooks. Errors: `400 INVALID_REQUEST`; `404 MERCHANT_NOT_FOUND`; `403 MERCHANT_INACTIVE`.
 
@@ -550,13 +729,33 @@ Returns an empty list when there are no webhooks. Errors: `400 INVALID_REQUEST`;
 
 Returns a webhook belonging to the specified merchant.
 
-**`200 OK` response:** `{ "success": true, "data": { "id": "<webhook-uuid>", "merchantId": "<merchant-uuid>", "secretKey": "<webhook-secret>", "url": "https://example.com/webhooks" } }`.
+**`200 OK` response:**
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": "<webhook-uuid>",
+    "merchantId": "<merchant-uuid>",
+    "secretKey": "<webhook-secret>",
+    "url": "https://example.com/webhooks"
+  }
+}
+```
 
 Errors: `400 INVALID_REQUEST`; `404 MERCHANT_NOT_FOUND` or `WEBHOOK_NOT_FOUND`; `403 MERCHANT_INACTIVE`.
 
 #### `PATCH /api/merchants/:merchantId/webhooks/:webhookId`
 
-Body: `{ "url": "https://example.com/new-webhook-url" }`. `url` is optional; when supplied, it must be a valid URL.
+Body:
+
+```json
+{
+  "url": "https://example.com/new-webhook-url"
+}
+```
+
+`url` is optional; when supplied, it must be a valid URL.
 
 **`200 OK` response:** The updated webhook using the same shape as the details response, including `secretKey`.
 
@@ -581,12 +780,26 @@ Header: `x-internal-secret: <INTERNAL_SECRET>`.
 Body:
 
 ```json
-{ "keyId": "<key-id>", "keySecret": "<plaintext-secret>" }
+{
+  "keyId": "<key-id>",
+  "keySecret": "<plaintext-secret>"
+}
 ```
 
 Both fields are required non-empty strings. The API checks the key ID and secret hash, rejects revoked keys, and verifies that the associated merchant is active and its user exists.
 
-**`200 OK` response:** `{ "success": true, "data": { "valid": true, "merchantId": "<merchant-uuid>", "environment": "TEST" } }`.
+**`200 OK` response:**
+
+```json
+{
+  "success": true,
+  "data": {
+    "valid": true,
+    "merchantId": "<merchant-uuid>",
+    "environment": "TEST"
+  }
+}
+```
 
 Errors: `400 INVALID_REQUEST`; `401 MISSING_INTERNAL_SECRET`, `INVALID_INTERNAL_SECRET`, or `INVALID_API_KEY_CREDENTIALS`; `409 REVOKED_API_KEY`.
 
