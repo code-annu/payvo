@@ -5,7 +5,7 @@ import app from "./app.js";
 async function bootstrap() {
   // await connectRedis();
 
-  app.listen(appConfig.port, () => {
+  app.listen(appConfig.port, "0.0.0.0", () => {
     console.log(`Server is running on port: ${appConfig.port}`);
   });
 }
