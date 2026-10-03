@@ -1,22 +1,22 @@
-import { UserCircle, Menu, X } from "lucide-react";
-import ApiKeyIconButton from "@/features/api-keys/components/ApiKeyIconButton";
+import type React from "react";
+import { Menu, X } from "lucide-react";
+import MerchantSwitcherIconButton from "@/features/merchant/components/MerchantSwitcherIconButton";
+import PeekApiKeyIconButton from "@/features/api-key/components/PeekApiKeyIconButton";
 
 export interface DashboardTopBarProps {
   /** Whether mobile nav is currently open */
   mobileNavOpen: boolean;
   /** Toggle mobile nav visibility */
   onToggleMobileNav: () => void;
-  /** Open the merchant switcher dialog */
-  onOpenSwitcher: () => void;
 }
 
 /**
- * Fixed top bar with PayO brand (left) and merchant switcher icon (right).
+ * Fixed top bar with PayO branding on the left, and
+ * API-key / merchant-switcher actions on the right.
  */
 export const DashboardTopBar: React.FC<DashboardTopBarProps> = ({
   mobileNavOpen,
   onToggleMobileNav,
-  onOpenSwitcher,
 }) => {
   return (
     <header
@@ -26,9 +26,9 @@ export const DashboardTopBar: React.FC<DashboardTopBarProps> = ({
         "flex items-center justify-between px-4",
       ].join(" ")}
     >
-      {/* Left: Mobile hamburger + Brand */}
+      {/* ── Left: Mobile hamburger + Brand ────────────────── */}
       <div className="flex items-center gap-3">
-        {/* Mobile menu button */}
+        {/* Mobile menu toggle */}
         <button
           type="button"
           onClick={onToggleMobileNav}
@@ -46,9 +46,16 @@ export const DashboardTopBar: React.FC<DashboardTopBarProps> = ({
           )}
         </button>
 
-        {/* Brand logo */}
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-[calc(var(--radius)-2px)] bg-primary flex items-center justify-center text-primary-foreground font-bold text-sm shadow-sm shadow-primary/25">
+        {/* Brand mark */}
+        <div className="flex items-center gap-2 select-none">
+          <div
+            className={[
+              "w-8 h-8 rounded-[calc(var(--radius)-2px)]",
+              "bg-primary flex items-center justify-center",
+              "text-primary-foreground font-bold text-sm",
+              "shadow-sm shadow-primary/25",
+            ].join(" ")}
+          >
             P
           </div>
           <span className="text-lg font-bold tracking-tight text-foreground hidden sm:inline">
@@ -56,23 +63,13 @@ export const DashboardTopBar: React.FC<DashboardTopBarProps> = ({
           </span>
         </div>
       </div>
-
-      {/* Right: API Key + Merchant switcher */}
+      {/* ── Right: API Key + Merchant Switcher ────────────── */}
       <div className="flex items-center gap-2">
-        <ApiKeyIconButton />
-        <button
-          type="button"
-          onClick={onOpenSwitcher}
-          aria-label="Switch merchant"
-          className={[
-            "inline-flex items-center justify-center w-9 h-9 rounded-full",
-            "bg-secondary text-secondary-foreground",
-            "hover:bg-secondary/80 transition-all duration-200 cursor-pointer",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
-          ].join(" ")}
-        >
-          <UserCircle className="w-5 h-5" />
-        </button>
+        {/* API Key eye button */}
+        <PeekApiKeyIconButton />
+
+        {/* Merchant switcher */}
+        <MerchantSwitcherIconButton />
       </div>
     </header>
   );
