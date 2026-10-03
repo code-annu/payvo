@@ -6,3 +6,5 @@ export * from "./api-key.types.js";
 export * from "./payment-order.types.js";
 export * from "./payment-attempt.types.js";
 export * from "./payment-method.types.js";
+export * from "./transaction.types.js";
+export * from "./webhook.types.js";

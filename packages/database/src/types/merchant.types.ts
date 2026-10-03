@@ -10,3 +10,9 @@ export type MerchantCreateInput = Parameters<
 
 type MerchantWhereChain = ReturnType<typeof db.orm.public.Merchant.where>;
 export type MerchantUpdateInput = Parameters<MerchantWhereChain["update"]>[0];
+
+async function temp() {
+  const result = await db.orm.public.Merchant.where({ id: "" })
+    .include("user", (user) => user.select("id", "email"))
+    .first();
+}
