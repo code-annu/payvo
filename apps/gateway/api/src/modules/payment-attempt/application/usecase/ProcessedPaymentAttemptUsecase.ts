@@ -9,7 +9,9 @@ import {
   PaymentAttemptInvalidStateError,
   PaymentAttemptNotFoundError,
 } from "../../error/payment-attempt.errors.js";
-import { PaymentOrderNotFoundError } from "@/modules/payment-order/error/payment-order.errors.js";
+import * as paymentOrderErrors from "@/modules/payment-order/error/payment-order.errors.js";
+import WebhookWorker from "@/workers/webhook/webhook.worker.js";
+import { isBefore } from "date-fns";
 
 const TRANSACTION_FEE = 0.02;
 
@@ -22,6 +24,8 @@ export default class ProcessedPaymentAttemptUsecase {
     private readonly paymentOrderRepo: PaymentOrderRepository,
     @inject(TYPES.TransactionRepository)
     private readonly transactionRepo: TransactionRepository,
+    @inject(TYPES.WebhookWorker)
+    private readonly webhookWorker: WebhookWorker,
   ) {}
 
   async execute(input: ProcessedPaymentAttemptInputDto) {
@@ -29,13 +33,29 @@ export default class ProcessedPaymentAttemptUsecase {
 
     await dbTransaction(async (tx) => {
       if (processed) {
-        await this.handleProcessed(tx, paymentAttemptId);
+        const order = await this.handleProcessed(tx, paymentAttemptId);
+        this.webhookWorker.sendPaymentWebhook(order.merchantId, {
+          event: "payment.succeed",
+          data: {
+            paymentOrderId: order.id,
+            paymentAttemptId: paymentAttemptId,
+            amount: order.amount,
+            currency: order.currency,
+          },
+        });
       } else {
-        await this.handleNotProcessed(tx, paymentAttemptId);
+        const order = await this.handleNotProcessed(tx, paymentAttemptId);
+        this.webhookWorker.sendPaymentWebhook(order.merchantId, {
+          event: "payment.failed",
+          data: {
+            paymentOrderId: order.id,
+            paymentAttemptId: paymentAttemptId,
+            amount: order.amount,
+            currency: order.currency,
+          },
+        });
       }
     });
-
-    console.log("Payment is processed!!!");
   }
 
   private async handleProcessed(
@@ -55,9 +75,7 @@ export default class ProcessedPaymentAttemptUsecase {
       if (attempt && attempt.status !== "PROCESSING") {
         throw new PaymentAttemptInvalidStateError(
           "Only processing attempt can be succeed",
-          {
-            attemptStatus: attempt.status,
-          },
+          { attemptStatus: attempt.status },
         );
       }
       throw new PaymentAttemptNotFoundError("Attempt not found");
@@ -68,7 +86,24 @@ export default class ProcessedPaymentAttemptUsecase {
       completedAt: now,
     });
     if (!completedOrder) {
-      throw new PaymentOrderNotFoundError("Order not found");
+      const order = await this.paymentOrderRepo.findById(
+        tx,
+        succeedAttempt.paymentOrderId,
+      );
+      if (
+        order &&
+        order.status !== "PAYMENT_PROCESSING" &&
+        order.status !== "EXPIRED"
+      ) {
+        throw new paymentOrderErrors.PaymentOrderInvalidState(
+          "Cannot complete order as order is not in valid state",
+          { paymentOrderStatus: order.status },
+        );
+      }
+
+      throw new paymentOrderErrors.PaymentOrderNotFoundError(
+        "Cannot find order to mark completed",
+      );
     }
 
     await this.transactionRepo.create(tx, {
@@ -81,6 +116,8 @@ export default class ProcessedPaymentAttemptUsecase {
       netAmount: (completedOrder.amount * (1 - TRANSACTION_FEE)).toString(),
       currency: completedOrder.currency as any,
     });
+
+    return completedOrder;
   }
 
   private async handleNotProcessed(
@@ -100,20 +137,32 @@ export default class ProcessedPaymentAttemptUsecase {
       if (attempt && attempt.status !== "PROCESSING") {
         throw new PaymentAttemptInvalidStateError(
           "Only processing attempt can be failed",
-          {
-            attemptStatus: attempt.status,
-          },
+          { attemptStatus: attempt.status },
         );
       }
       throw new PaymentAttemptNotFoundError("Attempt not found");
     }
 
-    const order = await this.paymentOrderRepo.findById(
-      tx,
-      failedAttempt.paymentOrderId,
-    );
-    if (!order) {
-      throw new PaymentOrderNotFoundError("Order not found");
+    const failedOrder = await this.paymentOrderRepo.markFailed(tx, {
+      id: failedAttempt.paymentOrderId,
+    });
+    if (!failedOrder) {
+      const order = await this.paymentOrderRepo.findById(
+        tx,
+        failedAttempt.paymentOrderId,
+      );
+      if (
+        order &&
+        order.status !== "PAYMENT_PROCESSING" &&
+        order.status !== "EXPIRED"
+      ) {
+        throw new paymentOrderErrors.PaymentOrderInvalidState(
+          "Order is not in valid state to mark failed",
+          { paymentOrderStatus: order.status },
+        );
+      }
+      throw new paymentOrderErrors.PaymentOrderNotFoundError("Order not found");
     }
+    return failedOrder;
   }
 }

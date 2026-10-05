@@ -28,11 +28,15 @@ describe("ProcessedPaymentAttemptUsecase", () => {
 	const transactionRepo = {
 		create: vi.fn(),
 	};
+	const webhookWorker = {
+		sendPaymentWebhook: vi.fn(),
+	};
 
 	const usecase = new ProcessedPaymentAttemptUsecase(
 		paymentAttemptRepo as never,
 		paymentOrderRepo as never,
 		transactionRepo as never,
+		webhookWorker as never,
 	);
 
 	beforeEach(() => {

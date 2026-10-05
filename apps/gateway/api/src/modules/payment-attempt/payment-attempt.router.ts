@@ -2,6 +2,7 @@ import { Router } from "express";
 import { inject, injectable } from "inversify";
 import TYPES from "@/core/di/inversify.types.js";
 import { validateRequest } from "@/core/middleware/validate-request.middleware.js";
+import { authenticateFrontend } from "@/core/middleware/authenticate-frontend.middleware.js";
 import PaymentAttemptController from "./payment-attempt.controller.js";
 import { AttemptPaymentSchema } from "./schema/AttemptPaymentSchema.js";
 
@@ -25,6 +26,7 @@ export default class PaymentAttemptRouter {
   private initPaymentOrderAttemptRouter() {
     this.paymentOrderAttemptRouter.post(
       "/attempt",
+      authenticateFrontend,
       validateRequest(AttemptPaymentSchema),
       this.paymentAttemptController.attemptPayment,
     );
