@@ -5,9 +5,9 @@ const axiosClient = axios.create({
   timeout: 10_000,
   headers: {
     "Content-Type": "application/json",
-    "x-gateway-secret": "future secret",
+    "x-gateway-secret": import.meta.env.VITE_FRONTEND_SECRET,
   },
-  withCredentials: true,
+  withCredentials: false,
 });
 
 export default axiosClient;

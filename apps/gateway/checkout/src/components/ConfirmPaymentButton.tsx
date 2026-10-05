@@ -1,3 +1,5 @@
+import AmountUtil from "@/core/util/amount.util";
+
 interface ConfirmPaymentButtonProps {
   formId: string;
   amount: number;
@@ -9,14 +11,6 @@ export function ConfirmPaymentButton({
   amount,
   currency,
 }: ConfirmPaymentButtonProps) {
-  const formatAmount = (amount: number, currency: string) => {
-    return new Intl.NumberFormat("en-IN", {
-      style: "currency",
-      currency,
-      minimumFractionDigits: 0,
-    }).format(amount / 100);
-  };
-
   return (
     <button
       type="submit"
@@ -50,7 +44,7 @@ export function ConfirmPaymentButton({
             d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z"
           />
         </svg>
-        Pay {formatAmount(amount, currency)}
+        Pay {AmountUtil.formatAmount(amount, currency)}
       </span>
     </button>
   );

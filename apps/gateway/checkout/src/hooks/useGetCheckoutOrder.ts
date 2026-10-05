@@ -1,7 +1,7 @@
-import { useEffect, useState } from "react";
-import PaymentApi from "@/api/payment.api";
-import type { PaymentOrder, PaymentMethod } from "@/api/payment.types";
-import { ApiError } from "@/core/api.error";
+import { useEffect, useState, useCallback } from "react";
+import PaymentService from "@/service/payment.service";
+import type { PaymentOrder, PaymentMethod } from "@/service/payment.types";
+import { ApiError } from "@/core/api/api.error";
 
 interface CheckoutOrderData {
   paymentOrder: PaymentOrder;
@@ -12,6 +12,7 @@ interface UseGetCheckoutOrderReturn {
   data: CheckoutOrderData | null;
   isLoading: boolean;
   error: ApiError | null;
+  refetch: () => Promise<CheckoutOrderData | null>;
 }
 
 export function useGetCheckoutOrder(csi: string): UseGetCheckoutOrderReturn {
@@ -19,45 +20,33 @@ export function useGetCheckoutOrder(csi: string): UseGetCheckoutOrderReturn {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<ApiError | null>(null);
 
-  useEffect(() => {
+  const fetchOrder = useCallback(async (): Promise<CheckoutOrderData | null> => {
     if (!csi) {
       setIsLoading(false);
       setError(new ApiError(new Error("Missing checkout session identifier")));
-      return;
+      return null;
     }
 
-    let cancelled = false;
-
-    const fetchOrder = async () => {
-      setIsLoading(true);
-      setError(null);
-
-      try {
-        const result = await PaymentApi.getCheckoutOrder(csi);
-        if (!cancelled) {
-          setData(result);
-        }
-      } catch (err) {
-        if (!cancelled) {
-          setError(
-            new ApiError(err instanceof Error ? err : new Error(String(err)))
-          );
-        }
-      } finally {
-        if (!cancelled) {
-          setIsLoading(false);
-        }
-      }
-    };
-
-    fetchOrder();
-
-    return () => {
-      cancelled = true;
-    };
+    try {
+      const result = await PaymentService.getCheckoutOrder(csi);
+      setData(result);
+      return result;
+    } catch (err) {
+      const apiErr = new ApiError(
+        err instanceof Error ? err : new Error(String(err)),
+      );
+      setError(apiErr);
+      return null;
+    } finally {
+      setIsLoading(false);
+    }
   }, [csi]);
 
-  return { data, isLoading, error };
+  useEffect(() => {
+    fetchOrder();
+  }, [fetchOrder]);
+
+  return { data, isLoading, error, refetch: fetchOrder };
 }
 
 export default useGetCheckoutOrder;

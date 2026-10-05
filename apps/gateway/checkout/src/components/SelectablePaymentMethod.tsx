@@ -1,4 +1,4 @@
-import type { PaymentMethod } from "@/api/payment.types";
+import type { PaymentMethod } from "@/service/payment.types";
 
 interface SelectablePaymentMethodProps {
   methods: PaymentMethod[];
