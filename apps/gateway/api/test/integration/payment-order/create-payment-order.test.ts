@@ -1,7 +1,6 @@
 import supertest from "supertest";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import app from "../../../src/app.js";
-import { axiosClient } from "../../../src/core/axios/axios.client.js";
 import setupDb from "../../helper/setupDb.js";
 import UserFactory from "../../factory/user.factory.js";
 import MerchantFactory from "../../factory/merchant.factory.js";
@@ -20,16 +19,6 @@ describe("POST /api/payment-orders", () => {
     const user = await UserFactory.createUser();
     const merchant = await MerchantFactory.createMerchant(user.id);
     const credentials = await ApiKeyFactory.createApiKey(merchant.id);
-
-    vi.spyOn(axiosClient, "post").mockResolvedValue({
-      data: {
-        data: {
-          valid: true,
-          merchantId: merchant.id,
-          environment: "TEST",
-        },
-      },
-    } as never);
 
     return credentials;
   }
@@ -58,10 +47,6 @@ describe("POST /api/payment-orders", () => {
     expect(response.body).toEqual({
       success: true,
       data: { checkoutUrl: expect.stringMatching(/\/[^/]+$/) },
-    });
-    expect(axiosClient.post).toHaveBeenCalledWith("/validate-api-key", {
-      keyId,
-      keySecret,
     });
   });
 

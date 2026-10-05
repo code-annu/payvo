@@ -7,14 +7,16 @@
     "build": "tsc && tsc-alias",
     "start": "node dist/server.js",
     "test:integration": "dotenv -e .env.test -- vitest",
-    "test:unit": "vitest src/modules src/internals"
+    "test:unit": "vitest run src"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "type": "module",
   "devDependencies": {
-    "@types/express": "^5.0.6"
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
+    "cors": "^2.8.6"
   },
   "dependencies": {
     "@payvo/config": "workspace:*",

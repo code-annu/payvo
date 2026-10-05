@@ -1,12 +1,9 @@
-import { appConfig } from "@payvo/config/app";
 import app from "./app.js";
-import { paymentOrderExpirationWorker } from "./workers/payment-order.worker.js";
+import { serverConfig } from "@payvo/config/server";
 
 async function bootstrapApp() {
-  paymentOrderExpirationWorker();
-
-  app.listen(appConfig.port, () => {
-    console.log(`Server is running at port: ${appConfig.port}`);
+  app.listen(serverConfig.port, () => {
+    console.log(`Server is running at port: ${serverConfig.port}`);
   });
 }
 
