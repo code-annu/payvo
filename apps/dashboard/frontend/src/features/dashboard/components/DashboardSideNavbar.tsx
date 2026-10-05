@@ -1,5 +1,4 @@
-import type React from "react";
-import { Home, ArrowLeftRight, KeyRound, Settings } from "lucide-react";
+import { Home, ArrowLeftRight, KeyRound, Settings, Webhook } from "lucide-react";
 import SideNavbarItem from "@/components/buttons/SideNavbarItem";
 import AppRoutes from "@/router/app.routes";
 
@@ -72,6 +71,11 @@ export const DashboardSideNavbar: React.FC<DashboardSideNavbarProps> = ({
             to={AppRoutes.API_KEYS}
             icon={<KeyRound className="w-5 h-5" />}
             label="API Keys"
+          />
+          <SideNavbarItem
+            to={AppRoutes.WEBHOOKS}
+            icon={<Webhook className="w-5 h-5" />}
+            label="Webhooks"
           />
         </nav>
 

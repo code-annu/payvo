@@ -7,6 +7,7 @@ import DashboardLayout from "@/features/dashboard/components/DashboardLayout";
 import { HomePage } from "@/features/dashboard/HomePage";
 import AccountPage from "@/features/account/pages/AccountPage";
 import ApiKeyPage from "@/features/api-key/pages/ApiKeyPage";
+import WebhookPage from "@/features/webhook/pages/WebhookPage";
 
 export const appRouter = createBrowserRouter([
   // Redirect "/" → "/dashboard"
@@ -28,6 +29,7 @@ export const appRouter = createBrowserRouter([
           { path: AppRoutes.ACCOUNT_SETTINGS, Component: AccountPage },
           // { path: AppRoutes.TRANSACTIONS, Component: TransactionsPage },
           { path: AppRoutes.API_KEYS, Component: ApiKeyPage },
+          { path: AppRoutes.WEBHOOKS, Component: WebhookPage },
         ],
       },
     ],

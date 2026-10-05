@@ -14,3 +14,9 @@ export const apiKeyQueryKey = {
     ["merchant", merchantId, "active-api-key"] as const,
 };
 
+export const webhookQueryKey = {
+  merchantWebhooks: (merchantId: string) =>
+    ["merchant", merchantId, "webhooks"] as const,
+  merchantWebhookDetails: (merchantId: string, webhookId: string) =>
+    ["merchant", merchantId, "webhook", webhookId, "details"] as const,
+};

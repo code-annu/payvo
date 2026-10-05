@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import AppRoutes from "./app.routes";
 import { useEffect } from "react";
 import apiErrorCode from "@/core/api/ApiErrorCode";
+import type { AxiosError } from "axios";
 
 export const ProtectedRoute: React.FC = () => {
   const { data: user, isLoading, isError, error } = useAccount();
@@ -13,6 +14,8 @@ export const ProtectedRoute: React.FC = () => {
 
   useEffect(() => {
     if (isError) {
+      const err = error as AxiosError
+      console.log(err.response)
       const apiError = new ApiError(error);
       console.log("error: ", error);
       const isSessionExpired =
