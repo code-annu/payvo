@@ -1,0 +1,284 @@
+[
+  {
+    "id": "table.transactions",
+    "label": "Create table \"transactions\"",
+    "summary": "Creates table \"transactions\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "transactions"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"transactions\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"transactions\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"transactions\"",
+        "sql": "CREATE TABLE \"public\".\"transactions\" (\n  \"created_at\" timestamptz DEFAULT (now()) NOT NULL,\n  \"currency\" character(3) NOT NULL,\n  \"fee_amount\" numeric NOT NULL,\n  \"gross_amount\" numeric NOT NULL,\n  \"id\" uuid NOT NULL,\n  \"merchant_id\" uuid NOT NULL,\n  \"net_amount\" numeric NOT NULL,\n  \"payment_attempt_id\" uuid NOT NULL,\n  \"payment_order_id\" uuid NOT NULL,\n  \"payment_type\" text NOT NULL,\n  \"updated_at\" timestamptz NOT NULL,\n  PRIMARY KEY (\"id\"),\n  CONSTRAINT \"transactions_payment_type_check_48ef5891\" CHECK (\"payment_type\" IN ('PAYIN', 'REFUND'))\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"transactions\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"transactions\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.transactions.idx_transactions_merchant_id",
+    "label": "Create index \"idx_transactions_merchant_id\" on \"transactions\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "idx_transactions_merchant_id",
+        "table": "transactions"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"idx_transactions_merchant_id\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"idx_transactions_merchant_id\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"idx_transactions_merchant_id\"",
+        "sql": "CREATE INDEX \"idx_transactions_merchant_id\" ON \"public\".\"transactions\" (\"merchant_id\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"idx_transactions_merchant_id\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"idx_transactions_merchant_id\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.transactions.idx_transactions_payment_attempt_id",
+    "label": "Create index \"idx_transactions_payment_attempt_id\" on \"transactions\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "idx_transactions_payment_attempt_id",
+        "table": "transactions"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"idx_transactions_payment_attempt_id\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"idx_transactions_payment_attempt_id\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"idx_transactions_payment_attempt_id\"",
+        "sql": "CREATE INDEX \"idx_transactions_payment_attempt_id\" ON \"public\".\"transactions\" (\"payment_attempt_id\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"idx_transactions_payment_attempt_id\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"idx_transactions_payment_attempt_id\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.transactions.idx_transactions_payment_order_id",
+    "label": "Create index \"idx_transactions_payment_order_id\" on \"transactions\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "idx_transactions_payment_order_id",
+        "table": "transactions"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"idx_transactions_payment_order_id\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"idx_transactions_payment_order_id\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"idx_transactions_payment_order_id\"",
+        "sql": "CREATE INDEX \"idx_transactions_payment_order_id\" ON \"public\".\"transactions\" (\"payment_order_id\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"idx_transactions_payment_order_id\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"idx_transactions_payment_order_id\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.transactions.transactions_merchant_id_fkey",
+    "label": "Add foreign key \"transactions_merchant_id_fkey\" on \"transactions\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "transactions_merchant_id_fkey",
+        "table": "transactions"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"transactions_merchant_id_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "transactions_merchant_id_fkey",
+          "public",
+          "\"public\".\"transactions\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"transactions_merchant_id_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"transactions\"\nADD CONSTRAINT \"transactions_merchant_id_fkey\"\nFOREIGN KEY (\"merchant_id\")\nREFERENCES \"public\".\"merchants\" (\"id\")\nON DELETE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"transactions_merchant_id_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "transactions_merchant_id_fkey",
+          "public",
+          "\"public\".\"transactions\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.transactions.transactions_payment_order_id_fkey",
+    "label": "Add foreign key \"transactions_payment_order_id_fkey\" on \"transactions\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "transactions_payment_order_id_fkey",
+        "table": "transactions"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"transactions_payment_order_id_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "transactions_payment_order_id_fkey",
+          "public",
+          "\"public\".\"transactions\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"transactions_payment_order_id_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"transactions\"\nADD CONSTRAINT \"transactions_payment_order_id_fkey\"\nFOREIGN KEY (\"payment_order_id\")\nREFERENCES \"public\".\"payment_orders\" (\"id\")\nON DELETE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"transactions_payment_order_id_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "transactions_payment_order_id_fkey",
+          "public",
+          "\"public\".\"transactions\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.transactions.transactions_payment_attempt_id_fkey",
+    "label": "Add foreign key \"transactions_payment_attempt_id_fkey\" on \"transactions\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "transactions_payment_attempt_id_fkey",
+        "table": "transactions"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"transactions_payment_attempt_id_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "transactions_payment_attempt_id_fkey",
+          "public",
+          "\"public\".\"transactions\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"transactions_payment_attempt_id_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"transactions\"\nADD CONSTRAINT \"transactions_payment_attempt_id_fkey\"\nFOREIGN KEY (\"payment_attempt_id\")\nREFERENCES \"public\".\"payment_attempts\" (\"id\")\nON DELETE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"transactions_payment_attempt_id_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "transactions_payment_attempt_id_fkey",
+          "public",
+          "\"public\".\"transactions\""
+        ]
+      }
+    ]
+  }
+]

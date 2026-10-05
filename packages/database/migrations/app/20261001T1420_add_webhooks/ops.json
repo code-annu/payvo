@@ -1,0 +1,122 @@
+[
+  {
+    "id": "table.webhooks",
+    "label": "Create table \"webhooks\"",
+    "summary": "Creates table \"webhooks\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "webhooks"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"webhooks\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"webhooks\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"webhooks\"",
+        "sql": "CREATE TABLE \"public\".\"webhooks\" (\n  \"created_at\" timestamptz DEFAULT (now()) NOT NULL,\n  \"id\" uuid NOT NULL,\n  \"merchant_id\" uuid NOT NULL,\n  \"secret_key\" text NOT NULL,\n  \"updated_at\" timestamptz NOT NULL,\n  \"url\" text NOT NULL,\n  PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"webhooks\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"webhooks\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.webhooks.idx_webhooks_merchant_id",
+    "label": "Create index \"idx_webhooks_merchant_id\" on \"webhooks\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "idx_webhooks_merchant_id",
+        "table": "webhooks"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"idx_webhooks_merchant_id\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"idx_webhooks_merchant_id\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"idx_webhooks_merchant_id\"",
+        "sql": "CREATE INDEX \"idx_webhooks_merchant_id\" ON \"public\".\"webhooks\" (\"merchant_id\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"idx_webhooks_merchant_id\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"idx_webhooks_merchant_id\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.webhooks.webhooks_merchant_id_fkey",
+    "label": "Add foreign key \"webhooks_merchant_id_fkey\" on \"webhooks\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "webhooks_merchant_id_fkey",
+        "table": "webhooks"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"webhooks_merchant_id_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "webhooks_merchant_id_fkey",
+          "public",
+          "\"public\".\"webhooks\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"webhooks_merchant_id_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"webhooks\"\nADD CONSTRAINT \"webhooks_merchant_id_fkey\"\nFOREIGN KEY (\"merchant_id\")\nREFERENCES \"public\".\"merchants\" (\"id\")\nON DELETE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"webhooks_merchant_id_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "webhooks_merchant_id_fkey",
+          "public",
+          "\"public\".\"webhooks\""
+        ]
+      }
+    ]
+  }
+]

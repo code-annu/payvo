@@ -1,0 +1,119 @@
+[
+  {
+    "id": "sequence.public.payvo_order_sequence",
+    "label": "Create sequence payvo_order_sequence",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "sequence",
+        "name": "payvo_order_sequence"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure sequence \"payvo_order_sequence\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 FROM pg_sequences WHERE schemaname = 'public' AND sequencename = 'payvo_order_sequence') AS \"result\"",
+        "params": []
+      }
+    ],
+    "execute": [
+      {
+        "description": "create sequence payvo_order_sequence",
+        "sql": "CREATE SEQUENCE IF NOT EXISTS payvo_order_sequence START 10000000000000"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify sequence \"payvo_order_sequence\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 FROM pg_sequences WHERE schemaname = 'public' AND sequencename = 'payvo_order_sequence') AS \"result\"",
+        "params": []
+      }
+    ]
+  },
+  {
+    "id": "column.public.payment_orders.order_number",
+    "label": "Add column \"order_number\" to \"payment_orders\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "order_number",
+        "table": "payment_orders"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"order_number\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "payment_orders",
+          "order_number"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"order_number\"",
+        "sql": "ALTER TABLE \"public\".\"payment_orders\" ADD COLUMN \"order_number\" int8 DEFAULT (nextval('payvo_order_sequence'::regclass)) NOT NULL"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"order_number\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "payment_orders",
+          "order_number"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "unique.payment_orders.payment_orders_order_number_key",
+    "label": "Add unique constraint on \"payment_orders\" (order_number)",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "unique",
+        "name": "payment_orders_order_number_key",
+        "table": "payment_orders"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"payment_orders_order_number_key\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "payment_orders_order_number_key",
+          "public",
+          "\"public\".\"payment_orders\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add unique constraint \"payment_orders_order_number_key\"",
+        "sql": "ALTER TABLE \"public\".\"payment_orders\" ADD CONSTRAINT \"payment_orders_order_number_key\" UNIQUE (\"order_number\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify constraint \"payment_orders_order_number_key\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "payment_orders_order_number_key",
+          "public",
+          "\"public\".\"payment_orders\""
+        ]
+      }
+    ]
+  }
+]

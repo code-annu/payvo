@@ -1,0 +1,170 @@
+[
+  {
+    "id": "dropColumn.payment_attempts.completed_at",
+    "label": "Drop column \"completed_at\" from \"payment_attempts\"",
+    "operationClass": "destructive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "completed_at",
+        "table": "payment_attempts"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"completed_at\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "payment_attempts",
+          "completed_at"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "drop column \"completed_at\"",
+        "sql": "ALTER TABLE \"public\".\"payment_attempts\" DROP COLUMN \"completed_at\""
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"completed_at\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "payment_attempts",
+          "completed_at"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "dropCheckConstraint.payment_orders.payment_orders_status_check_729f24c9",
+    "label": "Drop check constraint \"payment_orders_status_check_729f24c9\" on \"payment_orders\"",
+    "operationClass": "destructive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "checkConstraint",
+        "name": "payment_orders_status_check_729f24c9",
+        "table": "payment_orders"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"payment_orders_status_check_729f24c9\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "payment_orders_status_check_729f24c9",
+          "public",
+          "\"public\".\"payment_orders\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "drop check constraint \"payment_orders_status_check_729f24c9\"",
+        "sql": "ALTER TABLE \"public\".\"payment_orders\" DROP CONSTRAINT \"payment_orders_status_check_729f24c9\""
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify constraint \"payment_orders_status_check_729f24c9\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "payment_orders_status_check_729f24c9",
+          "public",
+          "\"public\".\"payment_orders\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "dropColumn.payment_orders.late_payment",
+    "label": "Drop column \"late_payment\" from \"payment_orders\"",
+    "operationClass": "destructive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "late_payment",
+        "table": "payment_orders"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"late_payment\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "payment_orders",
+          "late_payment"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "drop column \"late_payment\"",
+        "sql": "ALTER TABLE \"public\".\"payment_orders\" DROP COLUMN \"late_payment\""
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"late_payment\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "payment_orders",
+          "late_payment"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "dropColumn.payment_orders.status",
+    "label": "Drop column \"status\" from \"payment_orders\"",
+    "operationClass": "destructive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "status",
+        "table": "payment_orders"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"status\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "payment_orders",
+          "status"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "drop column \"status\"",
+        "sql": "ALTER TABLE \"public\".\"payment_orders\" DROP COLUMN \"status\""
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"status\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "payment_orders",
+          "status"
+        ]
+      }
+    ]
+  }
+]

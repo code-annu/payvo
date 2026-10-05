@@ -1,0 +1,86 @@
+[
+  {
+    "id": "column.public.payment_orders.status",
+    "label": "Add column \"status\" to \"payment_orders\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "status",
+        "table": "payment_orders"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"status\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "payment_orders",
+          "status"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"status\"",
+        "sql": "ALTER TABLE \"public\".\"payment_orders\" ADD COLUMN \"status\" text DEFAULT 'CREATED' NOT NULL"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"status\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "payment_orders",
+          "status"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "checkConstraint.payment_orders.payment_orders_status_check_05a5444d",
+    "label": "Add check constraint \"payment_orders_status_check_05a5444d\" on \"payment_orders\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "checkConstraint",
+        "name": "payment_orders_status_check_05a5444d",
+        "table": "payment_orders"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"payment_orders_status_check_05a5444d\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "payment_orders_status_check_05a5444d",
+          "public",
+          "\"public\".\"payment_orders\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add check constraint \"payment_orders_status_check_05a5444d\"",
+        "sql": "ALTER TABLE \"public\".\"payment_orders\" ADD CONSTRAINT \"payment_orders_status_check_05a5444d\" CHECK (\"status\" IN ('CREATED', 'PAYMENT_PROCESSING', 'PAYMENT_FAILED', 'EXPIRED', 'COMPLETED'))"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify constraint \"payment_orders_status_check_05a5444d\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "payment_orders_status_check_05a5444d",
+          "public",
+          "\"public\".\"payment_orders\""
+        ]
+      }
+    ]
+  }
+]

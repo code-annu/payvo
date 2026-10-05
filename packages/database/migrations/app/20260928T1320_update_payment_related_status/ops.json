@@ -1,0 +1,212 @@
+[
+  {
+    "id": "dropCheckConstraint.payment_attempts.payment_attempts_status_check_c3edf213",
+    "label": "Drop check constraint \"payment_attempts_status_check_c3edf213\" on \"payment_attempts\"",
+    "operationClass": "destructive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "checkConstraint",
+        "name": "payment_attempts_status_check_c3edf213",
+        "table": "payment_attempts"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"payment_attempts_status_check_c3edf213\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "payment_attempts_status_check_c3edf213",
+          "public",
+          "\"public\".\"payment_attempts\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "drop check constraint \"payment_attempts_status_check_c3edf213\"",
+        "sql": "ALTER TABLE \"public\".\"payment_attempts\" DROP CONSTRAINT \"payment_attempts_status_check_c3edf213\""
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify constraint \"payment_attempts_status_check_c3edf213\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "payment_attempts_status_check_c3edf213",
+          "public",
+          "\"public\".\"payment_attempts\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "column.public.payment_attempts.failure_code",
+    "label": "Add column \"failure_code\" to \"payment_attempts\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "failure_code",
+        "table": "payment_attempts"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"failure_code\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "payment_attempts",
+          "failure_code"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"failure_code\"",
+        "sql": "ALTER TABLE \"public\".\"payment_attempts\" ADD COLUMN \"failure_code\" text"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"failure_code\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "payment_attempts",
+          "failure_code"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "column.public.payment_attempts.reason",
+    "label": "Add column \"reason\" to \"payment_attempts\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "reason",
+        "table": "payment_attempts"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"reason\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "payment_attempts",
+          "reason"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"reason\"",
+        "sql": "ALTER TABLE \"public\".\"payment_attempts\" ADD COLUMN \"reason\" text"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"reason\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "payment_attempts",
+          "reason"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "column.public.payment_orders.late_payment",
+    "label": "Add column \"late_payment\" to \"payment_orders\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "late_payment",
+        "table": "payment_orders"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"late_payment\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "payment_orders",
+          "late_payment"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"late_payment\"",
+        "sql": "ALTER TABLE \"public\".\"payment_orders\" ADD COLUMN \"late_payment\" bool DEFAULT false NOT NULL"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"late_payment\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "payment_orders",
+          "late_payment"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "checkConstraint.payment_attempts.payment_attempts_status_check_4b470de9",
+    "label": "Add check constraint \"payment_attempts_status_check_4b470de9\" on \"payment_attempts\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "checkConstraint",
+        "name": "payment_attempts_status_check_4b470de9",
+        "table": "payment_attempts"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"payment_attempts_status_check_4b470de9\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "payment_attempts_status_check_4b470de9",
+          "public",
+          "\"public\".\"payment_attempts\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add check constraint \"payment_attempts_status_check_4b470de9\"",
+        "sql": "ALTER TABLE \"public\".\"payment_attempts\" ADD CONSTRAINT \"payment_attempts_status_check_4b470de9\" CHECK (\"status\" IN ('PROCESSING', 'FAILED', 'SUCCEED'))"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify constraint \"payment_attempts_status_check_4b470de9\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "payment_attempts_status_check_4b470de9",
+          "public",
+          "\"public\".\"payment_attempts\""
+        ]
+      }
+    ]
+  }
+]
