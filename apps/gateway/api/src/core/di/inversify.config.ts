@@ -1,6 +1,11 @@
 import { Container } from "inversify";
 import TYPES from "./inversify.types.js";
 
+// Auth module
+import ApiKeyMapper from "@/modules/auth/api-key.mapper.js";
+import ApiKeyRepository from "@/modules/auth/repository/api-key.repository.js";
+import ValidateApiKeyUsecase from "@/modules/auth/application/usecase/ValidateApiKeyUsecase.js";
+
 // Payment Order module
 import PaymentOrderMapper from "@/modules/payment-order/payment-order.mapper.js";
 import PaymentOrderRepository from "@/modules/payment-order/repository/payment-order.repository.js";
@@ -26,7 +31,19 @@ import ProcessedPaymentAttemptUsecase from "@/modules/payment-attempt/applicatio
 import TransactionMapper from "@/modules/transaction/transaction.mapper.js";
 import TransactionRepository from "@/modules/transaction/repository/transaction.repository.js";
 
+// Webhook module
+import WebhookMapper from "@/modules/webhook/webhook.mapper.js";
+import WebhookRepository from "@/modules/webhook/repository/webhook.repository.js";
+
+// Worker module
+import WebhookWorker from "@/workers/webhook/webhook.worker.js";
+
 const container = new Container();
+
+// Auth bindings
+container.bind(TYPES.ApiKeyMapper).to(ApiKeyMapper);
+container.bind(TYPES.ApiKeyRepository).to(ApiKeyRepository);
+container.bind(TYPES.ValidateApiKeyUsecase).to(ValidateApiKeyUsecase);
 
 // Transaction bindings
 container.bind(TYPES.TransactionMapper).to(TransactionMapper);
@@ -58,5 +75,12 @@ container
 
 // Provider bindings
 container.bind(TYPES.PaymentProvider).to(PaymentProvider);
+
+// Webhook bindings
+container.bind(TYPES.WebhookMapper).to(WebhookMapper);
+container.bind(TYPES.WebhookRepository).to(WebhookRepository);
+
+// Worker bindings
+container.bind(TYPES.WebhookWorker).to(WebhookWorker);
 
 export default container;

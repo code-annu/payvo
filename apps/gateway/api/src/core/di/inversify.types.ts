@@ -1,4 +1,9 @@
 const TYPES = {
+  // Auth types
+  ApiKeyMapper: Symbol.for("ApiKeyMapper"),
+  ApiKeyRepository: Symbol.for("ApiKeyRepository"),
+  ValidateApiKeyUsecase: Symbol.for("ValidateApiKeyUsecase"),
+
   // Payment Order types
   PaymentOrderMapper: Symbol.for("PaymentOrderMapper"),
   PaymentOrderRepository: Symbol.for("PaymentOrderRepository"),
@@ -25,6 +30,13 @@ const TYPES = {
 
   // Provider types
   PaymentProvider: Symbol.for("PaymentProvider"),
+
+  // Webhook types
+  WebhookMapper: Symbol.for("WebhookMapper"),
+  WebhookRepository: Symbol.for("WebhookRepository"),
+
+  // Worker types
+  WebhookWorker: Symbol.for("WebhookWorker"),
 };
 
 export default TYPES;

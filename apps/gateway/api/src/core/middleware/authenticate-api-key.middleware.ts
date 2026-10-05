@@ -1,41 +1,39 @@
-import { MissingApiKeyCredentialsError } from "@/modules/auth/auth.errors.js";
-import axios from "axios";
+import { MissingApiKeyCredentialsError } from "@/modules/auth/error/auth.errors.js";
 import { NextFunction, Request, Response } from "express";
-import { axiosClient } from "../axios/axios.client.js";
-import { AuthResponse } from "@/modules/auth/auth.response.js";
-import { HttpStatusCode } from "@payvo/shared/http";
-import { InternalServerError } from "@payvo/shared/error";
+import container from "../di/inversify.config.js";
+import TYPES from "../di/inversify.types.js";
+import ValidateApiKeyUsecase from "@/modules/auth/application/usecase/ValidateApiKeyUsecase.js";
+import type { ApiKeyEnvironment } from "@/modules/auth/entity/api-key.entity.js";
 
 export interface AuthRequest extends Request {
-  auth?: { merchantId: string; environment: string };
+  auth?: { merchantId: string; environment: ApiKeyEnvironment };
 }
 
 export async function authenticateApiKey(
   req: AuthRequest,
-  res: Response,
+  _res: Response,
   next: NextFunction,
 ) {
-  const apiKeyId = req.header("x-api-key-id");
-  const apiKeySecret = req.header("x-api-key-secret");
-
-  if (!apiKeyId || !apiKeySecret) {
-    throw new MissingApiKeyCredentialsError();
-  }
   try {
-    const response = await axiosClient.post<AuthResponse>("/validate-api-key", {
+    const apiKeyId = req.header("x-api-key-id");
+    const apiKeySecret = req.header("x-api-key-secret");
+
+    if (!apiKeyId || !apiKeySecret) {
+      throw new MissingApiKeyCredentialsError();
+    }
+
+    const validateApiKeyUsecase = container.get<ValidateApiKeyUsecase>(
+      TYPES.ValidateApiKeyUsecase,
+    );
+
+    const authData = await validateApiKeyUsecase.execute({
       keyId: apiKeyId,
       keySecret: apiKeySecret,
     });
 
-    req.auth = response.data.data;
+    req.auth = authData;
+    next();
   } catch (err) {
-    if (axios.isAxiosError(err)) {
-      return res.status(err.response?.status || 500).json(err.response?.data);
-    } else {
-      throw new InternalServerError(
-        "Getting some error while calling internal service",
-      );
-    }
+    next(err);
   }
-  next();
 }
