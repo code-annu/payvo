@@ -9,9 +9,11 @@
     "build:package:database": "pnpm --filter @payvo/database build",
     "build:package:config": "pnpm --filter @payvo/config build",
     "build:package:shared": "pnpm --filter @payvo/shared build",
-    "build:dashboard:api": "pnpm --filter @payvo/dashboard-api build",
     "build:packages": "pnpm build:package:database && pnpm build:package:shared && pnpm build:package:config",
-    "start:dashboard:api": "pnpm --filter @payvo/dashboard-api start"
+    "build:dashboard:api": "pnpm --filter @payvo/dashboard-api build",
+    "start:dashboard:api": "pnpm --filter @payvo/dashboard-api start",
+    "build:gateway:api": "pnpm --filter @payvo/gateway-api build",
+    "start:gateway:api": "pnpm --filter @payvo/gateway-api start"
   },
   "keywords": [],
   "author": "",
