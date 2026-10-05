@@ -58,9 +58,6 @@ import WebhookRouter from "@/modules/webhook/webhook.router.js";
 
 // Util
 import ClientInfoUtil from "@/core/util/client.util.js";
-import ValidateApiKeyUsecase from "@/internals/application/usecase/ValidateApiKeyUsecase.js";
-import InternalController from "@/internals/internal.controller.js";
-import InternalRouter from "@/internals/internal.router.js";
 
 const container = new Container();
 
@@ -124,10 +121,5 @@ container.bind(TYPES.DeleteWebhookUsecase).to(DeleteWebhookUsecase);
 container.bind(TYPES.UpdateWebhookUsecase).to(UpdateWebhookUsecase);
 container.bind(TYPES.WebhookController).to(WebhookController);
 container.bind(TYPES.WebhookRouter).to(WebhookRouter);
-
-// Internal bindings
-container.bind(TYPES.ValidateApiKeyUsecase).to(ValidateApiKeyUsecase);
-container.bind(TYPES.InternalController).to(InternalController);
-container.bind(TYPES.InternalRouter).to(InternalRouter);
 
 export default container;

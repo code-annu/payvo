@@ -64,10 +64,6 @@ const TYPES = {
   DeleteWebhookUsecase: Symbol.for("DeleteWebhookUsecase"),
   UpdateWebhookUsecase: Symbol.for("UpdateWebhookUsecase"),
 
-  // Internal types
-  ValidateApiKeyUsecase: Symbol.for("ValidateApiKeyUsecase"),
-  InternalController: Symbol.for("InternalController"),
-  InternalRouter: Symbol.for("InternalRouter"),
 };
 
 export default TYPES;

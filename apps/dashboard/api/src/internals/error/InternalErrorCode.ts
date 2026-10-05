@@ -1,6 +1,0 @@
-enum InternalErrorCode {
-  INVALID_INTERNAL_SECRET = "INVALID_INTERNAL_SECRET",
-  MISSING_INTERNAL_SECRET = "MISSING_INTERNAL_SECRET",
-}
-
-export default InternalErrorCode;
