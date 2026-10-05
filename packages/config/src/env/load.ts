@@ -3,6 +3,7 @@ import "dotenv/config";
 const ENV = {
   PORT: Number(process.env.PORT) || 4000,
   FRONTEND_URL: process.env.FRONTEND_URL!,
+  FRONTEND_SECRET: process.env.FRONTEND_SECRET!,
   DATABASE_URL: process.env.DATABASE_URL!,
   ACCESS_TOKEN_SECRET: process.env.ACCESS_TOKEN_SECRET!,
   ACCESS_TOKEN_EXPIRY_MIN: process.env.ACCESS_TOKEN_EXPIRY_MIN!,
