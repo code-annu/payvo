@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "db:migrate": "pnpm --filter @payvo/database db:migrate",
+    "db:contract:emit": "pnpm --filter @payvo/database contract:emit",
     "db:setup": "pnpm db:contract:emit && pnpm db:migrate",
     "build:package:database": "pnpm --filter @payvo/database build",
     "build:package:config": "pnpm --filter @payvo/config build",
