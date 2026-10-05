@@ -7,6 +7,7 @@ export default class PaymentOrderMapper {
   toPaymentOrderEntity(paymentOrder: PrismaPaymentOrder): PaymentOrder {
     return {
       id: paymentOrder.id,
+      orderNumber: paymentOrder.orderNumber,
       merchantId: paymentOrder.merchantId,
       merchantCustomerId: paymentOrder.merchantCustomerId,
       merchantOrderId: paymentOrder.merchantOrderId,
@@ -17,6 +18,7 @@ export default class PaymentOrderMapper {
       completedAt: paymentOrder.completedAt
         ? new Date(paymentOrder.completedAt)
         : null,
+      status: paymentOrder.status,
       expiresAt: new Date(paymentOrder.expiresAt),
       createdAt: new Date(paymentOrder.createdAt),
       updatedAt: new Date(paymentOrder.updatedAt),

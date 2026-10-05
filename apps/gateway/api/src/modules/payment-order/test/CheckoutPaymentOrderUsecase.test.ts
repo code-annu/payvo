@@ -53,6 +53,7 @@ describe("CheckoutPaymentOrderUsecase", () => {
 				csi: "csi-1",
 				amount: "100.00",
 				currency: "USD",
+				completedAt: null,
 				expiresAt,
 			},
 			paymentMethods: [

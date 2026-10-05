@@ -49,7 +49,7 @@ describe("CreatePaymentOrderUsecase", () => {
 		});
 
 		await expect(usecase.execute(input)).resolves.toEqual({
-			checkoutUrl: "https://checkout.payvo.test/existing-csi",
+			checkoutUrl: "https://checkout.payvo.test?csi=existing-csi",
 		});
 
 		expect(paymentOrderRepository.create).not.toHaveBeenCalled();
@@ -58,7 +58,7 @@ describe("CreatePaymentOrderUsecase", () => {
 
 	it("creates a payment order and returns its checkout URL", async () => {
 		await expect(usecase.execute(input)).resolves.toEqual({
-			checkoutUrl: "https://checkout.payvo.test/csi-1",
+			checkoutUrl: "https://checkout.payvo.test?csi=csi-1",
 		});
 
 		expect(paymentOrderRepository.findByIdempotencyKey).toHaveBeenCalledWith(

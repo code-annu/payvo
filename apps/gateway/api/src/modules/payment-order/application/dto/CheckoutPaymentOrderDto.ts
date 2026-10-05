@@ -1,9 +1,11 @@
 export interface CheckoutPaymentOrderDto {
   readonly id: string;
   readonly csi: string;
+  readonly orderNumber: bigint;
   readonly amount: number;
   readonly currency: string;
   readonly expiresAt: Date;
+  readonly completedAt: Date | null;
 }
 
 export interface CheckoutPaymentMethodDto {

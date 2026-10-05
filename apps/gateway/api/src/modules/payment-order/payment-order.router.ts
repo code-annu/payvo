@@ -3,6 +3,7 @@ import { inject, injectable } from "inversify";
 import TYPES from "@/core/di/inversify.types.js";
 import { validateRequest } from "@/core/middleware/validate-request.middleware.js";
 import { authenticateApiKey } from "@/core/middleware/authenticate-api-key.middleware.js";
+import { authenticateFrontend } from "@/core/middleware/authenticate-frontend.middleware.js";
 import PaymentOrderController from "./payment-order.controller.js";
 import { CreatePaymentOrderSchema } from "./schema/CreatePaymentOrderSchema.js";
 import { CheckoutPaymentOrderSchema } from "./schema/CheckoutPaymentOrderSchema.js";
@@ -29,6 +30,7 @@ export default class PaymentOrderRouter {
 
     this.router.get(
       "/:csi",
+      authenticateFrontend,
       validateRequest(CheckoutPaymentOrderSchema),
       this.paymentOrderController.checkoutPaymentOrder,
     );

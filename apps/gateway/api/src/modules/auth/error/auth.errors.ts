@@ -31,3 +31,23 @@ export class RevokedApiKeyError extends AppError {
     });
   }
 }
+
+export class MissingFrontendSecretError extends AppError {
+  constructor(message: string = "Missing frontend secret") {
+    super({
+      message,
+      code: AuthErrorCode.MISSING_FRONTEND_SECRET,
+      statusCode: HttpStatusCode.Error.UNAUTHORIZED,
+    });
+  }
+}
+
+export class InvalidFrontendSecretError extends AppError {
+  constructor(message: string = "Invalid frontend secret") {
+    super({
+      message,
+      code: AuthErrorCode.INVALID_FRONTEND_SECRET,
+      statusCode: HttpStatusCode.Error.UNAUTHORIZED,
+    });
+  }
+}

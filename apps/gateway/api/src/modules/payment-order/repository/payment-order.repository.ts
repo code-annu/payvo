@@ -43,6 +43,21 @@ export default class PaymentOrderRepository {
     return paymentOrder ? this.mapper.toPaymentOrderEntity(paymentOrder) : null;
   }
 
+  async markingProcessing(
+    tx: TransactionClient,
+    data: { id: string; now: Date },
+  ): Promise<PaymentOrder | null> {
+    const { id, now } = data;
+    const order = await tx.orm.public.PaymentOrder.where({ id })
+      .where((po) => po.completedAt.isNull())
+      .where((po) => po.status.in(["CREATED", "PAYMENT_FAILED"]))
+      .where((po) => po.expiresAt.gt(now.toISOString()))
+      .update({
+        status: "PAYMENT_PROCESSING",
+      });
+    return order ? this.mapper.toPaymentOrderEntity(order) : null;
+  }
+
   async markCompleted(
     tx: TransactionClient,
     data: { id: string; completedAt: Date },
@@ -50,8 +65,25 @@ export default class PaymentOrderRepository {
     const { id, completedAt } = data;
     const order = await tx.orm.public.PaymentOrder.where({ id })
       .where((po) => po.completedAt.isNull())
+      .where((po) => po.status.in(["PAYMENT_PROCESSING", "EXPIRED"]))
       .update({
         completedAt: completedAt.toISOString(),
+        status: "COMPLETED",
+      });
+
+    return order ? this.mapper.toPaymentOrderEntity(order) : null;
+  }
+
+  async markFailed(
+    tx: TransactionClient,
+    data: { id: string },
+  ): Promise<PaymentOrder | null> {
+    const { id } = data;
+    const order = await tx.orm.public.PaymentOrder.where({ id })
+      .where((po) => po.completedAt.isNull())
+      .where((po) => po.status.in(["PAYMENT_PROCESSING", "EXPIRED"]))
+      .update({
+        status: "PAYMENT_FAILED",
       });
 
     return order ? this.mapper.toPaymentOrderEntity(order) : null;

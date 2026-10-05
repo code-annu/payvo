@@ -30,6 +30,8 @@ export default class CheckoutPaymentOrderUsecase {
         amount: paymentOrder.amount,
         currency: paymentOrder.currency,
         expiresAt: paymentOrder.expiresAt,
+        completedAt: paymentOrder.completedAt,
+        orderNumber: paymentOrder.orderNumber,
       },
       paymentMethods: paymentMethods.map((paymentMethod) => ({
         id: paymentMethod.id,

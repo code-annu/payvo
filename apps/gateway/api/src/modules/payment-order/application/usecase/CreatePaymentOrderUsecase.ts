@@ -25,7 +25,9 @@ export default class CreatePaymentOrderUsecase {
       );
 
     if (existingOrder) {
-      return { checkoutUrl: this.buildCheckoutUrl(existingOrder.csi) };
+      return {
+        checkoutUrl: this.buildCheckoutUrl(existingOrder.csi),
+      };
     }
 
     const now = new Date();
@@ -43,10 +45,13 @@ export default class CreatePaymentOrderUsecase {
       ).toISOString(),
     });
 
-    return { checkoutUrl: this.buildCheckoutUrl(paymentOrder.csi) };
+    return {
+      checkoutUrl: this.buildCheckoutUrl(paymentOrder.csi),
+    };
   }
 
   private buildCheckoutUrl(csi: string): string {
-    return `${paymentConfig.order.checkoutBaseUrl.replace(/\/$/, "")}/${csi}`;
+    console.log(paymentConfig);
+    return `${paymentConfig.order.checkoutBaseUrl.replace(/\/$/, "")}?csi=${csi}`;
   }
 }
