@@ -16,6 +16,7 @@ import NoTransactionsComp from "../components/NoTransactionsComp";
 import CircularLoadingBar from "@/components/progress/CircularLoadingBar";
 import { Button } from "@/components/buttons/CustomButton";
 import CurrencyUtil from "@/core/util/currency.util";
+import PageTitle from "@/components/text/PageTitle";
 
 export const TransactionsPage: React.FC = () => {
   const { data, isLoading, isError, error, refetch, isFetching } =
@@ -81,6 +82,8 @@ export const TransactionsPage: React.FC = () => {
 
   return (
     <div className="max-w-5xl mx-auto flex flex-col gap-6 py-2 pb-14">
+      <PageTitle title="Transactions" />
+
       {/* ── Page Header ── */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>

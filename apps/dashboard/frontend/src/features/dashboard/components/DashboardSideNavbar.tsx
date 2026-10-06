@@ -1,6 +1,8 @@
-import { Home, ArrowLeftRight, KeyRound, Settings, Webhook } from "lucide-react";
+import { Home, ArrowLeftRight, KeyRound, Settings, Webhook, Terminal } from "lucide-react";
 import SideNavbarItem from "@/components/buttons/SideNavbarItem";
 import AppRoutes from "@/router/app.routes";
+
+import LogoutButton from "@/features/auth/components/LogoutButton";
 
 /** The sidebar width constant, exported for the main content area offset */
 export const SIDEBAR_WIDTH = "16rem";
@@ -77,15 +79,21 @@ export const DashboardSideNavbar: React.FC<DashboardSideNavbarProps> = ({
             icon={<Webhook className="w-5 h-5" />}
             label="Webhooks"
           />
+          <SideNavbarItem
+            to={AppRoutes.QUICKSTART_API}
+            icon={<Terminal className="w-5 h-5" />}
+            label="Quickstart API"
+          />
         </nav>
 
-        {/* ── Bottom section — Account & Settings ──────────── */}
-        <div className="border-t border-sidebar-border p-3 pb-4">
+        {/* ── Bottom section — Account & Settings / Logout ──── */}
+        <div className="border-t border-sidebar-border p-3 pb-4 flex flex-col gap-1">
           <SideNavbarItem
             to={AppRoutes.ACCOUNT_SETTINGS}
             icon={<Settings className="w-5 h-5" />}
             label="Account & Settings"
           />
+          <LogoutButton variant="sidebar" />
         </div>
       </aside>
     </>

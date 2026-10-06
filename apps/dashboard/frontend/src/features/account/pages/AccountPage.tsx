@@ -5,21 +5,32 @@ import AccountDetailsSection from "../components/AccountDetailsSection";
 import AccountDeleteSection from "../components/AccountDeleteSection";
 import CircularLoadingBar from "@/components/progress/CircularLoadingBar";
 import { Button } from "@/components/buttons/CustomButton";
+import PageTitle from "@/components/text/PageTitle";
+import LogoutButton from "@/features/auth/components/LogoutButton";
 
 export const AccountPage: React.FC = () => {
   const { data: user, isLoading, isError, error, refetch } = useAccount();
 
   return (
     <div className="max-w-4xl mx-auto flex flex-col gap-8 py-2 pb-12">
+      <PageTitle title="Account Settings" />
+
       {/* Page Header */}
-      <div>
-        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
-          Account Settings
-        </h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          Manage your personal profile, company details, and account
-          preferences.
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
+            Account Settings
+          </h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            Manage your personal profile, company details, and account
+            preferences.
+          </p>
+        </div>
+        <LogoutButton
+          variant="outline"
+          text="Log Out"
+          className="text-xs h-9 px-4 self-start sm:self-auto"
+        />
       </div>
 
       {/* Content states */}

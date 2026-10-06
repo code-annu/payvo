@@ -6,6 +6,7 @@ import { CreateWebhookDialog } from "../components/CreateWebhookDialog";
 import { NoWebhookConfiguredComp } from "../components/NoWebhookConfiguredComp";
 import CircularLoadingBar from "@/components/progress/CircularLoadingBar";
 import { Button } from "@/components/buttons/CustomButton";
+import PageTitle from "@/components/text/PageTitle";
 
 export const WebhookPage: React.FC = () => {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -15,6 +16,8 @@ export const WebhookPage: React.FC = () => {
 
   return (
     <div className="max-w-4xl mx-auto flex flex-col gap-8 py-2 pb-12">
+      <PageTitle title="Webhooks" />
+
       {/* ── Page Header ── */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
@@ -24,12 +27,14 @@ export const WebhookPage: React.FC = () => {
             </h1>
             {webhooks.length > 0 && (
               <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-secondary text-secondary-foreground border border-input">
-                {webhooks.length} {webhooks.length === 1 ? "Webhook" : "Webhooks"}
+                {webhooks.length}{" "}
+                {webhooks.length === 1 ? "Webhook" : "Webhooks"}
               </span>
             )}
           </div>
           <p className="text-sm text-muted-foreground mt-1">
-            Configure webhook endpoints to receive real-time event notifications from Payvo.
+            Configure webhook endpoints to receive real-time event notifications
+            from Payvo.
           </p>
         </div>
 
@@ -75,7 +80,9 @@ export const WebhookPage: React.FC = () => {
           />
         </div>
       ) : webhooks.length === 0 ? (
-        <NoWebhookConfiguredComp onCreateWebhook={() => setIsCreateOpen(true)} />
+        <NoWebhookConfiguredComp
+          onCreateWebhook={() => setIsCreateOpen(true)}
+        />
       ) : (
         <div className="flex flex-col gap-4">
           {webhooks.map((webhook) => (

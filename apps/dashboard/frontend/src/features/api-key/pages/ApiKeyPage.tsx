@@ -6,6 +6,7 @@ import { useMerchantStore } from "@/app/store/merchant.store";
 import { useGetMerchants } from "@/features/merchant/hooks/useGetMerchants";
 import CircularLoadingBar from "@/components/progress/CircularLoadingBar";
 import { Button } from "@/components/buttons/CustomButton";
+import PageTitle from "@/components/text/PageTitle";
 
 export const ApiKeyPage: React.FC = () => {
   const { selectedMerchantId, setSelectedMerchantId } = useMerchantStore(
@@ -16,7 +17,11 @@ export const ApiKeyPage: React.FC = () => {
 
   // If no merchant is currently selected in store, auto-select the first available merchant
   useEffect(() => {
-    if (!selectedMerchantId && merchantsData?.merchants && merchantsData.merchants.length > 0) {
+    if (
+      !selectedMerchantId &&
+      merchantsData?.merchants &&
+      merchantsData.merchants.length > 0
+    ) {
       setSelectedMerchantId(merchantsData.merchants[0].id);
     }
   }, [selectedMerchantId, merchantsData, setSelectedMerchantId]);
@@ -27,6 +32,7 @@ export const ApiKeyPage: React.FC = () => {
 
   return (
     <div className="max-w-4xl mx-auto flex flex-col gap-8 py-2 pb-12">
+      <PageTitle title="API Keys" />
       {/* ── Page Header ── */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
@@ -41,7 +47,8 @@ export const ApiKeyPage: React.FC = () => {
             )}
           </div>
           <p className="text-sm text-muted-foreground mt-1">
-            Manage your merchant credentials to integrate Payvo with your backend systems.
+            Manage your merchant credentials to integrate Payvo with your
+            backend systems.
           </p>
         </div>
 
@@ -74,7 +81,8 @@ export const ApiKeyPage: React.FC = () => {
               No Merchant Selected
             </h3>
             <p className="text-xs text-muted-foreground mt-1 max-w-sm">
-              Please select or create a merchant using the switcher in the top navigation bar to view API keys.
+              Please select or create a merchant using the switcher in the top
+              navigation bar to view API keys.
             </p>
           </div>
         </div>

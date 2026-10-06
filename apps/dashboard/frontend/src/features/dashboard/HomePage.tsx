@@ -15,6 +15,7 @@ import DashboardMetricsComp from "./components/DashboardMetricsComp";
 import IntegrationChecklistComp from "./components/IntegrationChecklistComp";
 import QuickstartApiComp from "./components/QuickstartApiComp";
 import RecentTransactionsComp from "./components/RecentTransactionsComp";
+import PageTitle from "@/components/text/PageTitle";
 
 export const HomePage: React.FC = () => {
   const navigate = useNavigate();
@@ -129,6 +130,7 @@ export const HomePage: React.FC = () => {
 
   return (
     <div className="max-w-6xl mx-auto flex flex-col gap-8 py-2 pb-14">
+      <PageTitle title="Dashboard" />
       {/* ── 1. Welcome & Status Hero ── */}
       <DashboardHeroComp
         userFullName={user?.fullname}

@@ -6,6 +6,7 @@ enum AppRoutes {
   API_KEYS = "/api-keys",
   WEBHOOKS = "/webhooks",
   ACCOUNT_SETTINGS = "/settings",
+  QUICKSTART_API = "/quickstart-api",
 }
 
 export default AppRoutes;

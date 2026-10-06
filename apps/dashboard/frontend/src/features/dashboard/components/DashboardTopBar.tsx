@@ -2,6 +2,7 @@ import type React from "react";
 import { Menu, X } from "lucide-react";
 import MerchantSwitcherIconButton from "@/features/merchant/components/MerchantSwitcherIconButton";
 import PeekApiKeyIconButton from "@/features/api-key/components/PeekApiKeyIconButton";
+import LogoutButton from "@/features/auth/components/LogoutButton";
 
 export interface DashboardTopBarProps {
   /** Whether mobile nav is currently open */
@@ -63,13 +64,16 @@ export const DashboardTopBar: React.FC<DashboardTopBarProps> = ({
           </span>
         </div>
       </div>
-      {/* ── Right: API Key + Merchant Switcher ────────────── */}
+      {/* ── Right: API Key + Merchant Switcher + Logout ────── */}
       <div className="flex items-center gap-2">
         {/* API Key eye button */}
         <PeekApiKeyIconButton />
 
         {/* Merchant switcher */}
         <MerchantSwitcherIconButton />
+
+        {/* Logout button */}
+        <LogoutButton variant="icon" />
       </div>
     </header>
   );
