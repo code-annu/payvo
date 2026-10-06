@@ -15,3 +15,7 @@ export interface LoginRequest {
 export type AuthResponse = SuccessResponse<{
   accessToken: string;
 }>;
+
+export type LogoutResponse = SuccessResponse<{
+  message: string;
+}>;

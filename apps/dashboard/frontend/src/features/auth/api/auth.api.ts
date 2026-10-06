@@ -1,5 +1,10 @@
 import axiosClient from "@/core/axios/axios.client";
-import type { AuthResponse, LoginRequest, SignupRequest } from "./auth.types";
+import type {
+  AuthResponse,
+  LoginRequest,
+  LogoutResponse,
+  SignupRequest,
+} from "./auth.types";
 
 export default abstract class AuthApi {
   static async signup(body: SignupRequest) {
@@ -13,6 +18,11 @@ export default abstract class AuthApi {
 
   static async rotateToken() {
     const response = await axiosClient.post<AuthResponse>("/auth/rotate-token");
+    return response.data.data;
+  }
+
+  static async logout() {
+    const response = await axiosClient.post<LogoutResponse>("/auth/logout");
     return response.data.data;
   }
 }

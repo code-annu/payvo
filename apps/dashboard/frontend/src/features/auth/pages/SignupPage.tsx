@@ -9,6 +9,7 @@ import { TextInput } from "@/components/inputs/TextInputField";
 import { PasswordInput } from "@/components/inputs/PasswordInputField";
 import { Button } from "@/components/buttons/CustomButton";
 import { useSignup } from "../hooks/useSignup";
+import PageTitle from "@/components/text/PageTitle";
 
 export const SignupPage: React.FC = () => {
   const signup = useSignup();
@@ -41,6 +42,8 @@ export const SignupPage: React.FC = () => {
 
   return (
     <div className="min-h-screen w-full bg-background flex flex-col items-center justify-center p-4 sm:p-6">
+      <PageTitle title="Signup" />
+
       {/* Auth Card */}
       <div className="w-full max-w-md bg-card border border-border rounded-[calc(var(--radius)+4px)] p-6 sm:p-8 shadow-sm transition-all duration-200">
         {/* Brand & Header */}
