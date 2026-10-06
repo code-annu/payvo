@@ -30,4 +30,10 @@ export default class ApiKeyRepository {
     const user = await this.db.orm.public.User.first({ id: userId });
     return user ?? null;
   }
+
+  async updateLastUsedAt(id: string): Promise<void> {
+    await this.db.orm.public.ApiKey.where({ id }).update({
+      lastUsedAt: new Date().toISOString(),
+    });
+  }
 }

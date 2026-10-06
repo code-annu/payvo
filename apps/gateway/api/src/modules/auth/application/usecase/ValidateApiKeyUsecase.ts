@@ -48,6 +48,8 @@ export default class ValidateApiKeyUsecase {
       );
     }
 
+    await this.apiKeyRepo.updateLastUsedAt(apiKey.id);
+
     return {
       valid: true,
       merchantId: apiKey.merchantId,

@@ -55,3 +55,4 @@ export default class CreatePaymentOrderUsecase {
     return `${paymentConfig.order.checkoutBaseUrl.replace(/\/$/, "")}?csi=${csi}`;
   }
 }
+
