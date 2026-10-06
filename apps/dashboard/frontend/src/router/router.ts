@@ -8,6 +8,7 @@ import { HomePage } from "@/features/dashboard/HomePage";
 import AccountPage from "@/features/account/pages/AccountPage";
 import ApiKeyPage from "@/features/api-key/pages/ApiKeyPage";
 import WebhookPage from "@/features/webhook/pages/WebhookPage";
+import TransactionsPage from "@/features/transaction/pages/TransactionsPage";
 
 export const appRouter = createBrowserRouter([
   // Redirect "/" → "/dashboard"
@@ -27,7 +28,7 @@ export const appRouter = createBrowserRouter([
         children: [
           { path: AppRoutes.HOME, Component: HomePage },
           { path: AppRoutes.ACCOUNT_SETTINGS, Component: AccountPage },
-          // { path: AppRoutes.TRANSACTIONS, Component: TransactionsPage },
+          { path: AppRoutes.TRANSACTIONS, Component: TransactionsPage },
           { path: AppRoutes.API_KEYS, Component: ApiKeyPage },
           { path: AppRoutes.WEBHOOKS, Component: WebhookPage },
         ],

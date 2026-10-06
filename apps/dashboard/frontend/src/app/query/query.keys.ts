@@ -20,3 +20,10 @@ export const webhookQueryKey = {
   merchantWebhookDetails: (merchantId: string, webhookId: string) =>
     ["merchant", merchantId, "webhook", webhookId, "details"] as const,
 };
+
+export const transactionQueryKey = {
+  merchantTransactions: (merchantId: string) =>
+    ["merchant", merchantId, "transactions"] as const,
+  merchantTransactionDetails: (merchantId: string, transactionId: string) =>
+    ["merchant", merchantId, "transaction", transactionId, "details"] as const,
+};
