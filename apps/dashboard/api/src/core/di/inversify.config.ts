@@ -56,6 +56,14 @@ import UpdateWebhookUsecase from "@/modules/webhook/application/usecase/UpdateWe
 import WebhookController from "@/modules/webhook/webhook.controller.js";
 import WebhookRouter from "@/modules/webhook/webhook.router.js";
 
+// Transaction module
+import TransactionMapper from "@/modules/transaction/transaction.mapper.js";
+import TransactionRepository from "@/modules/transaction/repository/transaction.repository.js";
+import GetMerchantTransactionsUsecase from "@/modules/transaction/application/usecase/GetMerchantTransactionsUsecase.js";
+import GetTransactionDetailsUsecase from "@/modules/transaction/application/usecase/GetTransactionDetailsUsecase.js";
+import TransactionController from "@/modules/transaction/transaction.controller.js";
+import TransactionRouter from "@/modules/transaction/transaction.router.js";
+
 // Util
 import ClientInfoUtil from "@/core/util/client.util.js";
 
@@ -121,5 +129,17 @@ container.bind(TYPES.DeleteWebhookUsecase).to(DeleteWebhookUsecase);
 container.bind(TYPES.UpdateWebhookUsecase).to(UpdateWebhookUsecase);
 container.bind(TYPES.WebhookController).to(WebhookController);
 container.bind(TYPES.WebhookRouter).to(WebhookRouter);
+
+// Transaction bindings
+container.bind(TYPES.TransactionMapper).to(TransactionMapper);
+container.bind(TYPES.TransactionRepository).to(TransactionRepository);
+container
+  .bind(TYPES.GetMerchantTransactionsUsecase)
+  .to(GetMerchantTransactionsUsecase);
+container
+  .bind(TYPES.GetTransactionDetailsUsecase)
+  .to(GetTransactionDetailsUsecase);
+container.bind(TYPES.TransactionController).to(TransactionController);
+container.bind(TYPES.TransactionRouter).to(TransactionRouter);
 
 export default container;

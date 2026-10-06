@@ -8,6 +8,7 @@ import handleError from "./core/middleware/error-handler.middleware.js";
 import ApiKeyRouter from "./modules/api-key/api-key.router.js";
 import MerchantRouter from "./modules/merchant/merchant.router.js";
 import WebhookRouter from "./modules/webhook/webhook.router.js";
+import TransactionRouter from "./modules/transaction/transaction.router.js";
 import cors from "cors";
 import { serverConfig } from "@payvo/config/server";
 
@@ -49,6 +50,12 @@ app.use("/api/merchants/:merchantId/api-keys", apiKeyRouter.router);
 // Webhook routes
 const webhookRouter = container.get<WebhookRouter>(TYPES.WebhookRouter);
 app.use("/api/merchants/:merchantId/webhooks", webhookRouter.router);
+
+// Transaction routes
+const transactionRouter = container.get<TransactionRouter>(
+  TYPES.TransactionRouter,
+);
+app.use("/api/merchants/:merchantId/transactions", transactionRouter.router);
 
 app.use(handleError);
 

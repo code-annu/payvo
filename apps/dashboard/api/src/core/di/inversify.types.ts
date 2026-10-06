@@ -64,6 +64,13 @@ const TYPES = {
   DeleteWebhookUsecase: Symbol.for("DeleteWebhookUsecase"),
   UpdateWebhookUsecase: Symbol.for("UpdateWebhookUsecase"),
 
+  // Transaction types
+  TransactionRepository: Symbol.for("TransactionRepository"),
+  TransactionMapper: Symbol.for("TransactionMapper"),
+  TransactionController: Symbol.for("TransactionController"),
+  TransactionRouter: Symbol.for("TransactionRouter"),
+  GetMerchantTransactionsUsecase: Symbol.for("GetMerchantTransactionsUsecase"),
+  GetTransactionDetailsUsecase: Symbol.for("GetTransactionDetailsUsecase"),
 };
 
 export default TYPES;
