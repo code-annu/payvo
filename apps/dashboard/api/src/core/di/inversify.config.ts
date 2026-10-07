@@ -44,6 +44,7 @@ import ListMerchantApiKeysUsecase from "@/modules/api-key/application/usecase/Li
 import RotateApiKeyUsecase from "@/modules/api-key/application/usecase/RotateApiKeyUsecase.js";
 import RevokeApiKeyUsecase from "@/modules/api-key/application/usecase/RevokeApiKeyUsecase.js";
 import ApiKeyController from "@/modules/api-key/api-key.controller.js";
+import ApiKeyCache from "@/modules/api-key/api-key.cache.js";
 import ApiKeyRouter from "@/modules/api-key/api-key.router.js";
 
 // Webhook module
@@ -115,13 +116,12 @@ container.bind(TYPES.ApiKeyMapper).to(ApiKeyMapper);
 container.bind(TYPES.ApiKeyRepository).to(ApiKeyRepository);
 container.bind(TYPES.GenerateApiKeyUsecase).to(GenerateApiKeyUsecase);
 container.bind(TYPES.GetActiveApiKeyUsecase).to(GetActiveApiKeyUsecase);
-container
-  .bind(TYPES.ListMerchantApiKeysUsecase)
-  .to(ListMerchantApiKeysUsecase);
+container.bind(TYPES.ListMerchantApiKeysUsecase).to(ListMerchantApiKeysUsecase);
 container.bind(TYPES.RotateApiKeyUsecase).to(RotateApiKeyUsecase);
 container.bind(TYPES.RevokeApiKeyUsecase).to(RevokeApiKeyUsecase);
 container.bind(TYPES.ApiKeyController).to(ApiKeyController);
 container.bind(TYPES.ApiKeyRouter).to(ApiKeyRouter);
+container.bind(TYPES.ApiKeyCache).to(ApiKeyCache);
 
 // Webhook bindings
 container.bind(TYPES.WebhookMapper).to(WebhookMapper);
