@@ -10,5 +10,4 @@ export const cookieConfig = {
     },
   }),
 };
-//   path: "/api/auth/rotate-token",
 
