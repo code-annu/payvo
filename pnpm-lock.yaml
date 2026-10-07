@@ -333,6 +333,9 @@ importers:
       '@payvo/database':
         specifier: workspace:*
         version: link:../../../packages/database
+      '@payvo/redis':
+        specifier: workspace:*
+        version: link:../../../packages/redis
       '@payvo/shared':
         specifier: workspace:*
         version: link:../../../packages/shared
