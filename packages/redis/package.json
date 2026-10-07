@@ -1,0 +1,23 @@
+{
+  "name": "@payvo/redis",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "tsc -w",
+    "build": "tsc"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "exports": {
+    "./cache": {
+      "types": "./dist/cache/index.d.ts",
+      "import": "./dist/cache/index.js"
+    }
+  },
+  "dependencies": {
+    "@payvo/config": "workspace:*",
+    "ioredis": "^6.0.0"
+  }
+}
