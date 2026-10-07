@@ -1,7 +1,6 @@
 import TYPES from "@/core/di/inversify.types.js";
 import { inject, injectable } from "inversify";
-import MerchantRepository from "../repository/merchant.repository.js";
-import { Merchant } from "../entity/merchant.entity.js";
+import MerchantCache, { CachedMerchant } from "../merchant.cache.js";
 import {
   MerchantInactiveError,
   MerchantNotFoundError,
@@ -10,12 +9,12 @@ import {
 @injectable()
 export default class MerchantAuthorizationService {
   constructor(
-    @inject(TYPES.MerchantRepository)
-    private readonly merchantRepo: MerchantRepository,
+    @inject(TYPES.MerchantCache)
+    private readonly merchantCache: MerchantCache,
   ) {}
 
-  async requireActiveMerchant(merchantId: string): Promise<Merchant> {
-    const merchant = await this.merchantRepo.findById(merchantId);
+  async requireActiveMerchant(merchantId: string): Promise<CachedMerchant> {
+    const merchant = await this.merchantCache.getCachedMerchant(merchantId);
     if (!merchant) throw new MerchantNotFoundError();
     if (!merchant.isActive) throw new MerchantInactiveError();
     return merchant;
@@ -28,12 +27,10 @@ export default class MerchantAuthorizationService {
       inactiveMessage?: string;
       notFoundMessage?: string;
     },
-  ): Promise<Merchant> {
-    const merchant = await this.merchantRepo.findOwnedByUser({
-      merchantId,
-      userId,
-    });
-    if (!merchant) throw new MerchantNotFoundError(error?.notFoundMessage);
+  ): Promise<CachedMerchant> {
+    const merchant = await this.merchantCache.getCachedMerchant(merchantId);
+    if (!merchant || merchant.userId !== userId)
+      throw new MerchantNotFoundError(error?.notFoundMessage);
     if (!merchant.isActive)
       throw new MerchantInactiveError(error?.inactiveMessage);
     return merchant;
@@ -42,17 +39,15 @@ export default class MerchantAuthorizationService {
   async requireOwnedMerchant(
     merchantId: string,
     userId: string,
-  ): Promise<Merchant> {
-    const merchant = await this.merchantRepo.findOwnedByUser({
-      merchantId,
-      userId,
-    });
-    if (!merchant) throw new MerchantNotFoundError();
+  ): Promise<CachedMerchant> {
+    const merchant = await this.merchantCache.getCachedMerchant(merchantId);
+    if (!merchant || merchant.userId !== userId)
+      throw new MerchantNotFoundError();
     return merchant;
   }
 
-  async requireMerchant(merchantId: string): Promise<Merchant> {
-    const merchant = await this.merchantRepo.findById(merchantId);
+  async requireMerchant(merchantId: string): Promise<CachedMerchant> {
+    const merchant = await this.merchantCache.getCachedMerchant(merchantId);
     if (!merchant) throw new MerchantNotFoundError();
     return merchant;
   }

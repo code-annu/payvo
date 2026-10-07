@@ -9,6 +9,7 @@ const TYPES = {
   UserRouter: Symbol.for("UserRouter"),
   UserCacheService: Symbol.for("UserCacheService"),
   UserMapper: Symbol.for("UserMapper"),
+  UserCache: Symbol.for("UserCache"),
 
   // Auth types
   SessionRepository: Symbol.for("SessionRepository"),
@@ -39,6 +40,7 @@ const TYPES = {
   MerchantRouter: Symbol.for("MerchantRouter"),
   MerchantMapper: Symbol.for("MerchantMapper"),
   MerchantCacheService: Symbol.for("MerchantCacheService"),
+  MerchantCache: Symbol.for("MerchantCache"),
   MerchantAuthorizationService: Symbol.for("MerchantAuthorizationService"),
 
   // ApiKey types

@@ -33,6 +33,7 @@ import DeleteMerchantUsecase from "@/modules/merchant/application/usecase/Delete
 import MerchantController from "@/modules/merchant/merchant.controller.js";
 import MerchantRouter from "@/modules/merchant/merchant.router.js";
 import MerchantAuthorizationService from "@/modules/merchant/application/merchant-authorization.service.js";
+import MerchantCache from "@/modules/merchant/merchant.cache.js";
 
 // Api-Key module
 import ApiKeyMapper from "@/modules/api-key/api-key.mapper.js";
@@ -66,6 +67,7 @@ import TransactionRouter from "@/modules/transaction/transaction.router.js";
 
 // Util
 import ClientInfoUtil from "@/core/util/client.util.js";
+import UserCache from "@/modules/user/user.cache.js";
 
 const container = new Container();
 
@@ -75,6 +77,7 @@ container.bind(TYPES.ClientInfoUtil).to(ClientInfoUtil);
 // User bindings
 container.bind(TYPES.UserMapper).to(UserMapper);
 container.bind(TYPES.UserRepository).to(UserRepository);
+container.bind(TYPES.UserCache).to(UserCache);
 
 // Auth bindings
 container.bind(TYPES.AuthMapper).to(AuthMapper);
@@ -106,6 +109,7 @@ container.bind(TYPES.MerchantRouter).to(MerchantRouter);
 container
   .bind(TYPES.MerchantAuthorizationService)
   .to(MerchantAuthorizationService);
+container.bind(TYPES.MerchantCache).to(MerchantCache);
 // Api-Key bindings
 container.bind(TYPES.ApiKeyMapper).to(ApiKeyMapper);
 container.bind(TYPES.ApiKeyRepository).to(ApiKeyRepository);
