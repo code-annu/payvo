@@ -7,7 +7,6 @@ const TYPES = {
   UserService: Symbol.for("UserService"),
   UserController: Symbol.for("UserController"),
   UserRouter: Symbol.for("UserRouter"),
-  UserCacheService: Symbol.for("UserCacheService"),
   UserMapper: Symbol.for("UserMapper"),
   UserCache: Symbol.for("UserCache"),
 
@@ -35,11 +34,9 @@ const TYPES = {
   GetMerchantDetailsUsecase: Symbol.for("GetMerchantDetailsUsecase"),
   GetUserMerchantsUsecase: Symbol.for("GetUserMerchantsUsecase"),
   DeleteMerchantUsecase: Symbol.for("DeleteMerchantUsecase"),
-  MerchantService: Symbol.for("MerchantService"),
   MerchantController: Symbol.for("MerchantController"),
   MerchantRouter: Symbol.for("MerchantRouter"),
   MerchantMapper: Symbol.for("MerchantMapper"),
-  MerchantCacheService: Symbol.for("MerchantCacheService"),
   MerchantCache: Symbol.for("MerchantCache"),
   MerchantAuthorizationService: Symbol.for("MerchantAuthorizationService"),
 
@@ -54,6 +51,7 @@ const TYPES = {
   ListMerchantApiKeysUsecase: Symbol.for("ListMerchantApiKeysUsecase"),
   RotateApiKeyUsecase: Symbol.for("RotateApiKeyUsecase"),
   RevokeApiKeyUsecase: Symbol.for("RevokeApiKeyUsecase"),
+  ApiKeyCache: Symbol.for("ApiKeyCache"),
 
   // Webhook types
   WebhookRepository: Symbol.for("WebhookRepository"),

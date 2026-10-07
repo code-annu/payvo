@@ -47,4 +47,14 @@ export default class MerchantCache {
   async invalidateMerchantCache(merchantId: string): Promise<void> {
     return deleteCache(merchantKey(merchantId));
   }
+
+  async invalidateMerchantsCacheByUserId(
+    userId: string,
+  ): Promise<{ merchantIds: string[] }> {
+    const { merchants } = await this.merchantRepo.findByUser(userId);
+    await Promise.all(
+      merchants.map(({ id }) => this.invalidateMerchantCache(id)),
+    );
+    return { merchantIds: merchants.map(({ id }) => id) };
+  }
 }

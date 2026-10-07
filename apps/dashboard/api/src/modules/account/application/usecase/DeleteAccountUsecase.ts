@@ -6,6 +6,9 @@ import SessionRepository from "@/modules/auth/repository/session.repository.js";
 import RefreshTokenRepository from "@/modules/auth/repository/refresh-token.repository.js";
 import ApiKeyRepository from "@/modules/api-key/repository/api-key.repository.js";
 import { AccountNotFoundError } from "../../error/account.errors.js";
+import UserCache from "@/modules/user/user.cache.js";
+import MerchantCache from "@/modules/merchant/merchant.cache.js";
+import ApiKeyCache from "@/modules/api-key/api-key.cache.js";
 
 @injectable()
 export default class DeleteAccountUsecase {
@@ -18,6 +21,12 @@ export default class DeleteAccountUsecase {
     private readonly refreshTokenRepository: RefreshTokenRepository,
     @inject(TYPES.ApiKeyRepository)
     private readonly apiKeyRepository: ApiKeyRepository,
+    @inject(TYPES.UserCache)
+    private readonly userCache: UserCache,
+    @inject(TYPES.MerchantCache)
+    private readonly merchantCache: MerchantCache,
+    @inject(TYPES.ApiKeyCache)
+    private readonly apiKeyCache: ApiKeyCache,
   ) {}
 
   async execute(userId: string) {
@@ -38,6 +47,15 @@ export default class DeleteAccountUsecase {
       if (!user) {
         throw new AccountNotFoundError();
       }
+
+      await this.userCache.invalidateUserCache(userId);
+      const { merchantIds } =
+        await this.merchantCache.invalidateMerchantsCacheByUserId(userId);
+      await Promise.all(
+        merchantIds.map((merchantId) =>
+          this.apiKeyCache.invalidateAllApiKeysCacheByMerchantId(merchantId),
+        ),
+      );
 
       return user;
     });
