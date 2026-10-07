@@ -21,6 +21,7 @@
   "dependencies": {
     "@payvo/config": "workspace:*",
     "@payvo/database": "workspace:*",
+    "@payvo/redis": "workspace:*",
     "@payvo/shared": "workspace:*",
     "axios": "^1.20.0",
     "date-fns": "^4.4.0",

@@ -10,19 +10,22 @@ import type {
   ValidateApiKeyInputDto,
   ValidateApiKeyOutputDto,
 } from "../dto/ValidateApiKeyDto.js";
+import ApiKeyCache from "../../api-key.cache.js";
 
 @injectable()
 export default class ValidateApiKeyUsecase {
   constructor(
     @inject(TYPES.ApiKeyRepository)
     private readonly apiKeyRepo: ApiKeyRepository,
+    @inject(TYPES.ApiKeyCache)
+    private readonly apiKeyCache: ApiKeyCache,
   ) {}
 
   async execute(
     input: ValidateApiKeyInputDto,
   ): Promise<ValidateApiKeyOutputDto> {
     const { keyId, keySecret } = input;
-    const apiKey = await this.apiKeyRepo.findByKeyId(keyId);
+    const apiKey = await this.apiKeyCache.getCachedApiKey(keyId);
 
     if (!apiKey || apiKey.secretHash !== hashKeySecret(keySecret)) {
       throw new InvalidApiKeyCredentialsError("Invalid API key id or secret");

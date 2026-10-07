@@ -2,6 +2,7 @@ const TYPES = {
   // Auth types
   ApiKeyMapper: Symbol.for("ApiKeyMapper"),
   ApiKeyRepository: Symbol.for("ApiKeyRepository"),
+  ApiKeyCache: Symbol.for("ApiKeyCache"),
   ValidateApiKeyUsecase: Symbol.for("ValidateApiKeyUsecase"),
 
   // Payment Order types
