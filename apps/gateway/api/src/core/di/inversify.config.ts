@@ -5,6 +5,7 @@ import TYPES from "./inversify.types.js";
 import ApiKeyMapper from "@/modules/auth/api-key.mapper.js";
 import ApiKeyRepository from "@/modules/auth/repository/api-key.repository.js";
 import ValidateApiKeyUsecase from "@/modules/auth/application/usecase/ValidateApiKeyUsecase.js";
+import ApiKeyCache from "@/modules/auth/api-key.cache.js";
 
 // Payment Order module
 import PaymentOrderMapper from "@/modules/payment-order/payment-order.mapper.js";
@@ -43,6 +44,7 @@ const container = new Container();
 // Auth bindings
 container.bind(TYPES.ApiKeyMapper).to(ApiKeyMapper);
 container.bind(TYPES.ApiKeyRepository).to(ApiKeyRepository);
+container.bind(TYPES.ApiKeyCache).to(ApiKeyCache);
 container.bind(TYPES.ValidateApiKeyUsecase).to(ValidateApiKeyUsecase);
 
 // Transaction bindings
