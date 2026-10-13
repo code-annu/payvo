@@ -15,6 +15,8 @@ async function ensureAddressDefaultConstraint() {
 }
 
 async function cleanupDb() {
+  await prisma.apiKey.deleteMany();
+  await prisma.merchant.deleteMany();
   await prisma.userAddress.deleteMany();
   await prisma.userProfile.deleteMany();
   await prisma.userPreference.deleteMany();
