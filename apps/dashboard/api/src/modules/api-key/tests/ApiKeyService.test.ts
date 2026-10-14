@@ -4,8 +4,12 @@ import {
   MerchantStatus,
   type Merchant,
 } from "@payvo/database/types";
+import {
+  prisma,
+  type TransactionClient,
+} from "@payvo/database/client";
 import { hashKeySecret } from "@payvo/shared/api-key";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { MerchantContract } from "@/modules/merchant/contract/merchant.contract.js";
 import ApiKeyService from "../application/service/api-key.service.js";
 import * as apiKeyErrors from "../error/api-key.errors.js";
@@ -42,6 +46,9 @@ function createServiceTestContext() {
   const findActiveKey = vi
     .spyOn(repository, "findActiveKey")
     .mockResolvedValue(null);
+  const findByMerchantId = vi
+    .spyOn(repository, "findByMerchantId")
+    .mockResolvedValue([]);
   const create = vi
     .spyOn(repository, "create")
     .mockImplementation(async (data) => ({
@@ -52,6 +59,9 @@ function createServiceTestContext() {
       environment: data.environment,
       status: data.status,
     }));
+  const revokeKeyForRotation = vi
+    .spyOn(repository, "revokeKeyForRotation")
+    .mockResolvedValue(apiKey);
   const merchantContract: MerchantContract = {
     getActiveMerchantOwnedByUser: vi.fn().mockResolvedValue(merchant),
   };
@@ -66,7 +76,9 @@ function createServiceTestContext() {
       merchantContract,
     ),
     findActiveKey,
+    findByMerchantId,
     create,
+    revokeKeyForRotation,
     getActiveMerchantOwnedByUser,
   };
 }
@@ -74,6 +86,10 @@ function createServiceTestContext() {
 describe("ApiKeyService", () => {
   beforeEach(() => {
     vi.restoreAllMocks();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   it("generates an API key for an owned merchant and stores only its secret hash", async () => {
@@ -173,6 +189,135 @@ describe("ApiKeyService", () => {
       merchantId,
       environment: ApiKeyEnvironment.TEST,
     });
+    expect(context.create).not.toHaveBeenCalled();
+  });
+
+  it("returns merchant API keys without exposing their secret hashes", async () => {
+    const context = createServiceTestContext();
+    context.findByMerchantId.mockResolvedValue([apiKey]);
+
+    const result = await context.service.getMerchantApiKeys({
+      merchantId,
+      userId,
+    });
+
+    expect(context.getActiveMerchantOwnedByUser).toHaveBeenCalledWith(
+      userId,
+      merchantId,
+    );
+    expect(context.findByMerchantId).toHaveBeenCalledWith(merchantId);
+    expect(result).toEqual({
+      merchantId,
+      apiKeys: [
+        {
+          id: apiKey.id,
+          status: ApiKeyStatus.ACTIVE,
+          environment: ApiKeyEnvironment.TEST,
+          graceEndsAt: null,
+          revokedAt: null,
+          lastUsedAt: null,
+          generatedAt: apiKey.createdAt,
+        },
+      ],
+    });
+    expect(JSON.stringify(result)).not.toContain(apiKey.secretHash);
+    expect(context.create).not.toHaveBeenCalled();
+  });
+
+  it("returns an empty key list for a merchant without API keys", async () => {
+    const context = createServiceTestContext();
+
+    const result = await context.service.getMerchantApiKeys({
+      merchantId,
+      userId,
+    });
+
+    expect(context.findByMerchantId).toHaveBeenCalledWith(merchantId);
+    expect(result).toEqual({ merchantId, apiKeys: [] });
+  });
+
+  it.each(["IMMEDIATELY", "24_HOURS"] as const)(
+    "rotates an API key using the %s revoke strategy and returns its secret",
+    async (oldKeyRevokeStrategy) => {
+      const context = createServiceTestContext();
+      const now = new Date("2026-01-02T03:04:05.000Z");
+      vi.useFakeTimers();
+      vi.setSystemTime(now);
+      context.findActiveKey.mockResolvedValue(apiKey);
+
+      const tx = {} as TransactionClient;
+      const transaction = vi
+        .spyOn(prisma, "$transaction")
+        .mockImplementation(async (callback) => callback(tx));
+
+      const result = await context.service.rotateApiKey({
+        merchantId,
+        userId,
+        environment: ApiKeyEnvironment.TEST,
+        oldKeyRevokeStrategy,
+      });
+
+      expect(context.getActiveMerchantOwnedByUser).toHaveBeenCalledWith(
+        userId,
+        merchantId,
+      );
+      expect(context.findActiveKey).toHaveBeenCalledWith({
+        merchantId,
+        environment: ApiKeyEnvironment.TEST,
+      });
+      expect(transaction).toHaveBeenCalledOnce();
+      expect(context.revokeKeyForRotation).toHaveBeenCalledWith(tx, {
+        id: apiKey.id,
+        revokeNow: oldKeyRevokeStrategy === "IMMEDIATELY",
+        graceEndsAt:
+          oldKeyRevokeStrategy === "IMMEDIATELY"
+            ? now
+            : new Date(now.getTime() + 24 * 60 * 60 * 1000),
+        revokedAt:
+          oldKeyRevokeStrategy === "IMMEDIATELY" ? now : null,
+      });
+      expect(context.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          merchantId,
+          environment: ApiKeyEnvironment.TEST,
+          status: ApiKeyStatus.ACTIVE,
+          keyId: result.keyId,
+          secretHash: expect.any(String),
+        }),
+        tx,
+      );
+      expect(result).toMatchObject({
+        id: apiKey.id,
+        merchantId,
+        environment: ApiKeyEnvironment.TEST,
+        status: ApiKeyStatus.ACTIVE,
+        keyId: expect.stringMatching(/^pvo_test_[A-Za-z0-9_-]+$/),
+        keySecret: expect.any(String),
+      });
+      expect(result).not.toHaveProperty("secretHash");
+
+      if (typeof result.keySecret !== "string") {
+        throw new Error("Rotated API key response is missing its secret");
+      }
+      expect(context.create.mock.calls[0]?.[0].secretHash).toBe(
+        hashKeySecret(result.keySecret),
+      );
+    },
+  );
+
+  it("rejects rotation when there is no active key", async () => {
+    const context = createServiceTestContext();
+
+    await expect(
+      context.service.rotateApiKey({
+        merchantId,
+        userId,
+        environment: ApiKeyEnvironment.TEST,
+        oldKeyRevokeStrategy: "IMMEDIATELY",
+      }),
+    ).rejects.toBeInstanceOf(apiKeyErrors.ApiKeyNotFoundError);
+
+    expect(context.revokeKeyForRotation).not.toHaveBeenCalled();
     expect(context.create).not.toHaveBeenCalled();
   });
 });

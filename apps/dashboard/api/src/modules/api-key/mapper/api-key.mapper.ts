@@ -1,6 +1,9 @@
 import type { ApiKey } from "@payvo/database/types";
 import { injectable } from "inversify";
-import type { ApiKeyOutputDto } from "../application/dto/api-key.dto.js";
+import type {
+  ApiKeyOutputDto,
+  MerchantApiKeysOutputDto,
+} from "../application/dto/api-key.dto.js";
 
 @injectable()
 export default class ApiKeyMapper {
@@ -16,6 +19,24 @@ export default class ApiKeyMapper {
       revokedAt: apiKey.revokedAt,
       lastUsedAt: apiKey.lastUsedAt,
       generatedAt: apiKey.createdAt,
+    };
+  }
+
+  mapToMerchantApiKeysOutput(
+    merchantId: string,
+    apiKeys: ApiKey[],
+  ): MerchantApiKeysOutputDto {
+    return {
+      merchantId,
+      apiKeys: apiKeys.map((apiKey) => ({
+        id: apiKey.id,
+        status: apiKey.status,
+        environment: apiKey.environment,
+        graceEndsAt: apiKey.graceEndsAt,
+        revokedAt: apiKey.revokedAt,
+        lastUsedAt: apiKey.lastUsedAt,
+        generatedAt: apiKey.createdAt,
+      })),
     };
   }
 }

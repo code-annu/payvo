@@ -10,7 +10,12 @@ import type {
   ApiKeyOutputDto,
   GetActiveApiKeyInputDto,
   GenerateApiKeyInputDto,
+  ListMerchantApiKeysInputDto,
+  MerchantApiKeysOutputDto,
+  RotateApiKeyInputDto,
 } from "../dto/api-key.dto.js";
+import { dbTransaction } from "@payvo/database/client";
+import { addHours } from "date-fns";
 
 @injectable()
 export default class ApiKeyService {
@@ -71,5 +76,61 @@ export default class ApiKeyService {
     }
 
     return this.apiKeyMapper.mapToApiKeyOutput(activeKey);
+  }
+
+  async getMerchantApiKeys(
+    input: ListMerchantApiKeysInputDto,
+  ): Promise<MerchantApiKeysOutputDto> {
+    const merchant = await this.merchantContract.getActiveMerchantOwnedByUser(
+      input.userId,
+      input.merchantId,
+    );
+    const apiKeys = await this.apiKeyRepo.findByMerchantId(merchant.id);
+
+    return this.apiKeyMapper.mapToMerchantApiKeysOutput(merchant.id, apiKeys);
+  }
+
+  async rotateApiKey(input: RotateApiKeyInputDto): Promise<ApiKeyOutputDto> {
+    const merchant = await this.merchantContract.getActiveMerchantOwnedByUser(
+      input.userId,
+      input.merchantId,
+    );
+
+    const activeKey = await this.apiKeyRepo.findActiveKey({
+      merchantId: merchant.id,
+      environment: input.environment,
+    });
+    if (!activeKey || activeKey.status !== "ACTIVE") {
+      throw new apiKeyErrors.ApiKeyNotFoundError(
+        "No active api key found for this merchant and environment",
+      );
+    }
+
+    const now = new Date();
+    const revokeNow = input.oldKeyRevokeStrategy === "IMMEDIATELY";
+
+    return await dbTransaction(async (tx) => {
+      await this.apiKeyRepo.revokeKeyForRotation(tx, {
+        id: activeKey.id,
+        revokeNow,
+        graceEndsAt: revokeNow ? now : addHours(now, 24),
+        revokedAt: revokeNow ? now : null,
+      });
+
+      const { keyId, keySecret } = createApiKeyCredentials(input.environment);
+      const secretHash = hashKeySecret(keySecret);
+      const newApiKey = await this.apiKeyRepo.create(
+        {
+          merchantId: merchant.id,
+          keyId: keyId,
+          secretHash: secretHash,
+          environment: input.environment,
+          status: "ACTIVE",
+        },
+        tx,
+      );
+
+      return this.apiKeyMapper.mapToApiKeyOutput(newApiKey, keySecret);
+    });
   }
 }

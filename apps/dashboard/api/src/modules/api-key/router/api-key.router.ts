@@ -7,6 +7,8 @@ import { ApiKeyTypes } from "../api-key.types.js";
 import {
   GenerateApiKeySchema,
   GetActiveApiKeySchema,
+  ListMerchantApiKeysSchema,
+  RotateApiKeySchema,
 } from "../schema/api-key.schema.js";
 
 @injectable()
@@ -28,11 +30,23 @@ export default class ApiKeyRouter {
       validateRequest(GenerateApiKeySchema),
       this.apiKeyController.postApiKey,
     );
+    this.router.post(
+      "/:merchantId/api-keys/rotate",
+      authenticateUser,
+      validateRequest(RotateApiKeySchema),
+      this.apiKeyController.rotateApiKey,
+    );
     this.router.get(
       "/:merchantId/api-keys",
       authenticateUser,
       validateRequest(GetActiveApiKeySchema),
       this.apiKeyController.getActiveApiKey,
+    );
+    this.router.get(
+      "/:merchantId/api-keys/list",
+      authenticateUser,
+      validateRequest(ListMerchantApiKeysSchema),
+      this.apiKeyController.getMerchantApiKeys,
     );
   }
 }
