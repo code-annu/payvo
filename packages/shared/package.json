@@ -23,6 +23,10 @@
       "types": "./dist/crypto/index.d.ts",
       "import": "./dist/crypto/index.js"
     },
+    "./api-key": {
+      "types": "./dist/api-key/index.d.ts",
+      "import": "./dist/api-key/index.js"
+    },
     "./refresh-token": {
       "types": "./dist/refresh-token/index.d.ts",
       "import": "./dist/refresh-token/index.js"
