@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { BadRequestError } from "@payvo/shared/error";
 import { NextFunction, Request, Response } from "express";
 import { ZodObject } from "zod";

@@ -6,7 +6,8 @@
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier . --write",
-    "format:check": "prettier . --check"
+    "format:check": "prettier . --check",
+    "build:packages": "pnpm --filter @payvo/config build & pnpm --filter @payvo/database build & pnpm --filter @payvo/shared build & pnpm --filter @payvo/http build"
   },
   "keywords": [],
   "author": "",
