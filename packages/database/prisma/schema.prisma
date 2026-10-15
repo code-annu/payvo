@@ -26,6 +26,29 @@ enum UserAddressType {
   @@map("user_address_type")
 }
 
+enum MerchantStatus {
+  ACTIVE
+  SUSPENDED
+  CLOSED
+
+  @@map("merchant_status")
+}
+
+enum ApiKeyEnvironment {
+  TEST
+  LIVE
+
+  @@map("api_key_environment")
+}
+
+enum ApiKeyStatus {
+  ACTIVE
+  GRACE_PERIOD
+  REVOKED
+
+  @@map("api_key_status")
+}
+
 model User {
   id                String    @id @default(uuid()) @db.Uuid
   // Uniqueness is enforced case-insensitively by a lower(email) index in SQL.
@@ -41,6 +64,7 @@ model User {
   preference UserPreference?
   addresses  UserAddress[]
   sessions   UserSession[]
+  merchants  Merchant[]
 
   @@map("users")
 }
@@ -164,4 +188,41 @@ model UserAddress {
   // CREATE UNIQUE INDEX user_addresses_one_default_per_type
   //   ON user_addresses (user_id, address_type) WHERE is_default = TRUE;
   @@map("user_addresses")
+}
+
+model Merchant {
+  id        String         @id @default(uuid()) @db.Uuid
+  mid       String         @unique
+  userId    String         @map("user_id") @db.Uuid
+  closedAt  DateTime?      @map("closed_at") @db.Timestamptz(6)
+  status    MerchantStatus
+  createdAt DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime       @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  apiKeys ApiKey[]
+
+  @@index([userId])
+  @@map("merchants")
+}
+
+model ApiKey {
+  id          String            @id @default(uuid()) @db.Uuid
+  merchantId  String            @map("merchant_id") @db.Uuid
+  keyId       String            @map("key_id")
+  secretHash  String            @map("secret_hash") @db.VarChar(255)
+  environment ApiKeyEnvironment
+  status      ApiKeyStatus
+  graceEndsAt DateTime?         @map("grace_ends_at") @db.Timestamptz(6)
+  revokedAt   DateTime?         @map("revoked_at") @db.Timestamptz(6)
+  lastUsedAt  DateTime?         @map("last_used_at") @db.Timestamptz(6)
+  createdAt   DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime          @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  merchant Merchant @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+
+  @@index([merchantId])
+  // Prisma cannot represent a partial unique index for active API keys.
+  // Enforce one active key per merchant and environment in migration SQL.
+  @@map("api_keys")
 }
