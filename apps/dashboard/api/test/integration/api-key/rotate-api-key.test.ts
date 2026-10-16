@@ -64,7 +64,7 @@ describe("POST /api/merchants/:merchantId/api-keys/rotate", () => {
       status: ApiKeyStatus.REVOKED,
     });
     expect(storedOldKey?.revokedAt).toBeInstanceOf(Date);
-    expect(storedOldKey?.graceEndsAt).toEqual(storedOldKey?.revokedAt);
+    expect(storedOldKey?.graceEndsAt).toBeNull();
     expect(storedNewKey).toMatchObject({
       merchantId: merchant.id,
       keyId: response.body.data.keyId,
