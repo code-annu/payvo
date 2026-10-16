@@ -1,5 +1,6 @@
 import {
   ApiKeyEnvironmentSchema,
+  ApiKeyKeyIdSchema,
   MerchantIdSchema,
 } from "@payvo/shared/schema";
 import z from "zod";
@@ -35,5 +36,11 @@ export const RotateApiKeySchema = {
     environment: z.enum(["TEST", "LIVE"], {
       error: "Environment must be TEST or LIVE",
     }),
+  }),
+};
+
+export const RevokeApiKeySchema = {
+  params: MerchantParamsSchema.extend({
+    apiKeyId: ApiKeyKeyIdSchema.nonempty("Api key id cannot be empty"),
   }),
 };

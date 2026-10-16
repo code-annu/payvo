@@ -6,14 +6,7 @@ import * as apiKeyErrors from "../../error/api-key.errors.js";
 import ApiKeyMapper from "../../mapper/api-key.mapper.js";
 import ApiKeyRepository from "../../repository/api-key.repository.js";
 import { ApiKeyTypes } from "../../api-key.types.js";
-import type {
-  ApiKeyOutputDto,
-  GetActiveApiKeyInputDto,
-  GenerateApiKeyInputDto,
-  ListMerchantApiKeysInputDto,
-  MerchantApiKeysOutputDto,
-  RotateApiKeyInputDto,
-} from "../dto/api-key.dto.js";
+import type * as dto from "../dto/api-key.dto.js";
 import { dbTransaction } from "@payvo/database/client";
 import { addHours } from "date-fns";
 
@@ -30,8 +23,8 @@ export default class ApiKeyService {
 
   async generateApiKey(
     userId: string,
-    input: GenerateApiKeyInputDto,
-  ): Promise<ApiKeyOutputDto> {
+    input: dto.GenerateApiKeyInputDto,
+  ): Promise<dto.ApiKeyOutputDto> {
     const merchant = await this.merchantContract.getActiveMerchantOwnedByUser(
       userId,
       input.merchantId,
@@ -59,8 +52,8 @@ export default class ApiKeyService {
 
   async getActiveApiKey(
     userId: string,
-    input: GetActiveApiKeyInputDto,
-  ): Promise<ApiKeyOutputDto> {
+    input: dto.GetActiveApiKeyInputDto,
+  ): Promise<dto.ApiKeyOutputDto> {
     const merchant = await this.merchantContract.getActiveMerchantOwnedByUser(
       userId,
       input.merchantId,
@@ -79,8 +72,8 @@ export default class ApiKeyService {
   }
 
   async getMerchantApiKeys(
-    input: ListMerchantApiKeysInputDto,
-  ): Promise<MerchantApiKeysOutputDto> {
+    input: dto.ListMerchantApiKeysInputDto,
+  ): Promise<dto.MerchantApiKeysOutputDto> {
     const merchant = await this.merchantContract.getActiveMerchantOwnedByUser(
       input.userId,
       input.merchantId,
@@ -90,7 +83,41 @@ export default class ApiKeyService {
     return this.apiKeyMapper.mapToMerchantApiKeysOutput(merchant.id, apiKeys);
   }
 
-  async rotateApiKey(input: RotateApiKeyInputDto): Promise<ApiKeyOutputDto> {
+  async revokeApiKey(
+    input: dto.RevokeApiKeyInputDto,
+  ): Promise<dto.ApiKeyOutputDto> {
+    const merchant = await this.merchantContract.getActiveMerchantOwnedByUser(
+      input.userId,
+      input.merchantId,
+    );
+    const apiKey = await this.apiKeyRepo.findByMerchantAndKeyId({
+      merchantId: merchant.id,
+      keyId: input.apiKeyId,
+    });
+
+    if (!apiKey) {
+      throw new apiKeyErrors.ApiKeyNotFoundError("API key not found");
+    }
+
+    if (apiKey.status === "REVOKED") {
+      throw new apiKeyErrors.RevokedApiKeyError();
+    }
+
+    const revokedApiKey = await this.apiKeyRepo.revokeKey({
+      id: apiKey.id,
+      revokedAt: new Date(),
+    });
+
+    if (!revokedApiKey) {
+      throw new apiKeyErrors.RevokedApiKeyError();
+    }
+
+    return this.apiKeyMapper.mapToApiKeyOutput(revokedApiKey);
+  }
+
+  async rotateApiKey(
+    input: dto.RotateApiKeyInputDto,
+  ): Promise<dto.ApiKeyOutputDto> {
     const merchant = await this.merchantContract.getActiveMerchantOwnedByUser(
       input.userId,
       input.merchantId,
@@ -113,7 +140,7 @@ export default class ApiKeyService {
       await this.apiKeyRepo.revokeKeyForRotation(tx, {
         id: activeKey.id,
         revokeNow,
-        graceEndsAt: revokeNow ? now : addHours(now, 24),
+        graceEndsAt: revokeNow ? null : addHours(now, 24),
         revokedAt: revokeNow ? now : null,
       });
 

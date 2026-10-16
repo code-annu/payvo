@@ -49,6 +49,9 @@ function createServiceTestContext() {
   const findByMerchantId = vi
     .spyOn(repository, "findByMerchantId")
     .mockResolvedValue([]);
+  const findByMerchantAndKeyId = vi
+    .spyOn(repository, "findByMerchantAndKeyId")
+    .mockResolvedValue(null);
   const create = vi
     .spyOn(repository, "create")
     .mockImplementation(async (data) => ({
@@ -61,6 +64,9 @@ function createServiceTestContext() {
     }));
   const revokeKeyForRotation = vi
     .spyOn(repository, "revokeKeyForRotation")
+    .mockResolvedValue(apiKey);
+  const revokeKey = vi
+    .spyOn(repository, "revokeKey")
     .mockResolvedValue(apiKey);
   const merchantContract: MerchantContract = {
     getActiveMerchantOwnedByUser: vi.fn().mockResolvedValue(merchant),
@@ -77,8 +83,10 @@ function createServiceTestContext() {
     ),
     findActiveKey,
     findByMerchantId,
+    findByMerchantAndKeyId,
     create,
     revokeKeyForRotation,
+    revokeKey,
     getActiveMerchantOwnedByUser,
   };
 }
@@ -236,6 +244,78 @@ describe("ApiKeyService", () => {
     expect(result).toEqual({ merchantId, apiKeys: [] });
   });
 
+  it("revokes an API key identified by its key ID for an owned merchant", async () => {
+    const context = createServiceTestContext();
+    const revokedAt = new Date("2026-01-02T03:04:05.000Z");
+    const revokedApiKey = {
+      ...apiKey,
+      status: ApiKeyStatus.REVOKED,
+      revokedAt,
+    };
+    vi.useFakeTimers();
+    vi.setSystemTime(revokedAt);
+    context.findByMerchantAndKeyId.mockResolvedValue(apiKey);
+    context.revokeKey.mockResolvedValue(revokedApiKey);
+
+    const result = await context.service.revokeApiKey({
+      merchantId,
+      apiKeyId: apiKey.keyId,
+      userId,
+    });
+
+    expect(context.getActiveMerchantOwnedByUser).toHaveBeenCalledWith(
+      userId,
+      merchantId,
+    );
+    expect(context.findByMerchantAndKeyId).toHaveBeenCalledWith({
+      merchantId,
+      keyId: apiKey.keyId,
+    });
+    expect(context.revokeKey).toHaveBeenCalledWith({
+      id: apiKey.id,
+      revokedAt,
+    });
+    expect(result).toMatchObject({
+      id: apiKey.id,
+      keyId: apiKey.keyId,
+      status: ApiKeyStatus.REVOKED,
+      revokedAt,
+    });
+    expect(result).not.toHaveProperty("secretHash");
+  });
+
+  it("rejects revoking an API key that does not belong to the merchant", async () => {
+    const context = createServiceTestContext();
+
+    await expect(
+      context.service.revokeApiKey({
+        merchantId,
+        apiKeyId: apiKey.keyId,
+        userId,
+      }),
+    ).rejects.toBeInstanceOf(apiKeyErrors.ApiKeyNotFoundError);
+
+    expect(context.revokeKey).not.toHaveBeenCalled();
+  });
+
+  it("rejects revoking an API key that is already revoked", async () => {
+    const context = createServiceTestContext();
+    context.findByMerchantAndKeyId.mockResolvedValue({
+      ...apiKey,
+      status: ApiKeyStatus.REVOKED,
+    });
+
+    await expect(
+      context.service.revokeApiKey({
+        merchantId,
+        apiKeyId: apiKey.keyId,
+        userId,
+      }),
+    ).rejects.toBeInstanceOf(apiKeyErrors.RevokedApiKeyError);
+
+    expect(context.revokeKey).not.toHaveBeenCalled();
+  });
+
   it.each(["IMMEDIATELY", "24_HOURS"] as const)(
     "rotates an API key using the %s revoke strategy and returns its secret",
     async (oldKeyRevokeStrategy) => {
@@ -271,7 +351,7 @@ describe("ApiKeyService", () => {
         revokeNow: oldKeyRevokeStrategy === "IMMEDIATELY",
         graceEndsAt:
           oldKeyRevokeStrategy === "IMMEDIATELY"
-            ? now
+            ? null
             : new Date(now.getTime() + 24 * 60 * 60 * 1000),
         revokedAt:
           oldKeyRevokeStrategy === "IMMEDIATELY" ? now : null,

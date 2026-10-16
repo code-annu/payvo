@@ -3,6 +3,7 @@ import {
   GenerateApiKeySchema,
   GetActiveApiKeySchema,
   ListMerchantApiKeysSchema,
+  RevokeApiKeySchema,
   RotateApiKeySchema,
 } from "../../schema/api-key.schema.js";
 import { ApiKeyEnvironment, ApiKeyStatus } from "@payvo/database/types";
@@ -23,6 +24,10 @@ export type ListMerchantApiKeysInputDto = z.infer<
 
 export type RotateApiKeyInputDto = z.infer<typeof RotateApiKeySchema.body> &
   z.infer<typeof RotateApiKeySchema.params> & { userId: string };
+
+export type RevokeApiKeyInputDto = z.infer<typeof RevokeApiKeySchema.params> & {
+  userId: string;
+};
 
 export interface ApiKeyOutputDto {
   id: string;

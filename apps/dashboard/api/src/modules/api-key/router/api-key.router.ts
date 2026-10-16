@@ -8,6 +8,7 @@ import {
   GenerateApiKeySchema,
   GetActiveApiKeySchema,
   ListMerchantApiKeysSchema,
+  RevokeApiKeySchema,
   RotateApiKeySchema,
 } from "../schema/api-key.schema.js";
 
@@ -19,31 +20,37 @@ export default class ApiKeyRouter {
     @inject(ApiKeyTypes.ApiKeyController)
     private readonly apiKeyController: ApiKeyController,
   ) {
-    this.router = Router();
+    this.router = Router({ mergeParams: true });
     this.initRoutes();
   }
 
   private initRoutes(): void {
     this.router.post(
-      "/:merchantId/api-keys",
+      "/",
       authenticateUser,
       validateRequest(GenerateApiKeySchema),
       this.apiKeyController.postApiKey,
     );
     this.router.post(
-      "/:merchantId/api-keys/rotate",
+      "/rotate",
       authenticateUser,
       validateRequest(RotateApiKeySchema),
       this.apiKeyController.rotateApiKey,
     );
+    this.router.delete(
+      "/:apiKeyId",
+      authenticateUser,
+      validateRequest(RevokeApiKeySchema),
+      this.apiKeyController.revokeApiKey,
+    );
     this.router.get(
-      "/:merchantId/api-keys",
+      "/",
       authenticateUser,
       validateRequest(GetActiveApiKeySchema),
       this.apiKeyController.getActiveApiKey,
     );
     this.router.get(
-      "/:merchantId/api-keys/list",
+      "/list",
       authenticateUser,
       validateRequest(ListMerchantApiKeysSchema),
       this.apiKeyController.getMerchantApiKeys,

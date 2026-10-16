@@ -7,6 +7,7 @@ import ApiKeyService from "../application/service/api-key.service.js";
 import { ApiKeyTypes } from "../api-key.types.js";
 import {
   GetActiveApiKeySchema,
+  RevokeApiKeySchema,
   RotateApiKeySchema,
 } from "../schema/api-key.schema.js";
 
@@ -72,5 +73,20 @@ export default class ApiKeyController {
     res
       .status(StatusCode.Success.CREATED)
       .json(buildSuccessResponse(apiKey, "API key rotated successfully"));
+  });
+
+  revokeApiKey = catchAsync(async (req: AuthRequest, res: Response) => {
+    const { merchantId, apiKeyId } = RevokeApiKeySchema.params.parse(
+      req.params,
+    );
+    const apiKey = await this.apiKeyService.revokeApiKey({
+      merchantId,
+      apiKeyId,
+      userId: req.auth!.sub,
+    });
+
+    res
+      .status(StatusCode.Success.OK)
+      .json(buildSuccessResponse(apiKey, "API key revoked successfully"));
   });
 }

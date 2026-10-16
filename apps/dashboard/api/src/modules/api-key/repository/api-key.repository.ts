@@ -30,11 +30,43 @@ export default class ApiKeyRepository {
     });
   }
 
+  findByMerchantAndKeyId(input: {
+    merchantId: string;
+    keyId: string;
+  }): Promise<ApiKey | null> {
+    return this.db.apiKey.findFirst({
+      where: {
+        merchantId: input.merchantId,
+        keyId: input.keyId,
+      },
+    });
+  }
+
   create(
     data: ApiKeyUncheckedCreateInput,
     tx?: TransactionClient,
   ): Promise<ApiKey> {
     return (tx || this.db).apiKey.create({ data });
+  }
+
+  async revokeKey(input: {
+    id: string;
+    revokedAt: Date;
+  }): Promise<ApiKey | null> {
+    const result = await this.db.apiKey.updateMany({
+      where: { id: input.id, status: { not: "REVOKED" } },
+      data: {
+        status: "REVOKED",
+        graceEndsAt: null,
+        revokedAt: input.revokedAt,
+      },
+    });
+
+    if (result.count === 0) {
+      return null;
+    }
+
+    return this.db.apiKey.findUnique({ where: { id: input.id } });
   }
 
   async revokeKeyForRotation(
