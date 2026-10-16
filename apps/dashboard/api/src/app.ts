@@ -40,7 +40,7 @@ const merchantRouter = container.get<MerchantRouter>(
 app.use("/api/merchants", merchantRouter.router);
 
 const apiKeyRouter = container.get<ApiKeyRouter>(ApiKeyTypes.ApiKeyRouter);
-app.use("/api/merchants", apiKeyRouter.router);
+app.use("/api/merchants/:merchantId/api-keys", apiKeyRouter.router);
 
 app.use(handlePrismaError, handleError);
 
