@@ -15,4 +15,4 @@ export const PhoneNumberSchema = z
 export const ProfilePictureUrlSchema = z
   .url("profile picture url must be a valid url")
   .trim()
-  .nullish);
+  .nullish();
