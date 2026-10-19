@@ -3,12 +3,51 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "tsc",
+    "dev": "tsc -w"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "type": "module",
+  "exports": {
+    "./error": {
+      "types": "./dist/error/index.d.ts",
+      "import": "./dist/error/index.js"
+    },
+    "./api": {
+      "types": "./dist/api/index.d.ts",
+      "import": "./dist/api/index.js"
+    },
+    "./crypto": {
+      "types": "./dist/crypto/index.d.ts",
+      "import": "./dist/crypto/index.js"
+    },
+    "./api-key": {
+      "types": "./dist/api-key/index.d.ts",
+      "import": "./dist/api-key/index.js"
+    },
+    "./refresh-token": {
+      "types": "./dist/refresh-token/index.d.ts",
+      "import": "./dist/refresh-token/index.js"
+    },
+    "./jwt": {
+      "types": "./dist/jwt/index.d.ts",
+      "import": "./dist/jwt/index.js"
+    },
+    "./schema/requests": {
+      "types": "./dist/schema/requests/index.d.ts",
+      "import": "./dist/schema/requests/index.js"
+    },
+    "./schema/responses": {
+      "types": "./dist/schema/responses/index.d.ts",
+      "import": "./dist/schema/responses/index.js"
+    },
+    "./util": {
+      "types": "./dist/util/index.d.ts",
+      "import": "./dist/util/index.js"
+    }
+  },
   "dependencies": {
     "argon2": "^0.45.2",
     "jose": "^6.2.17",
