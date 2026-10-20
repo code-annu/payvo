@@ -38,6 +38,8 @@ export const AddUserAddressSchema = {
   }),
 };
 
+export type AddUserAddressRequest = z.infer<typeof AddUserAddressSchema.body>;
+
 export const UserAddressParamsSchema = z.strictObject({
   addressId: AddressIdSchema.nonempty("Address id cannot be empty"),
 });
