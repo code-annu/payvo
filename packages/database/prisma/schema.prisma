@@ -60,11 +60,10 @@ model User {
   createdAt         DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt         DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  profile    UserProfile?
-  preference UserPreference?
-  addresses  UserAddress[]
-  sessions   UserSession[]
-  merchants  Merchant[]
+  profile   UserProfile?
+  addresses UserAddress[]
+  sessions  UserSession[]
+  merchants Merchant[]
 
   @@map("users")
 }
@@ -102,21 +101,11 @@ model RefreshToken {
 }
 
 model UserProfile {
-  userId            String    @id @map("user_id") @db.Uuid
-  fullName          String    @map("full_name") @db.VarChar(120)
-  phoneNumber       String?   @map("phone_number") @db.VarChar(20)
-  phoneVerifiedAt   DateTime? @map("phone_verified_at") @db.Timestamptz(6)
-  profilePictureUrl String?   @map("profile_picture_url") @db.VarChar(2048)
-  createdAt         DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt         DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@map("user_profiles")
-}
-
-model UserPreference {
   userId                String    @id @map("user_id") @db.Uuid
+  fullName              String    @map("full_name") @db.VarChar(120)
+  phoneNumber           String?   @map("phone_number") @db.VarChar(20)
+  phoneVerifiedAt       DateTime? @map("phone_verified_at") @db.Timestamptz(6)
+  profilePictureUrl     String?   @map("profile_picture_url") @db.VarChar(2048)
   preferredLanguageCode String    @map("preferred_language_code") @db.VarChar(10)
   preferredCurrencyCode String    @map("preferred_currency_code") @db.Char(3)
   theme                 UserTheme @default(SYSTEM)
@@ -130,13 +119,13 @@ model UserPreference {
 
   @@index([preferredLanguageCode])
   @@index([preferredCurrencyCode])
-  @@map("user_preferences")
+  @@map("user_profiles")
 }
 
 model SupportedLanguage {
-  code        String           @id @db.VarChar(10)
-  name        String           @db.VarChar(100)
-  preferences UserPreference[]
+  code     String        @id @db.VarChar(10)
+  name     String        @db.VarChar(100)
+  profiles UserProfile[]
 
   @@map("supported_languages")
 }
@@ -149,7 +138,7 @@ model SupportedCurrency {
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  preferences UserPreference[]
+  profiles UserProfile[]
 
   @@map("supported_currencies")
 }
