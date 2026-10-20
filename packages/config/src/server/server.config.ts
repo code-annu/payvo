@@ -7,7 +7,7 @@ const serverEnvSchema = z.object({
     ["production", "dev", "test"],
     "NODE_ENV must be one of them ['production','dev','test']",
   ),
-  FRONTEND_URL: z.string().min(1, "FRONTEND_URL must not be empty"),
+  FRONTEND_URL: z.string().min(1, "FRONTEND_URL must not be empty").optional(),
   FRONTEND_SECRET: z.string().optional(),
 });
 
