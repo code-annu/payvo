@@ -8,7 +8,7 @@ export function handleError(
   res: Response,
   _next: NextFunction,
 ) {
-  // console.error("error is: ", error);
+  console.error("error is: ", error);
 
   if (error instanceof AppError) {
     return res.status(error.statusCode).json(
