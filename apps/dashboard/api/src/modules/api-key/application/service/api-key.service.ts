@@ -1,0 +1,148 @@
+import { createApiKeyCredentials, hashKeySecret } from "@payvo/shared/api-key";
+import { inject, injectable } from "inversify";
+import { MerchantTypes } from "../../../merchant/merchant.types.js";
+import type { MerchantContract } from "../../../merchant/contract/merchant.contract.js";
+import * as apiKeyErrors from "../../error/api-key.errors.js";
+import ApiKeyRepository from "../../repository/api-key.repository.js";
+import { ApiKeyTypes } from "../../api-key.types.js";
+import type * as dto from "../dto/api-key.dto.js";
+import { dbTransaction } from "@payvo/database/client";
+import { addHours } from "date-fns";
+
+@injectable()
+export default class ApiKeyService {
+  constructor(
+    @inject(ApiKeyTypes.ApiKeyRepository)
+    private readonly apiKeyRepo: ApiKeyRepository,
+    @inject(MerchantTypes.MerchantContract)
+    private readonly merchantContract: MerchantContract,
+  ) {}
+
+  async generateApiKey(userId: string, input: dto.GenerateApiKeyInputDto) {
+    const merchant = await this.merchantContract.getActiveMerchantOwnedByUser(
+      userId,
+      input.merchantId,
+    );
+    const activeKey = await this.apiKeyRepo.findActiveKey({
+      merchantId: merchant.id,
+      environment: input.environment,
+    });
+    if (activeKey) {
+      throw new apiKeyErrors.ApiKeyAlreadyExistsError();
+    }
+
+    const { keyId, keySecret } = createApiKeyCredentials(input.environment);
+    const secretHash = hashKeySecret(keySecret);
+    const apiKey = await this.apiKeyRepo.create({
+      merchantId: merchant.id,
+      keyId: keyId,
+      secretHash: secretHash,
+      environment: input.environment,
+      status: "ACTIVE",
+    });
+
+    return { apiKey, keySecret };
+  }
+
+  async getActiveApiKey(userId: string, input: dto.GetActiveApiKeyInputDto) {
+    const merchant = await this.merchantContract.getActiveMerchantOwnedByUser(
+      userId,
+      input.merchantId,
+    );
+    const activeKey = await this.apiKeyRepo.findActiveKey({
+      merchantId: merchant.id,
+      environment: input.environment,
+    });
+    if (!activeKey) {
+      throw new apiKeyErrors.ApiKeyNotFoundError(
+        "No active api key found for this merchant and environment",
+      );
+    }
+
+    return activeKey;
+  }
+
+  async getMerchantApiKeys(input: dto.ListMerchantApiKeysInputDto) {
+    const merchant = await this.merchantContract.getMerchantOwnedByUser(
+      input.userId,
+      input.merchantId,
+    );
+    const apiKeys = await this.apiKeyRepo.findByMerchantId(merchant.id);
+
+    return { merchantId: merchant.id, apiKeys };
+  }
+
+  async revokeApiKey(input: dto.RevokeApiKeyInputDto) {
+    const merchant = await this.merchantContract.getActiveMerchantOwnedByUser(
+      input.userId,
+      input.merchantId,
+    );
+    const apiKey = await this.apiKeyRepo.findByMerchantAndKeyId({
+      merchantId: merchant.id,
+      keyId: input.apiKeyId,
+    });
+
+    if (!apiKey) {
+      throw new apiKeyErrors.ApiKeyNotFoundError("API key not found");
+    }
+
+    if (apiKey.status === "REVOKED") {
+      throw new apiKeyErrors.RevokedApiKeyError();
+    }
+
+    const revokedApiKey = await this.apiKeyRepo.revokeKey({
+      id: apiKey.id,
+      revokedAt: new Date(),
+    });
+
+    if (!revokedApiKey) {
+      throw new apiKeyErrors.RevokedApiKeyError();
+    }
+
+    return revokedApiKey;
+  }
+
+  async rotateApiKey(input: dto.RotateApiKeyInputDto) {
+    const merchant = await this.merchantContract.getActiveMerchantOwnedByUser(
+      input.userId,
+      input.merchantId,
+    );
+
+    const activeKey = await this.apiKeyRepo.findActiveKey({
+      merchantId: merchant.id,
+      environment: input.environment,
+    });
+    if (!activeKey || activeKey.status !== "ACTIVE") {
+      throw new apiKeyErrors.ApiKeyNotFoundError(
+        "No active api key found for this merchant and environment",
+      );
+    }
+
+    const now = new Date();
+    const revokeNow = input.oldKeyRevokeStrategy === "IMMEDIATELY";
+
+    return await dbTransaction(async (tx) => {
+      await this.apiKeyRepo.revokeKeyForRotation(tx, {
+        id: activeKey.id,
+        revokeNow,
+        graceEndsAt: revokeNow ? null : addHours(now, 24),
+        revokedAt: revokeNow ? now : null,
+      });
+
+      const { keyId, keySecret } = createApiKeyCredentials(input.environment);
+      const secretHash = hashKeySecret(keySecret);
+      const newApiKey = await this.apiKeyRepo.create(
+        {
+          merchantId: merchant.id,
+          keyId: keyId,
+          secretHash: secretHash,
+          environment: input.environment,
+          status: "ACTIVE",
+        },
+        tx,
+      );
+
+      return { apiKey: newApiKey, keySecret };
+    });
+  }
+}
