@@ -1,0 +1,15 @@
+export enum AppRoutes {
+  HOME = "/dashboard",
+  LOGIN = "/login",
+  SIGNUP = "/signup",
+  ONBOARDING = "/onboarding",
+  ONBOARDING_PROFILE = "/onboarding/profile",
+  ONBOARDING_PREFERENCES = "/onboarding/preferences",
+  ONBOARDING_ADDRESS = "/onboarding/address",
+  TRANSACTIONS = "/transactions",
+  API_KEYS = "/api-keys",
+  WEBHOOKS = "/webhooks",
+  ACCOUNT_SETTINGS = "/settings",
+  QUICKSTART_API = "/quickstart-api",
+  TEMP = "/temp",
+}
