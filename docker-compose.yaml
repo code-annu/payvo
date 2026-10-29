@@ -1,0 +1,32 @@
+services:
+  payvo-postgres:
+    image: postgres:17
+    container_name: payvo-postgres
+    restart: unless-stopped
+
+    env_file:
+      - .env
+
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+
+    ports:
+      - "${POSTGRES_PORT}:5432"
+
+    volumes:
+      - payvo-postgres-data:/var/lib/postgresql/data
+
+    networks:
+      - default
+      - pgadmin-net
+
+volumes:
+  payvo-postgres-data:
+
+networks:
+  default:
+
+  pgadmin-net:
+    external: true
+    name: pgadmin-net

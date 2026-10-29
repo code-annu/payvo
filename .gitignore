@@ -1,0 +1,9 @@
+.vscode
+.env*
+node_modules
+dist
+**/generated
+.agents
+.claude
+.windsurf
+skills-lock.json
