@@ -2,7 +2,16 @@ import { prisma } from "@payvo/database/client";
 
 export async function setupDb() {
   await cleanupDb();
+  await ensureAddressDefaultConstraint();
   await currencyAndLanguageSetup();
+}
+
+async function ensureAddressDefaultConstraint() {
+  await prisma.$executeRaw`
+    CREATE UNIQUE INDEX IF NOT EXISTS user_addresses_one_default_per_type
+    ON user_addresses (user_id, address_type)
+    WHERE is_default = TRUE
+  `;
 }
 
 async function cleanupDb() {
