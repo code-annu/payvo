@@ -2,7 +2,8 @@ import { inject, injectable } from "inversify";
 import { AuthOutput } from "./dto/auth.dto.js";
 import { LoginInput, SignupInput } from "../schema/auth.schema.js";
 import * as authErrors from "../error/auth.errors.js";
-import TYPES from "@/core/di/inversify.types.js";
+import { UserTypes } from "@/modules/user/user.types.js";
+import { AuthTypes } from "../auth.types.js";
 import UserRepository from "@/modules/user/repository/user.repository.js";
 import { hashPassword, verifyPassword } from "@payvo/shared/crypto";
 import RefreshTokenRepository from "../repository/refresh-token.repository.js";
@@ -20,10 +21,11 @@ import { AuthContract } from "../contract/auth.contract.js";
 @injectable()
 export default class AuthService implements AuthContract {
   constructor(
-    @inject(TYPES.UserRepository) private readonly userRepo: UserRepository,
-    @inject(TYPES.SessionRepository)
+    @inject(UserTypes.UserRepository)
+    private readonly userRepo: UserRepository,
+    @inject(AuthTypes.SessionRepository)
     private readonly sessionRepo: SessionRepository,
-    @inject(TYPES.RefreshTokenRepository)
+    @inject(AuthTypes.RefreshTokenRepository)
     private readonly refreshTokenRepo: RefreshTokenRepository,
   ) {}
 

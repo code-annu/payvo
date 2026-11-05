@@ -1,7 +1,7 @@
 import { buildSuccessResponse, StatusCode } from "@payvo/shared/api";
 import { injectable, inject } from "inversify";
 import { Request, Response } from "express";
-import TYPES from "@/core/di/inversify.types.js";
+import { AuthTypes } from "./auth.types.js";
 import AuthService from "./application/auth.service.js";
 import {
   clearRefreshCookie,
@@ -14,7 +14,7 @@ import { AuthRequest } from "@/core/middleware/authenticate.middleware.js";
 @injectable()
 export default class AuthController {
   constructor(
-    @inject(TYPES.AuthService)
+    @inject(AuthTypes.AuthService)
     private readonly authService: AuthService,
   ) {}
 
