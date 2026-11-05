@@ -2,14 +2,14 @@ import { buildSuccessResponse, StatusCode } from "@payvo/shared/api";
 import { Response } from "express";
 import { inject, injectable } from "inversify";
 import { catchAsync } from "@payvo/http/handler";
-import TYPES from "@/core/di/inversify.types.js";
+import { AccountTypes } from "../account.types.js";
 import { AuthRequest } from "@/core/middleware/authenticate.middleware.js";
-import AccountService from "./application/account.service.js";
+import AccountService from "../application/service/account.service.js";
 
 @injectable()
 export default class AccountController {
   constructor(
-    @inject(TYPES.AccountService)
+    @inject(AccountTypes.AccountService)
     private readonly accountService: AccountService,
   ) {}
 

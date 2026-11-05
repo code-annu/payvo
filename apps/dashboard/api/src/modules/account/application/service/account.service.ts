@@ -1,28 +1,30 @@
 import { dbTransaction } from "@payvo/database/client";
 import { inject, injectable } from "inversify";
-import TYPES from "@/core/di/inversify.types.js";
-import AccountMapper from "../account.mapper.js";
-import * as accountErrors from "../error/account.errors.js";
-import UserPreferencesRepository from "../repository/user-preferences.repository.js";
-import UserProfileRepository from "../repository/user-profile.repository.js";
-import * as accountSchemas from "../schema/account.schema.js";
-import { AccountDetailOutput } from "./dto/account.dto.js";
+import { AccountTypes } from "../../account.types.js";
+import { UserTypes } from "@/modules/user/user.types.js";
+import { AuthTypes } from "@/modules/auth/auth.types.js";
+import * as accountErrors from "../../error/account.errors.js";
+import * as accountSchemas from "../../schema/account.schema.js";
 import { removeUndefined } from "@payvo/shared/util";
 import type { UserContract } from "@/modules/user/contract/user.contract.js";
 import type { AuthContract } from "@/modules/auth/contract/auth.contract.js";
+import UserPreferencesRepository from "../../repository/user-preferences.repository.js";
+import UserProfileRepository from "../../repository/user-profile.repository.js";
+import { AccountDetailOutput } from "../dto/account.dto.js";
+import AccountMapper from "../../mapper/account.mapper.js";
 
 @injectable()
 export default class AccountService {
   constructor(
-    @inject(TYPES.UserProfileRepository)
+    @inject(AccountTypes.UserProfileRepository)
     private readonly userProfileRepo: UserProfileRepository,
-    @inject(TYPES.UserPreferencesRepository)
+    @inject(AccountTypes.UserPreferencesRepository)
     private readonly userPreferencesRepo: UserPreferencesRepository,
-    @inject(TYPES.AccountMapper)
+    @inject(AccountTypes.AccountMapper)
     private readonly accountMapper: AccountMapper,
-    @inject(TYPES.UserService)
+    @inject(UserTypes.UserService)
     private readonly userService: UserContract,
-    @inject(TYPES.AuthService)
+    @inject(AuthTypes.AuthService)
     private readonly authService: AuthContract,
   ) {}
 

@@ -1,6 +1,10 @@
 import { AppError } from "@payvo/shared/error";
-import AccountErrorCode from "./AccountErrorCode.js";
 import { StatusCode } from "@payvo/shared/api";
+
+export enum AccountErrorCode {
+  ACCOUNT_ALREADY_EXISTS = "ACCOUNT_ALREADY_EXISTS",
+  ACCOUNT_NOT_FOUND = "ACCOUNT_NOT_FOUND",
+}
 
 export class AccountAlreadyExistsError extends AppError {
   constructor(message = "Account already exists") {

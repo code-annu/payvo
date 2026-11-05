@@ -1,11 +1,11 @@
 import { injectable } from "inversify";
-import { AccountDetailOutput } from "./application/dto/account.dto.js";
 import {
   SupportedCurrency,
   SupportedLanguage,
   UserPreference,
   UserProfile,
 } from "@payvo/database/types";
+import { AccountDetailOutput } from "../application/dto/account.dto.js";
 
 type UserPreferencesWitRelation = UserPreference & {
   preferredLanguage: SupportedLanguage;

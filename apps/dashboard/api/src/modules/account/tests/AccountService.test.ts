@@ -7,17 +7,17 @@ import {
   type UserPreference,
   type UserProfile,
 } from "@payvo/database/types";
-import AccountService from "./application/account.service.js";
-import * as accountErrors from "./error/account.errors.js";
-import AccountMapper from "./account.mapper.js";
-import UserPreferencesRepository from "./repository/user-preferences.repository.js";
-import UserProfileRepository from "./repository/user-profile.repository.js";
+import AccountService from "../application/service/account.service.js";
+import * as accountErrors from "../error/account.errors.js";
+import AccountMapper from "../mapper/account.mapper.js";
+import UserPreferencesRepository from "../repository/user-preferences.repository.js";
+import UserProfileRepository from "../repository/user-profile.repository.js";
 import type { AuthContract } from "@/modules/auth/contract/auth.contract.js";
 import type { UserContract } from "@/modules/user/contract/user.contract.js";
 import type {
   CreateAccountInput,
   UpdateAccountInput,
-} from "./schema/account.schema.js";
+} from "../schema/account.schema.js";
 
 vi.mock("@payvo/database/client", () => ({
   dbTransaction: vi.fn(),
@@ -102,7 +102,7 @@ function createAccountServiceTestContext() {
       async (
         _data: { userId: string; now: Date },
         _tx?: TransactionClient,
-      ) => {},
+      ) => { },
     ),
   };
   const authService: AuthContract = {
@@ -110,7 +110,7 @@ function createAccountServiceTestContext() {
       async (
         _tx: TransactionClient,
         _data: { userId: string; now: Date },
-      ) => {},
+      ) => { },
     ),
   };
 

@@ -1,20 +1,20 @@
 import { Router } from "express";
 import { inject, injectable } from "inversify";
 import { validateRequest } from "@payvo/http/validation";
-import TYPES from "@/core/di/inversify.types.js";
+import { AccountTypes } from "../account.types.js";
 import authenticateUser from "@/core/middleware/authenticate.middleware.js";
-import AccountController from "./account.controller.js";
+import AccountController from "../controller/account.controller.js";
 import {
   CreateAccountSchema,
   UpdateAccountSchema,
-} from "./schema/account.schema.js";
+} from "../schema/account.schema.js";
 
 @injectable()
 export default class AccountRouter {
   readonly router: Router;
 
   constructor(
-    @inject(TYPES.AccountController)
+    @inject(AccountTypes.AccountController)
     private readonly accountController: AccountController,
   ) {
     this.router = Router();
