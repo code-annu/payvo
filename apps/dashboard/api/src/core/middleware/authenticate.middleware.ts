@@ -6,8 +6,8 @@ import {
 } from "@/modules/auth/error/auth.errors.js";
 import { jwtConfig } from "@payvo/config/auth";
 import { AccessTokenPayload, verifyAccessToken } from "@payvo/shared/jwt";
-import container from "../di/inversify.config.js";
-import TYPES from "../di/inversify.types.js";
+import container from "../di/container.js";
+import { UserTypes } from "@/modules/user/user.types.js";
 import UserRepository from "@/modules/user/repository/user.repository.js";
 
 export interface AuthRequest extends Request {
@@ -19,7 +19,7 @@ export default async function authenticateUser(
   _res: Response,
   next: NextFunction,
 ) {
-  const userRepo = container.get<UserRepository>(TYPES.UserRepository);
+  const userRepo = container.get<UserRepository>(UserTypes.UserRepository);
 
   const authHeader = req.headers.authorization;
   if (!authHeader || !authHeader.startsWith("Bearer ")) {

@@ -1,13 +1,14 @@
 import { inject, injectable } from "inversify";
 import { UserContract } from "../contract/user.contract.js";
-import TYPES from "@/core/di/inversify.types.js";
+import { UserTypes } from "../user.types.js";
 import UserRepository from "../repository/user.repository.js";
 import type { TransactionClient } from "@payvo/database/client";
 
 @injectable()
 export default class UserService implements UserContract {
   constructor(
-    @inject(TYPES.UserRepository) private readonly userRepo: UserRepository,
+    @inject(UserTypes.UserRepository)
+    private readonly userRepo: UserRepository,
   ) {}
 
   async deleteUser(
